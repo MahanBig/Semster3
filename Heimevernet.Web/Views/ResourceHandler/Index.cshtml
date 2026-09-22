@@ -1,21 +1,41 @@
 ﻿@using Heimevernet.Web.Models.ViewModels.Resource
-@model ResourceViewModel
+@model List<ResourceViewModel>
 @{
-    ViewData["Title"] = "Ressurs";
+    ViewData["Title"] = "Ressurser";
 }
 
-<form asp-controller="ResourceHandler" asp-action="Create" method="post">
-    <div>
-        <label asp-for="Name"></label>
-        <input asp-for="Name" />
+<h1>Ressurser</h1>
+
+@if (Model.Count == 0)
+{
+    <p>Ingen ressurser er registrert ennå.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <caption>Registrerte ressurser. Velg et navn for å se detaljer.</caption>
+            <thead>
+                <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Navn</th>
+                    <th scope="col">Beskrivelse</th>
+                    <th scope="col">Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var resource in Model)
+                {
+                    <tr>
+                        <td>@resource.Id</td>
+                        <td>
+                            <a asp-controller="Resource" asp-action="Index" asp-route-id="@resource.Id">@resource.Name</a>
+                        </td>
+                        <td>@resource.Description</td>
+                        <td>@resource.Type</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
     </div>
-    <div>
-        <label asp-for="Description"></label>
-        <input asp-for="Description" />
-    </div>
-    <div>
-        <label asp-for="Type"></label>
-        <input asp-for="Type" />
-    </div>
-    <button type="submit">Create</button>
-</form>
+}

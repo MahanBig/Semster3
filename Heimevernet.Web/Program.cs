@@ -1,12 +1,24 @@
+using Heimevernet.Web.DataAccess;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-//Do Dependency Injection for the services
 
+// Aspire supplies this named connection before starting the website.
+var connectionString = builder.Configuration.GetConnectionString("heimevernetdb");
 
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "Missing connection string 'heimevernetdb'. Start the Aspire AppHost or " +
+        "configure ConnectionStrings:heimevernetdb using user secrets.");
+}
 
-//Done with dependency injection for the services
+builder.Services.AddDbContext<HeimevernetDbContext>(options =>
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

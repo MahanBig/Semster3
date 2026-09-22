@@ -61,7 +61,7 @@ The AppHost is not the website itself. It is the program that describes the loca
 4. The controller returns a Razor view from `Heimevernet.Web/Views`.
 5. The layout and static files provide the shared page structure and styling.
 
-The current MVC application is a scaffold with Home, Privacy, and Error pages. The database connection is prepared by Aspire, but the application does not yet contain database models, migrations, or data-access code.
+The MVC application has Home, Privacy, Error, and resource pages. Entity Framework Core is connected to Aspire's MariaDB configuration through `HeimevernetDbContext`. The context does not yet contain database entities or migrations, and the resource pages still use their existing sample data.
 
 ## Start the complete application
 
@@ -92,14 +92,43 @@ You can run the MVC project without Aspire:
 dotnet run --project .\Heimevernet.Web\Heimevernet.Web.csproj
 ```
 
-This is useful when working only on views, controllers, or CSS. It does not start MariaDB or the Aspire dashboard, so database-dependent features will not work unless their connection is configured separately.
+This does not start MariaDB or the Aspire dashboard. Following the reference project's startup pattern, the web project requires a connection string even when run on its own. Configure it using the user-secrets command below before starting the web project directly.
+
+## MariaDB and Entity Framework Core
+
+Entity Framework Core (EF Core) lets C# classes represent database records and translates queries and changes into SQL. The Pomelo provider is the package that enables EF Core to communicate with MariaDB.
+
+The database setup follows the [`DataAccess` structure in UIA202_2026](https://github.com/espenlimi/UIA202_2026/tree/0e0a6ed71f24f5f4c46a62c8c67442571ac5a46c/Heimevernet.Web/DataAccess):
+
+- `Heimevernet.Web/DataAccess/HeimevernetDbContext.cs` defines the database context, which represents a session with the database. Its primary constructor (the parameters beside the class name) receives connection options and passes them to EF Core's `DbContext`. Future database entity classes will be exposed through `DbSet<TEntity>` properties here.
+- `Heimevernet.Web/Program.cs` registers the context with dependency injection. A controller or service can request `HeimevernetDbContext` in its constructor, and ASP.NET Core supplies one instance per request and disposes it afterward.
+- `Heimevernet.Web/DataAccess/HeimevernetDbContextFactory.cs` creates a context for EF command-line tools. This is called at design time, meaning while developing database changes, rather than while serving web requests.
+
+When started through Aspire, the web project receives `ConnectionStrings:heimevernetdb` automatically from `.WithReference(mariaDb)`. No password needs to be added to `appsettings.json`.
+
+At runtime, `ServerVersion.AutoDetect` connects to MariaDB when the context is requested to determine which SQL features the server supports. The database must be reachable at that point. A missing connection string stops website startup with an error explaining how to configure it.
+
+For standalone development against an existing MariaDB database, store the connection string in user secrets from the repository root. Replace the example values with your actual database, port, username, and password:
+
+```powershell
+dotnet user-secrets set "ConnectionStrings:heimevernetdb" "Server=localhost;Port=3306;Database=heimevernetdb;User ID=YOUR_USER;Password=YOUR_PASSWORD;" --project .\Heimevernet.Web\Heimevernet.Web.csproj
+dotnet run --project .\Heimevernet.Web\Heimevernet.Web.csproj
+```
+
+User secrets are stored outside the repository so credentials are not committed to Git. They are a development convenience, not an encrypted password vault. Aspire may assign a different host port, so use the connection details for the running database if connecting to its container manually.
+
+For deployment, the equivalent environment variable is `ConnectionStrings__heimevernetdb`.
+
+The design-time factory follows the reference's separate configuration: it reads `ConnectionStrings__heimevernetdb` directly and uses MariaDB 10.11 as a SQL compatibility baseline. This fixed version lets EF generate migrations without connecting to MariaDB; it is not a claim about the running container's version. Without the environment variable, the factory uses a localhost placeholder with an empty password for offline generation. For EF commands that actually access the database, set the environment variable to a real connection string; the factory does not load the website's user secrets.
+
+The project uses Pomelo 9.0.0 with EF Core 9.0.20. EF Core 9 works with the application's .NET 10 target; the provider must match EF Core's major version. See the [Pomelo compatibility table](https://github.com/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql#compatibility). The `Microsoft.EntityFrameworkCore.Design` package supports future migration commands. A migration records changes to database tables; none are created or applied by this connection setup.
 
 ## Run the tests
 
 Run all tests with:
 
 ```powershell
-dotnet test .\Heimevernet.Web.UnitTests\Heimevernet.Web.UnitTests.csproj
+dotnet test --project .\Heimevernet.Web.UnitTests\Heimevernet.Web.UnitTests.csproj
 ```
 
 Build the complete solution with:
@@ -113,6 +142,7 @@ dotnet build .\Heimevernet.slnx
 - Connect it to your own GitHub repository (optional).
 - Add or update page actions in `Heimevernet.Web/Controllers`.
 - Add page-specific data models in `Heimevernet.Web/Models`.
+- Configure database access and add entity sets in `Heimevernet.Web/DataAccess/HeimevernetDbContext.cs`.
 - Add Razor views in `Heimevernet.Web/Views`.
 - Add styling in `Heimevernet.Web/wwwroot/css`.
 - Add browser JavaScript in `Heimevernet.Web/wwwroot/js`.

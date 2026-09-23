@@ -3,10 +3,8 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// Aspire supplies this named connection before starting the website.
 var connectionString = builder.Configuration.GetConnectionString("heimevernetdb");
 
 if (string.IsNullOrWhiteSpace(connectionString))
@@ -18,10 +16,19 @@ if (string.IsNullOrWhiteSpace(connectionString))
 
 builder.Services.AddDbContext<HeimevernetDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+builder.Services.AddScoped<IResourceRepository, EfResourceRepository>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Apply table changes before adding sample records, following the reference project.
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<HeimevernetDbContext>();
+    dbContext.Database.Migrate();
+    ResourceDbSeeder.Seed(dbContext);
+}
+
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");

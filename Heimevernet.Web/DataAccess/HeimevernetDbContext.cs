@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Heimevernet.Web.DataAccess;
 
-public class HeimevernetDbContext(DbContextOptions<HeimevernetDbContext> options) : DbContext(options)
+public class HeimevernetDbContext(DbContextOptions<HeimevernetDbContext> options) : DbContext(options) // Koblingen mellom C#-koden og databasen.
 {
     // legg til database entiteter her
     public DbSet<Resource> Resources => Set<Resource>();

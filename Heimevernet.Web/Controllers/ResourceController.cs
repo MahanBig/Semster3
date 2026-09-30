@@ -5,7 +5,7 @@ using Heimevernet.Web.Models.ViewModels.Resource;
 
 namespace Heimevernet.Web.Controllers
 {
-    public class ResourceController : Controller
+    public class ResourceController : Controller // Controller for detaljsiden til én ressurs
     {
         private readonly IResourceRepository _resourceRepository;
 
@@ -14,10 +14,10 @@ namespace Heimevernet.Web.Controllers
             _resourceRepository = resourceRepository;
         }
 
-        [HttpGet]
+        [HttpGet] 
         public IActionResult Index(int? id = null)
         {
-            if (!id.HasValue)
+            if (!id.HasValue) // Ingen id i URL-en: send brukeren tilbake til ressurslisten.
             {
                 return RedirectToAction("Index", "ResourceHandler");
             }
@@ -28,7 +28,7 @@ namespace Heimevernet.Web.Controllers
                 return NotFound();
             }
 
-            var viewModel = new ResourceViewModel
+            var viewModel = new ResourceViewModel  // Vi mapper entiteten til en view model, så viewet bare får feltene det trenger.
             {
                 Id = resource.Id,
                 Name = resource.Name,

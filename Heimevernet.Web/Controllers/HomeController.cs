@@ -5,10 +5,10 @@ using Heimevernet.Web.Models.ViewModels;
 
 namespace Heimevernet.Web.Controllers;
 
-public class HomeController : Controller
+public class HomeController : Controller  
 {
     private readonly ILogger<HomeController> _logger;
-    private static List<PositionModel> positions = new List<PositionModel>();
+    private static List<PositionModel> positions = new List<PositionModel>(); 
     public IActionResult Index()
     {
         return View();
@@ -27,18 +27,18 @@ public class HomeController : Controller
 
     [HttpGet]
 
-    public IActionResult CorrectMap()
+    public IActionResult CorrectMap() 
     {
         return View();
     }
 
     [HttpPost]
-    public IActionResult CorrectMap(PositionModel model)
+    public IActionResult CorrectMap(PositionModel model) 
     {
-        if (ModelState.IsValid)
+        if (ModelState.IsValid) 
         {
             positions.Add(model);
-            return View("CorrectionOverview", positions);
+            return View("CorrectionOverview", positions); 
         }
         return View();
     }

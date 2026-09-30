@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Heimevernet.Web.DataAccess;
 
-public class EfResourceRepository(HeimevernetDbContext dbContext) : IResourceRepository
+public class EfResourceRepository(HeimevernetDbContext dbContext) : IResourceRepository // Henter ressurser fra MariaDB med Entity Framework Core.
 {
     public IReadOnlyCollection<Resource> GetAll()
     {
@@ -15,7 +15,7 @@ public class EfResourceRepository(HeimevernetDbContext dbContext) : IResourceRep
             .AsReadOnly();
     }
 
-    public Resource? GetById(int id)
+    public Resource? GetById(int id) // Returnerer null hvis det ikke finnes en ressurs med denne id-en.
     {
         return dbContext.Resources
             .AsNoTracking()

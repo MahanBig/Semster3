@@ -5,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 
-var connectionString = builder.Configuration.GetConnectionString("heimevernetdb");
+var connectionString = builder.Configuration.GetConnectionString("heimevernetdb"); // Tilkoblingsstrengen kommer fra Aspire (WithReference) eller fra user secrets.
 
 if (string.IsNullOrWhiteSpace(connectionString))
 {
@@ -14,7 +14,7 @@ if (string.IsNullOrWhiteSpace(connectionString))
         "configure ConnectionStrings:heimevernetdb using user secrets.");
 }
 
-builder.Services.AddDbContext<HeimevernetDbContext>(options =>
+builder.Services.AddDbContext<HeimevernetDbContext>(options => // Registrerer databasen, slik at den kan brukes via dependency injection.
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 builder.Services.AddScoped<IResourceRepository, EfResourceRepository>();
 
@@ -24,7 +24,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<HeimevernetDbContext>();
-    dbContext.Database.Migrate();
+    dbContext.Database.Migrate(); 
     ResourceDbSeeder.Seed(dbContext);
 }
 
@@ -35,7 +35,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
     app.UseHsts();
 }
-app.UseRouting();
+app.UseRouting(); // Rekkefølgen hver forespørsel går gjennom.
 
 app.UseAuthorization();
 

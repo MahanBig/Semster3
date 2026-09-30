@@ -2,7 +2,7 @@ using Heimevernet.Web.Models.Entities;
 
 namespace Heimevernet.Web.DataAccess;
 
-public static class ResourceDbSeeder
+public static class ResourceDbSeeder 
 {
     public static void Seed(HeimevernetDbContext dbContext)
     {

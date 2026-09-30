@@ -4,16 +4,16 @@ using Heimevernet.Web.DataAccess;
 
 namespace Heimevernet.Web.Controllers
 {
-    public class ResourceHandlerController : Controller
+    public class ResourceHandlerController : Controller // Controller for ressurslisten (/ResourceHandler).
     {
         private readonly IResourceRepository _resourceRepository;
 
-        public ResourceHandlerController(IResourceRepository resourceRepository)
+        public ResourceHandlerController(IResourceRepository resourceRepository) // Repository kommer inn via dependency injection. Det er registrert i Program.cs.
         {
             _resourceRepository = resourceRepository;
         }
 
-        [HttpGet]
+        [HttpGet] // Henter alle ressurser fra databasen og sender dem til viewet som en liste.
         public IActionResult Index()
         {
             // Give the view the fields it needs for displaying each database row.

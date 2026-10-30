@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Heimevernet.Web.Models;
 using Heimevernet.Web.Models.ViewModels;
@@ -26,13 +27,14 @@ public class HomeController : Controller
     }
 
     [HttpGet]
-
+    [Authorize] // Må være logget inn for å registrere en posisjon.
     public IActionResult CorrectMap() 
     {
         return View();
     }
 
     [HttpPost]
+    [Authorize]
     public IActionResult CorrectMap(PositionModel model) 
     {
         if (ModelState.IsValid) 

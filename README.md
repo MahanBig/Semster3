@@ -46,6 +46,22 @@ docker compose down -v       # stopper og sletter volumer (data)
 |---|---|---|
 | `ASPNETCORE_ENVIRONMENT` | `docker-compose.yml` | `Development` / `Production` |
 | Connection string | `appsettings.json` / miljøvariabel | MariaDB |
+| `admin-email` | `Heimevernet.Aspire.AppHost/appsettings.json` | E-post til første admin-bruker |
+| `admin-password` | User secrets i AppHost (se under) | Passord til første admin-bruker. Ligger aldri i Git |
+
+### Innlogging, brukere og roller
+
+Appen bruker ASP.NET Core Identity. Brukere og roller lagres i MariaDB (tabellene `AspNetUsers`, `AspNetRoles`, `AspNetUserRoles` m.fl.).
+
+- Rollene `Admin` og `Bruker` lages automatisk ved oppstart.
+- Nye brukere registrerer seg på `/Account/Register` og får rollen `Bruker`.
+- En admin-bruker lages ved oppstart med e-post og passord fra Aspire-parameterne. Sett passordet én gang:
+
+```bash
+dotnet user-secrets set "Parameters:admin-password" "EtSterktPassord1!" --project Heimevernet.Aspire/Heimevernet.Aspire.AppHost
+```
+
+- `Korriger kart` krever innlogging. `Brukere` (`/UserAdmin`) krever rollen `Admin`.
 
 
 ---
@@ -113,6 +129,10 @@ Manual tests
 | 2 | Open Ressurser | A list of resources from the database is shown | Passed |
 | 3 | Click a resource | The details page for that resource is shown | Passed |
 | 4 | Open Korriger kart, click the map, write a description and submit | The overview page shows the position in a table and on the map | Passed |
+| 5 | Open Korriger kart without being logged in | Redirected to the login page | |
+| 6 | Register a new user | Logged in automatically, with role Bruker | |
+| 7 | Log in as a Bruker and open /UserAdmin | "Ingen tilgang" page is shown | |
+| 8 | Log in as admin, open Brukere and give a user the Admin role | The role is shown in the table and saved in AspNetUserRoles | |
 
 ## 4. Bruk av KI
 

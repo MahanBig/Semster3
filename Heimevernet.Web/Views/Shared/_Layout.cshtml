@@ -34,7 +34,14 @@
                         <li>
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="CorrectMap">Korriger kart</a>
                         </li>
+                        @if (User.IsInRole(AppRoles.Admin))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-controller="UserAdmin" asp-action="Index">Brukere</a>
+                            </li>
+                        }
                     </ul>
+                    <partial name="_LoginPartial" />
                 </div>
             </div>
         </nav>

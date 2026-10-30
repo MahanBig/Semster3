@@ -47,6 +47,22 @@ public class IdentitySeederTests
     }
 
     [Fact]
+    public async Task SeedAsync_WeakAdminPassword_LogsErrorButDoesNotThrow()
+    {
+        using var database = new SqliteTestDatabase();
+        using var services = IdentityTestServices.Create(database);
+        using var scope = services.CreateScope();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+
+        // "weakpass" has no capital letter, digit or symbol, so Identity refuses it.
+        await IdentitySeeder.SeedAsync(roleManager, userManager, AdminEmail, "weakpass", NullLogger.Instance);
+
+        Assert.Equal(AppRoles.All.Count, roleManager.Roles.Count());
+        Assert.Null(await userManager.FindByEmailAsync(AdminEmail));
+    }
+
+    [Fact]
     public async Task SeedAsync_WithoutAdminSettings_CreatesOnlyRoles()
     {
         using var database = new SqliteTestDatabase();

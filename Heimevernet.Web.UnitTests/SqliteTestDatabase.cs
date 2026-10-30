@@ -22,6 +22,14 @@ internal sealed class SqliteTestDatabase : IDbConnectionFactory, IDisposable
             ZipCode TEXT NULL,
             OwnerTelephoneNumber TEXT NULL);
 
+        CREATE TABLE Positions (
+            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+            Latitude REAL NOT NULL,
+            Longitude REAL NOT NULL,
+            Description TEXT NOT NULL,
+            CreatedBy TEXT NULL,
+            CreatedAtUtc TEXT NOT NULL);
+
         CREATE TABLE AspNetUsers (
             Id TEXT NOT NULL PRIMARY KEY,
             UserName TEXT NULL,

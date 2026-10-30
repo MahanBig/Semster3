@@ -1,17 +1,20 @@
 using Heimevernet.Web.DataAccess;
 using Heimevernet.Web.DataAccess.Identity;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 
-var connectionString = builder.Configuration.GetConnectionString("heimevernetdb"); // Tilkoblingsstrengen kommer fra Aspire (WithReference) eller fra user secrets.
+// Tilkoblingsstrengen kommer fra docker-compose.yml (miljøvariabelen ConnectionStrings__heimevernetdb),
+// eller fra user secrets hvis du kjører web-prosjektet direkte i Visual Studio.
+var connectionString = builder.Configuration.GetConnectionString("heimevernetdb");
 
 if (string.IsNullOrWhiteSpace(connectionString))
 {
     throw new InvalidOperationException(
-        "Missing connection string 'heimevernetdb'. Start the Aspire AppHost or " +
+        "Missing connection string 'heimevernetdb'. Start the app with 'docker compose up --build' or " +
         "configure ConnectionStrings:heimevernetdb using user secrets.");
 }
 
@@ -19,6 +22,7 @@ if (string.IsNullOrWhiteSpace(connectionString))
 // Repository og Identity-stores ber den om en ny tilkobling hver gang de skal kjøre SQL.
 builder.Services.AddSingleton<IDbConnectionFactory>(new MySqlConnectionFactory(connectionString));
 builder.Services.AddScoped<IResourceRepository, DapperResourceRepository>();
+builder.Services.AddScoped<IPositionRepository, DapperPositionRepository>();
 
 // Identity: brukere (IdentityUser) og roller (IdentityRole).
 // Identity tar seg av passord-hashing, cookies og regler. Lagringen gjør våre egne Dapper-klasser.
@@ -31,6 +35,16 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
     .AddUserStore<DapperUserStore>()  // Brukere -> AspNetUsers, AspNetUserRoles
     .AddRoleStore<DapperRoleStore>()  // Roller  -> AspNetRoles
     .AddDefaultTokenProviders();      // Trengs f.eks. for "glemt passord" senere.
+
+// Innloggings-cookien krypteres med nøkler (Data Protection). I Docker lagres nøklene i et volum
+// (DataProtection__KeysPath i docker-compose.yml), ellers ville alle blitt logget ut ved hver omstart.
+var keysPath = builder.Configuration["DataProtection:KeysPath"];
+if (!string.IsNullOrWhiteSpace(keysPath))
+{
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo(keysPath))
+        .SetApplicationName("Heimevernet");
+}
 
 // Innloggingen huskes i en cookie. Her sier vi hvor brukeren sendes når det trengs.
 builder.Services.ConfigureApplicationCookie(options =>

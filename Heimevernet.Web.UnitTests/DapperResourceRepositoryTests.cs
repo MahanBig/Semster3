@@ -1,5 +1,6 @@
 using Dapper;
 using Heimevernet.Web.DataAccess;
+using Heimevernet.Web.Models.Entities;
 
 namespace Heimevernet.Web.UnitTests;
 
@@ -44,5 +45,26 @@ public class DapperResourceRepositoryTests
         Assert.Equal("Nine seats", selectedResource.Description);
         Assert.Equal("Vehicle", selectedResource.Type);
         Assert.Null(missingResource);
+    }
+
+    [Fact]
+    public void Add_SavesAllFieldsAndReturnsNewId()
+    {
+        using var database = new SqliteTestDatabase();
+        var repository = new DapperResourceRepository(database);
+
+        var id = repository.Add(new Resource
+        {
+            Name = "Aggregat", Description = "Strømaggregat 5 kW", Type = "Utstyr",
+            Address = "Storgata 1", City = "Lillesand", ZipCode = "4790", OwnerTelephoneNumber = "12345678"
+        });
+
+        var saved = repository.GetById(id);
+        Assert.NotNull(saved);
+        Assert.Equal("Aggregat", saved.Name);
+        Assert.Equal("Storgata 1", saved.Address);
+        Assert.Equal("Lillesand", saved.City);
+        Assert.Equal("4790", saved.ZipCode);
+        Assert.Equal("12345678", saved.OwnerTelephoneNumber);
     }
 }

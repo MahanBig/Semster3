@@ -8,7 +8,9 @@
     <DockerLaunchAction>LaunchBrowser</DockerLaunchAction>
     <DockerServiceUrl>http://localhost:8080</DockerServiceUrl>
     <DockerServiceName>heimevernet-web</DockerServiceName>
-    <!-- Regular: bygger hele Dockerfile, akkurat som "docker compose up --build". -->
+    <!-- Samme navn som "docker compose" i terminalen bruker (mappenavnet), så begge deler samme database. -->
+    <DockerComposeProjectName>semster3</DockerComposeProjectName>
+    <!-- Regular: bygger hele Dockerfile, akkurat som "docker compose up" med build-valget. -->
     <DockerDevelopmentMode>Regular</DockerDevelopmentMode>
   </PropertyGroup>
   <ItemGroup>

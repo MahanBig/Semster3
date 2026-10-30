@@ -1,11 +1,35 @@
-﻿@using Heimevernet.Web.Models.ViewModels.Resource
+@using Heimevernet.Web.Models.ViewModels.Resource
 @model ResourceViewModel
 @{
-    ViewData["Title"] = "Ressurs";
+    ViewData["Title"] = Model.Name;
+    // "Storgata 1, 4790 Lillesand" – tomme deler hoppes over.
+    var place = $"{Model.ZipCode} {Model.City}".Trim();
+    var fullAddress = string.Join(", ", new[] { Model.Address, place }.Where(part => !string.IsNullOrWhiteSpace(part)));
+}
+
+@if (TempData["Message"] is string message)
+{
+    <div class="alert alert-success" role="status">@message</div>
 }
 
 <h1>@Model.Name</h1>
 <p>@Model.Description</p>
-<p>Type: @Model.Type</p>
+
+<dl class="row">
+    <dt class="col-sm-3">Type</dt>
+    <dd class="col-sm-9">@Model.Type</dd>
+
+    @if (fullAddress.Length > 0)
+    {
+        <dt class="col-sm-3">Adresse</dt>
+        <dd class="col-sm-9">@fullAddress</dd>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.OwnerTelephoneNumber))
+    {
+        <dt class="col-sm-3">Eiers telefon</dt>
+        <dd class="col-sm-9"><a href="tel:@Model.OwnerTelephoneNumber">@Model.OwnerTelephoneNumber</a></dd>
+    }
+</dl>
 
 <a asp-controller="ResourceHandler" asp-action="Index">Tilbake til ressurslisten</a>

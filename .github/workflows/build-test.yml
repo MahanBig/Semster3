@@ -28,17 +28,17 @@ jobs:
         with:
           global-json-file: global.json
 
-      # Vi bygger prosjektene hver for seg i stedet for hele løsningen, fordi docker-compose.dcproj
-      # bare kan bygges av Visual Studio (dotnet-kommandoen på Linux kjenner ikke Microsoft.Docker.Sdk).
+      # Vi bygger testprosjektet (som også bygger Heimevernet.Web) i stedet for hele løsningen, fordi
+      # docker-compose.dcproj bare kan bygges av Visual Studio (dotnet på Linux kjenner ikke Microsoft.Docker.Sdk).
       - name: Restore dependencies
-        run: |
-          dotnet restore ./Heimevernet.Web.UnitTests/Heimevernet.Web.UnitTests.csproj
-          dotnet restore ./Heimevernet.Aspire/Heimevernet.Aspire.AppHost/Heimevernet.Aspire.AppHost.csproj
+        run: dotnet restore ./Heimevernet.Web.UnitTests/Heimevernet.Web.UnitTests.csproj
 
       - name: Build projects
-        run: |
-          dotnet build ./Heimevernet.Web.UnitTests/Heimevernet.Web.UnitTests.csproj --configuration Release --no-restore
-          dotnet build ./Heimevernet.Aspire/Heimevernet.Aspire.AppHost/Heimevernet.Aspire.AppHost.csproj --configuration Release --no-restore
+        run: dotnet build ./Heimevernet.Web.UnitTests/Heimevernet.Web.UnitTests.csproj --configuration Release --no-restore
+
+      # Sjekker at Dockerfile fortsatt bygger, slik docker compose gjør.
+      - name: Build Docker image
+        run: docker build --file Heimevernet.Web/Dockerfile --tag heimevernet-web:ci .
 
       - name: Run tests
         run: dotnet test --project ./Heimevernet.Web.UnitTests/Heimevernet.Web.UnitTests.csproj --configuration Release --no-build --no-restore --verbosity normal

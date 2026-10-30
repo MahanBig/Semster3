@@ -24,4 +24,20 @@ public class DapperResourceRepository(IDbConnectionFactory connectionFactory) : 
         // ved å sende inn ondsinnet tekst (SQL injection). Lim aldri brukerdata rett inn i SQL-strengen.
         return connection.QuerySingleOrDefault<Resource>($"{SelectResources} WHERE Id = @Id", new { Id = id });
     }
+
+    public int Add(Resource resource)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        using var connection = connectionFactory.CreateConnection();
+
+        // Id står ikke med: MariaDB lager den (AUTO_INCREMENT), og RETURNING Id gir oss den tilbake.
+        return connection.ExecuteScalar<int>(
+            """
+            INSERT INTO Resources (Name, Description, Type, Address, City, ZipCode, OwnerTelephoneNumber)
+            VALUES (@Name, @Description, @Type, @Address, @City, @ZipCode, @OwnerTelephoneNumber)
+            RETURNING Id
+            """,
+            resource);
+    }
 }

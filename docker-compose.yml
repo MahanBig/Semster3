@@ -1,8 +1,8 @@
-# Starter appen og databasen i Docker uten Aspire.
+# Starter hele appen: MariaDB-databasen og web-appen, hver i sin container.
 #   Terminal:       docker compose up --build   (fra mappen Semster3)
 #   Visual Studio:  velg "Docker Compose" på start-knappen
-# Admin-passordet leses fra en fil som heter .env i samme mappe (ligger i .gitignore):
-#   ADMIN_PASSWORD=EtSterktPassord1!
+# Hemmelige verdier leses fra en fil som heter .env i samme mappe (ligger i .gitignore).
+# Kopier .env.example til .env og fyll inn verdiene.
 
 services:
   mariadb:
@@ -11,6 +11,10 @@ services:
       # Bare for lokal utvikling. Sett MARIADB_ROOT_PASSWORD i .env for å bruke et annet.
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-heimevernet-dev}
       MARIADB_DATABASE: heimevernetdb # Databasen lages automatisk første gang.
+    ports:
+      # Gjør databasen tilgjengelig fra Windows på port 3307, slik at web-prosjektet kan kjøres
+      # direkte i Visual Studio (profilen "http") mot den samme databasen. 3306 er ofte opptatt.
+      - "3307:3306"
     volumes:
       - mariadb-data:/var/lib/mysql # Dataene overlever at containeren stoppes.
     healthcheck:
@@ -33,9 +37,14 @@ services:
       ConnectionStrings__heimevernetdb: "Server=mariadb;Port=3306;Database=heimevernetdb;User=root;Password=${MARIADB_ROOT_PASSWORD:-heimevernet-dev}"
       AdminUser__Email: ${ADMIN_EMAIL:-admin@heimevernet.local}
       AdminUser__Password: ${ADMIN_PASSWORD:-}
+      # Innloggingsnøklene lagres i volumet under, så brukerne forblir innlogget etter omstart.
+      DataProtection__KeysPath: /keys
+    volumes:
+      - dataprotection-keys:/keys
     depends_on:
       mariadb:
         condition: service_healthy
 
 volumes:
   mariadb-data:
+  dataprotection-keys:

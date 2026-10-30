@@ -26,7 +26,7 @@ public static class IdentitySeeder
         }
 
         // Passordet skal aldri ligge i koden eller i Git. Det kommer fra konfigurasjon
-        // (Aspire-parameter eller user secrets). Mangler det, hopper vi bare over admin-brukeren.
+        // (ADMIN_PASSWORD i .env-filen som docker-compose.yml leser). Mangler det, hopper vi bare over admin-brukeren.
         if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
         {
             logger.LogWarning("AdminUser:Email or AdminUser:Password is not configured, so no admin user was created.");
@@ -37,7 +37,17 @@ public static class IdentitySeeder
         if (admin is null)
         {
             admin = new IdentityUser { UserName = adminEmail, Email = adminEmail, EmailConfirmed = true };
-            EnsureSucceeded(await userManager.CreateAsync(admin, adminPassword), "create the admin user");
+            var result = await userManager.CreateAsync(admin, adminPassword);
+            if (!result.Succeeded)
+            {
+                // Et for svakt passord skal ikke stoppe hele appen. Vi skriver en tydelig feil i loggen i stedet,
+                // og appen starter uten admin-bruker til passordet er rettet.
+                logger.LogError(
+                    "Could not create the admin user {Email}: {Errors} Fix ADMIN_PASSWORD in .env and restart.",
+                    adminEmail,
+                    string.Join(" ", result.Errors.Select(error => error.Description)));
+                return;
+            }
         }
 
         if (!await userManager.IsInRoleAsync(admin, AppRoles.Admin))

@@ -1,15 +1,16 @@
 using System.Diagnostics;
+using System.Globalization;
+using Heimevernet.Web.DataAccess;
+using Heimevernet.Web.Models;
+using Heimevernet.Web.Models.Entities;
+using Heimevernet.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Heimevernet.Web.Models;
-using Heimevernet.Web.Models.ViewModels;
 
 namespace Heimevernet.Web.Controllers;
 
-public class HomeController : Controller  
+public class HomeController(IPositionRepository positionRepository) : Controller
 {
-    private readonly ILogger<HomeController> _logger;
-    private static List<PositionModel> positions = new List<PositionModel>(); 
     public IActionResult Index()
     {
         return View();
@@ -28,26 +29,57 @@ public class HomeController : Controller
 
     [HttpGet]
     [Authorize] // Må være logget inn for å registrere en posisjon.
-    public IActionResult CorrectMap() 
+    public IActionResult CorrectMap()
     {
-        return View();
+        return View(new PositionModel());
     }
 
     [HttpPost]
     [Authorize]
-    public IActionResult CorrectMap(PositionModel model) 
+    [ValidateAntiForgeryToken] // Stopper at en annen nettside sender inn skjemaet på vegne av brukeren (CSRF).
+    public IActionResult CorrectMap(PositionModel model)
     {
-        if (ModelState.IsValid) 
+        // Tekst -> tall. InvariantCulture betyr punktum som desimaltegn, uansett språk på serveren.
+        var latitude = ParseCoordinate(model.Latitude);
+        var longitude = ParseCoordinate(model.Longitude);
+        if (latitude is null or < -90 or > 90)
         {
-            positions.Add(model);
-            return View("CorrectionOverview", positions); 
+            ModelState.AddModelError(nameof(model.Latitude), "Breddegraden må være mellom -90 og 90.");
         }
-        return View();
+        if (longitude is null or < -180 or > 180)
+        {
+            ModelState.AddModelError(nameof(model.Longitude), "Lengdegraden må være mellom -180 og 180.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        positionRepository.Add(new Position
+        {
+            Latitude = latitude!.Value,
+            Longitude = longitude!.Value,
+            Description = model.Description.Trim(),
+            CreatedBy = User?.Identity?.Name,
+            CreatedAtUtc = DateTime.UtcNow
+        });
+
+        // Post/Redirect/Get: etter lagring sender vi nettleseren til oversikten.
+        // Da lagres ikke posisjonen to ganger hvis brukeren trykker F5.
+        return RedirectToAction(nameof(CorrectionOverview));
     }
 
     [HttpGet]
     public IActionResult CorrectionOverview()
     {
-        return View(positions);
+        return View(positionRepository.GetAll());
+    }
+
+    private static double? ParseCoordinate(string? value)
+    {
+        return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number)
+            ? number
+            : null;
     }
 }

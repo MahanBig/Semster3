@@ -16,6 +16,17 @@ CREATE TABLE IF NOT EXISTS Resources (
     PRIMARY KEY (Id)
 );
 
+-- Posisjoner som brukerne har registrert på kartet (/Home/CorrectMap).
+CREATE TABLE IF NOT EXISTS Positions (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Latitude DOUBLE NOT NULL,
+    Longitude DOUBLE NOT NULL,
+    Description VARCHAR(1000) NOT NULL,
+    CreatedBy VARCHAR(256) NULL,         -- Brukernavnet til den som registrerte posisjonen.
+    CreatedAtUtc DATETIME(6) NOT NULL,   -- Tidspunkt i UTC.
+    PRIMARY KEY (Id)
+);
+
 -- Brukerne. Kolonnene tilsvarer egenskapene på IdentityUser.
 -- "Normalized"-kolonnene er STORE BOKSTAVER, så søk ikke skiller på store og små bokstaver.
 CREATE TABLE IF NOT EXISTS AspNetUsers (

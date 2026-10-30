@@ -28,11 +28,17 @@ jobs:
         with:
           global-json-file: global.json
 
+      # Vi bygger prosjektene hver for seg i stedet for hele løsningen, fordi docker-compose.dcproj
+      # bare kan bygges av Visual Studio (dotnet-kommandoen på Linux kjenner ikke Microsoft.Docker.Sdk).
       - name: Restore dependencies
-        run: dotnet restore ./Heimevernet.slnx
+        run: |
+          dotnet restore ./Heimevernet.Web.UnitTests/Heimevernet.Web.UnitTests.csproj
+          dotnet restore ./Heimevernet.Aspire/Heimevernet.Aspire.AppHost/Heimevernet.Aspire.AppHost.csproj
 
-      - name: Build solution
-        run: dotnet build ./Heimevernet.slnx --configuration Release --no-restore
+      - name: Build projects
+        run: |
+          dotnet build ./Heimevernet.Web.UnitTests/Heimevernet.Web.UnitTests.csproj --configuration Release --no-restore
+          dotnet build ./Heimevernet.Aspire/Heimevernet.Aspire.AppHost/Heimevernet.Aspire.AppHost.csproj --configuration Release --no-restore
 
       - name: Run tests
-        run: dotnet test ./Heimevernet.slnx --configuration Release --no-build --no-restore --verbosity normal
+        run: dotnet test --project ./Heimevernet.Web.UnitTests/Heimevernet.Web.UnitTests.csproj --configuration Release --no-build --no-restore --verbosity normal

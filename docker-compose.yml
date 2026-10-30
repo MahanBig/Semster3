@@ -1,0 +1,41 @@
+# Starter appen og databasen i Docker uten Aspire.
+#   Terminal:       docker compose up --build   (fra mappen Semster3)
+#   Visual Studio:  velg "Docker Compose" på start-knappen
+# Admin-passordet leses fra en fil som heter .env i samme mappe (ligger i .gitignore):
+#   ADMIN_PASSWORD=EtSterktPassord1!
+
+services:
+  mariadb:
+    image: mariadb:lts
+    environment:
+      # Bare for lokal utvikling. Sett MARIADB_ROOT_PASSWORD i .env for å bruke et annet.
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-heimevernet-dev}
+      MARIADB_DATABASE: heimevernetdb # Databasen lages automatisk første gang.
+    volumes:
+      - mariadb-data:/var/lib/mysql # Dataene overlever at containeren stoppes.
+    healthcheck:
+      # Web-appen venter til denne sier at MariaDB er klar (se depends_on under).
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  heimevernet-web:
+    image: heimevernet-web
+    build:
+      context: .                              # Byggekonteksten er rotmappen, slik Dockerfile forventer.
+      dockerfile: Heimevernet.Web/Dockerfile
+    ports:
+      - "8080:8080"                           # http://localhost:8080
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # "mariadb" er navnet på tjenesten over. Inne i Docker-nettverket fungerer det som et vertsnavn.
+      ConnectionStrings__heimevernetdb: "Server=mariadb;Port=3306;Database=heimevernetdb;User=root;Password=${MARIADB_ROOT_PASSWORD:-heimevernet-dev}"
+      AdminUser__Email: ${ADMIN_EMAIL:-admin@heimevernet.local}
+      AdminUser__Password: ${ADMIN_PASSWORD:-}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+volumes:
+  mariadb-data:

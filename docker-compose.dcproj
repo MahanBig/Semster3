@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Gjør docker-compose.yml til et prosjekt i Visual Studio, så "Docker Compose" dukker opp på start-knappen. -->
+<Project ToolsVersion="15.0" Sdk="Microsoft.Docker.Sdk">
+  <PropertyGroup Label="Globals">
+    <ProjectVersion>2.1</ProjectVersion>
+    <DockerTargetOS>Linux</DockerTargetOS>
+    <ProjectGuid>{4508B4D8-2CF2-4A34-89EA-D6EC43118F64}</ProjectGuid>
+    <DockerLaunchAction>LaunchBrowser</DockerLaunchAction>
+    <DockerServiceUrl>http://localhost:8080</DockerServiceUrl>
+    <DockerServiceName>heimevernet-web</DockerServiceName>
+    <!-- Regular: bygger hele Dockerfile, akkurat som "docker compose up --build". -->
+    <DockerDevelopmentMode>Regular</DockerDevelopmentMode>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="docker-compose.yml" />
+    <None Include=".dockerignore" />
+  </ItemGroup>
+</Project>

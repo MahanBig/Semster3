@@ -27,11 +27,13 @@ ASP.NET Core MVC-applikasjon som kjører i Docker. Brukeren fyller ut et skjema,
 
 ```bash
 git clone https://github.com/MahanBig/Semster3
-cd Innlevering 1
+cd Semster3
 docker compose up --build
 ```
 
-Applikasjonen er deretter tilgjengelig på `http://localhost:8080`.
+Applikasjonen er deretter tilgjengelig på `http://localhost:8080`. For å få en admin-bruker, lag først en fil `.env` i samme mappe med linjen `ADMIN_PASSWORD=EtSterktPassord1!` (filen ligger i `.gitignore`).
+
+Alternativt i Visual Studio: velg **Docker Compose** på start-knappen, eller start **Heimevernet.Aspire.AppHost** (Aspire starter de samme containerne og viser et dashboard).
 
 ### Stoppe og rydde opp
 

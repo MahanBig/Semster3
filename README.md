@@ -51,7 +51,11 @@ docker compose down -v       # stopper og sletter volumer (data)
 
 ### Innlogging, brukere og roller
 
-Appen bruker ASP.NET Core Identity. Brukere og roller lagres i MariaDB (tabellene `AspNetUsers`, `AspNetRoles`, `AspNetUserRoles` m.fl.).
+Appen bruker ASP.NET Core Identity. Brukere og roller lagres i MariaDB (tabellene `AspNetUsers`, `AspNetRoles`, `AspNetUserRoles`) via egne Dapper-klasser: `DataAccess/Identity/DapperUserStore.cs` og `DapperRoleStore.cs`.
+
+### Database og tabeller
+
+Tabellene lages av `Heimevernet.Web/DataAccess/Sql/Schema.sql`, som kjøres hver gang appen starter (`CREATE TABLE IF NOT EXISTS`). Skal en tabell endres senere, må det skrives en `ALTER TABLE` i tillegg.
 
 - Rollene `Admin` og `Bruker` lages automatisk ved oppstart.
 - Nye brukere registrerer seg på `/Account/Register` og får rollen `Bruker`.
@@ -106,6 +110,7 @@ flowchart LR
 | [Leaflet/OpenLayers/...] | fra forelesning |
 | [Bootstrap/CSS-rammeverk] | Responsivt design |
 | [Database, MariaDB] | fra forelesning |
+| Dapper + MySqlConnector | Vi skriver SQL-en selv og ser nøyaktig hva som sendes til databasen. Dapper gjør radene om til C#-objekter |
 
 ### Docker
 
@@ -117,7 +122,7 @@ flowchart LR
 ## 3. Testing
 
 Automated tests
-The project has unit tests in Heimevernet.Web.UnitTests for the controllers, the repository and the database seeder. Run them with:
+The project has unit tests in Heimevernet.Web.UnitTests for the controllers, the Dapper repository, the seeders and the Dapper Identity stores. The database tests run the same SQL against a temporary in-memory SQLite database (`SqliteTestDatabase.cs`), so no MariaDB server is needed. Run them with:
 
     dotnet test --project .\Heimevernet.Web.UnitTests\Heimevernet.Web.UnitTests.csproj
 

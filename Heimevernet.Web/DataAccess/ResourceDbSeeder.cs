@@ -1,25 +1,33 @@
+using Dapper;
 using Heimevernet.Web.Models.Entities;
 
 namespace Heimevernet.Web.DataAccess;
 
-public static class ResourceDbSeeder 
+public static class ResourceDbSeeder
 {
-    public static void Seed(HeimevernetDbContext dbContext)
+    public static void Seed(IDbConnectionFactory connectionFactory)
     {
-        ArgumentNullException.ThrowIfNull(dbContext);
+        ArgumentNullException.ThrowIfNull(connectionFactory);
+
+        using var connection = connectionFactory.CreateConnection();
 
         // Preserve existing records and edits when the application restarts.
-        if (dbContext.Resources.Any())
+        if (connection.ExecuteScalar<int>("SELECT COUNT(*) FROM Resources") > 0)
         {
             return;
         }
 
-        dbContext.Resources.AddRange(
+        Resource[] sampleResources =
+        [
             new Resource { Name = "Resource 1", Description = "Db Description 1", Type = "Type A" },
             new Resource { Name = "Resource 2", Description = "Db Description 2", Type = "Type B" },
-            new Resource { Name = "Resource 3", Description = "Db Description 3", Type = "Type C" });
+            new Resource { Name = "Resource 3", Description = "Db Description 3", Type = "Type C" }
+        ];
 
-        // MariaDB generates each record's Id when the changes are saved.
-        dbContext.SaveChanges();
+        // Når Dapper får en liste, kjøres INSERT én gang per element.
+        // Id står ikke med: MariaDB lager den selv (AUTO_INCREMENT).
+        connection.Execute(
+            "INSERT INTO Resources (Name, Description, Type) VALUES (@Name, @Description, @Type)",
+            sampleResources);
     }
 }

@@ -9,19 +9,16 @@
 
   <ItemGroup>
     <PackageReference Include="leaflet" Version="0.7.3" />
-    <!-- Identity sine tabeller (brukere, roller osv.) lagret med Entity Framework. Samme versjon som EF-pakkene under. -->
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.14" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.14" />
-    <!-- Gir kommandoene Add-Migration / Update-Database i Package Manager Console i Visual Studio. -->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.14">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
+    <!-- Dapper: kjører SQL-en vi skriver selv og gjør om radene til C#-objekter. -->
+    <PackageReference Include="Dapper" Version="2.1.66" />
+    <!-- MySqlConnector: selve koblingen ("driveren") til MariaDB/MySQL. -->
+    <PackageReference Include="MySqlConnector" Version="2.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- SQL-skriptet som lager tabellene bakes inn i programfilen (.dll), så det alltid er med, også i Docker. -->
+    <None Remove="DataAccess\Sql\Schema.sql" />
+    <EmbeddedResource Include="DataAccess\Sql\Schema.sql" LogicalName="Heimevernet.Web.Schema.sql" />
   </ItemGroup>
 
 </Project>

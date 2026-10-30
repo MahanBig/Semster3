@@ -1,7 +1,6 @@
+using Dapper;
 using Heimevernet.Web.DataAccess;
 using Heimevernet.Web.Models.Entities;
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
 
 namespace Heimevernet.Web.UnitTests;
 
@@ -10,13 +9,11 @@ public class ResourceDbSeederTests
     [Fact]
     public void Seed_EmptyDatabase_PersistsThreeSampleResources()
     {
-        using var connection = OpenConnection();
-        using var context = CreateContext(connection);
+        using var database = new SqliteTestDatabase();
 
-        ResourceDbSeeder.Seed(context);
-        context.ChangeTracker.Clear();
+        ResourceDbSeeder.Seed(database);
 
-        var resources = context.Resources.OrderBy(resource => resource.Name).ToList();
+        var resources = ReadResources(database);
         Assert.Collection(resources,
             resource => AssertSampleResource(resource, "Resource 1", "Db Description 1", "Type A"),
             resource => AssertSampleResource(resource, "Resource 2", "Db Description 2", "Type B"),
@@ -28,68 +25,48 @@ public class ResourceDbSeederTests
     [Fact]
     public void Seed_RepeatedRuns_PreserveUserChangesAndDoNotAddDuplicates()
     {
-        using var connection = OpenConnection();
-        using var context = CreateContext(connection);
-        ResourceDbSeeder.Seed(context);
+        using var database = new SqliteTestDatabase();
+        ResourceDbSeeder.Seed(database);
+        var originalId = ReadResources(database).Single(resource => resource.Name == "Resource 1").Id;
+        using (var connection = database.CreateConnection())
+        {
+            connection.Execute(
+                "UPDATE Resources SET Name = @Name, Description = @Description WHERE Id = @Id",
+                new { Id = originalId, Name = "Updated by the user", Description = "Keep this description" });
+        }
 
-        var resource = context.Resources.Single(resource => resource.Name == "Resource 1");
-        var originalId = resource.Id;
-        resource.Name = "Updated by the user";
-        resource.Description = "Keep this description";
-        context.SaveChanges();
-        context.ChangeTracker.Clear();
+        ResourceDbSeeder.Seed(database);
+        ResourceDbSeeder.Seed(database);
 
-        ResourceDbSeeder.Seed(context);
-        ResourceDbSeeder.Seed(context);
-        context.ChangeTracker.Clear();
-
-        Assert.Equal(3, context.Resources.Count());
-        var savedResource = context.Resources.Single(resource => resource.Id == originalId);
+        var resources = ReadResources(database);
+        Assert.Equal(3, resources.Count);
+        var savedResource = resources.Single(resource => resource.Id == originalId);
         Assert.Equal("Updated by the user", savedResource.Name);
         Assert.Equal("Keep this description", savedResource.Description);
-        Assert.False(context.Resources.Any(resource => resource.Name == "Resource 1"));
+        Assert.DoesNotContain(resources, resource => resource.Name == "Resource 1");
     }
 
     [Fact]
     public void Seed_DatabaseWithExistingResource_DoesNotInsertSampleData()
     {
-        using var connection = OpenConnection();
-        using var context = CreateContext(connection);
-        var existingResource = new Resource
+        using var database = new SqliteTestDatabase();
+        using (var connection = database.CreateConnection())
         {
-            Name = "Existing generator",
-            Description = "Already registered in MariaDB",
-            Type = "Equipment"
-        };
-        context.Resources.Add(existingResource);
-        context.SaveChanges();
-        var originalId = existingResource.Id;
-        context.ChangeTracker.Clear();
+            connection.Execute(
+                "INSERT INTO Resources (Name, Description, Type) VALUES (@Name, @Description, @Type)",
+                new { Name = "Existing generator", Description = "Already registered in MariaDB", Type = "Equipment" });
+        }
 
-        ResourceDbSeeder.Seed(context);
-        context.ChangeTracker.Clear();
+        ResourceDbSeeder.Seed(database);
 
-        var savedResource = Assert.Single(context.Resources.ToList());
-        Assert.Equal(originalId, savedResource.Id);
+        var savedResource = Assert.Single(ReadResources(database));
         AssertSampleResource(savedResource, "Existing generator", "Already registered in MariaDB", "Equipment");
     }
 
-    private static SqliteConnection OpenConnection()
+    private static List<Resource> ReadResources(SqliteTestDatabase database)
     {
-        // An open connection keeps this test's temporary database alive.
-        var connection = new SqliteConnection("Data Source=:memory:");
-        connection.Open();
-        return connection;
-    }
-
-    private static HeimevernetDbContext CreateContext(SqliteConnection connection)
-    {
-        var options = new DbContextOptionsBuilder<HeimevernetDbContext>()
-            .UseSqlite(connection)
-            .Options;
-        var context = new HeimevernetDbContext(options);
-        context.Database.EnsureCreated();
-        return context;
+        using var connection = database.CreateConnection();
+        return connection.Query<Resource>("SELECT Id, Name, Description, Type FROM Resources ORDER BY Name").ToList();
     }
 
     private static void AssertSampleResource(Resource resource, string name, string description, string type)

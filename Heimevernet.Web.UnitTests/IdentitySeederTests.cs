@@ -1,8 +1,6 @@
 using Heimevernet.Web.DataAccess;
 using Heimevernet.Web.Models;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -16,8 +14,8 @@ public class IdentitySeederTests
     [Fact]
     public async Task SeedAsync_WithAdminSettings_CreatesRolesAndAdminUser()
     {
-        using var connection = OpenConnection();
-        using var services = CreateServices(connection);
+        using var database = new SqliteTestDatabase();
+        using var services = IdentityTestServices.Create(database);
         using var scope = services.CreateScope();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
@@ -35,8 +33,8 @@ public class IdentitySeederTests
     [Fact]
     public async Task SeedAsync_RepeatedRuns_DoNotCreateDuplicates()
     {
-        using var connection = OpenConnection();
-        using var services = CreateServices(connection);
+        using var database = new SqliteTestDatabase();
+        using var services = IdentityTestServices.Create(database);
         using var scope = services.CreateScope();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
@@ -51,8 +49,8 @@ public class IdentitySeederTests
     [Fact]
     public async Task SeedAsync_WithoutAdminSettings_CreatesOnlyRoles()
     {
-        using var connection = OpenConnection();
-        using var services = CreateServices(connection);
+        using var database = new SqliteTestDatabase();
+        using var services = IdentityTestServices.Create(database);
         using var scope = services.CreateScope();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
@@ -61,29 +59,5 @@ public class IdentitySeederTests
 
         Assert.Equal(AppRoles.All.Count, roleManager.Roles.Count());
         Assert.Empty(userManager.Users);
-    }
-
-    private static SqliteConnection OpenConnection()
-    {
-        // Keep SQLite open so the in-memory database lives for the whole test.
-        var connection = new SqliteConnection("Data Source=:memory:");
-        connection.Open();
-        return connection;
-    }
-
-    // Builds the same Identity services as Program.cs, but against SQLite instead of MariaDB.
-    private static ServiceProvider CreateServices(SqliteConnection connection)
-    {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddDbContext<HeimevernetDbContext>(options => options.UseSqlite(connection));
-        services.AddIdentityCore<IdentityUser>()
-            .AddRoles<IdentityRole>()
-            .AddEntityFrameworkStores<HeimevernetDbContext>();
-
-        var provider = services.BuildServiceProvider();
-        using var scope = provider.CreateScope();
-        scope.ServiceProvider.GetRequiredService<HeimevernetDbContext>().Database.EnsureCreated();
-        return provider;
     }
 }

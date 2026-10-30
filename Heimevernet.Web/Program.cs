@@ -1,6 +1,6 @@
 using Heimevernet.Web.DataAccess;
+using Heimevernet.Web.DataAccess.Identity;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,19 +15,22 @@ if (string.IsNullOrWhiteSpace(connectionString))
         "configure ConnectionStrings:heimevernetdb using user secrets.");
 }
 
-builder.Services.AddDbContext<HeimevernetDbContext>(options => // Registrerer databasen, slik at den kan brukes via dependency injection.
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
-builder.Services.AddScoped<IResourceRepository, EfResourceRepository>();
+// Én felles "fabrikk" for databasetilkoblinger (singleton = samme objekt for hele appen).
+// Repository og Identity-stores ber den om en ny tilkobling hver gang de skal kjøre SQL.
+builder.Services.AddSingleton<IDbConnectionFactory>(new MySqlConnectionFactory(connectionString));
+builder.Services.AddScoped<IResourceRepository, DapperResourceRepository>();
 
-// Identity: brukere (IdentityUser) og roller (IdentityRole), lagret i den samme MariaDB-databasen.
+// Identity: brukere (IdentityUser) og roller (IdentityRole).
+// Identity tar seg av passord-hashing, cookies og regler. Lagringen gjør våre egne Dapper-klasser.
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
     {
         options.User.RequireUniqueEmail = true;      // To brukere kan ikke ha samme e-post.
         options.Password.RequiredLength = 8;         // Standard er 6.
         options.Lockout.MaxFailedAccessAttempts = 5; // Låser kontoen en stund etter 5 feil passord.
     })
-    .AddEntityFrameworkStores<HeimevernetDbContext>() // Lagre via vår DbContext.
-    .AddDefaultTokenProviders();                      // Trengs f.eks. for "glemt passord" senere.
+    .AddUserStore<DapperUserStore>()  // Brukere -> AspNetUsers, AspNetUserRoles
+    .AddRoleStore<DapperRoleStore>()  // Roller  -> AspNetRoles
+    .AddDefaultTokenProviders();      // Trengs f.eks. for "glemt passord" senere.
 
 // Innloggingen huskes i en cookie. Her sier vi hvor brukeren sendes når det trengs.
 builder.Services.ConfigureApplicationCookie(options =>
@@ -39,12 +42,12 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 var app = builder.Build();
 
-// Apply table changes before adding sample records, following the reference project.
+// Lag tabellene (Schema.sql) før vi legger inn eksempeldata, rollene og admin-brukeren.
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<HeimevernetDbContext>();
-    dbContext.Database.Migrate(); 
-    ResourceDbSeeder.Seed(dbContext);
+    var connectionFactory = scope.ServiceProvider.GetRequiredService<IDbConnectionFactory>();
+    DatabaseInitializer.EnsureSchema(connectionFactory);
+    ResourceDbSeeder.Seed(connectionFactory);
 
     // Lager rollene og en admin-bruker. E-post og passord kommer fra konfigurasjon, ikke fra koden.
     await IdentitySeeder.SeedAsync(

@@ -3,7 +3,6 @@ using Heimevernet.Web.Models.ViewModels.UserAdmin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Heimevernet.Web.Controllers;
 
@@ -15,7 +14,8 @@ public class UserAdminController(UserManager<IdentityUser> userManager) : Contro
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var users = await userManager.Users.OrderBy(user => user.Email).ToListAsync();
+        // Users kommer fra DapperUserStore.Users (henter alle brukerne fra AspNetUsers).
+        var users = userManager.Users.OrderBy(user => user.Email).ToList();
 
         var model = new List<UserWithRolesViewModel>();
         foreach (var user in users)

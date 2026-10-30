@@ -1,9 +1,64 @@
-﻿@using Heimevernet.Web.Models.ViewModels.Resource
+@using Heimevernet.Web.Models.ViewModels.Resource
 @model ResourceViewModel
 @{
-    ViewData["Title"] = "Ny Ressurs";
+    ViewData["Title"] = "Ny ressurs";
 }
-Gratulerer du har opprettet en ny ressurs!
-<h1>@Model.Name</h1>
-<p>@Model.Description</p>
-<p>Type: @Model.Type</p>
+
+<h1>Ny ressurs</h1>
+
+<div class="row">
+    <div class="col-md-8 col-lg-6">
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Type" class="form-label"></label>
+                <input asp-for="Type" class="form-control" placeholder="F.eks. Kjøretøy eller Utstyr" />
+                <span asp-validation-for="Type" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Description" class="form-label"></label>
+                <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+
+            <fieldset class="mb-3">
+                <legend class="fs-6">Valgfritt</legend>
+                <div class="mb-3">
+                    <label asp-for="Address" class="form-label"></label>
+                    <input asp-for="Address" class="form-control" autocomplete="street-address" />
+                    <span asp-validation-for="Address" class="text-danger"></span>
+                </div>
+                <div class="row">
+                    <div class="col-4 mb-3">
+                        <label asp-for="ZipCode" class="form-label"></label>
+                        <input asp-for="ZipCode" class="form-control" inputmode="numeric" autocomplete="postal-code" />
+                        <span asp-validation-for="ZipCode" class="text-danger"></span>
+                    </div>
+                    <div class="col-8 mb-3">
+                        <label asp-for="City" class="form-label"></label>
+                        <input asp-for="City" class="form-control" autocomplete="address-level2" />
+                        <span asp-validation-for="City" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="OwnerTelephoneNumber" class="form-label"></label>
+                    <input asp-for="OwnerTelephoneNumber" class="form-control" type="tel" autocomplete="tel" />
+                    <span asp-validation-for="OwnerTelephoneNumber" class="text-danger"></span>
+                </div>
+            </fieldset>
+
+            <button type="submit" class="btn btn-primary">Lagre</button>
+            <a asp-action="Index" class="btn btn-link">Avbryt</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

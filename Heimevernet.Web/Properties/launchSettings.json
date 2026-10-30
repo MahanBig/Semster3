@@ -7,7 +7,8 @@
       "launchBrowser": true,
       "applicationUrl": "http://localhost:5203",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ConnectionStrings__heimevernetdb": "Server=localhost;Port=3307;Database=heimevernetdb;User=root;Password=heimevernet-dev"
       }
     }
   }

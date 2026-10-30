@@ -1,6 +1,9 @@
-﻿using Heimevernet.Web.Models.ViewModels.Resource;
-using Microsoft.AspNetCore.Mvc;
 using Heimevernet.Web.DataAccess;
+using Heimevernet.Web.Models;
+using Heimevernet.Web.Models.Entities;
+using Heimevernet.Web.Models.ViewModels.Resource;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Heimevernet.Web.Controllers
 {
@@ -30,11 +33,42 @@ namespace Heimevernet.Web.Controllers
             return View(model);
         }
 
+        [HttpGet]
+        [Authorize(Roles = AppRoles.Admin)] // Bare admin kan legge til ressurser.
+        public IActionResult Create()
+        {
+            return View(new ResourceViewModel());
+        }
+
         [HttpPost]
-        public ActionResult Create(ResourceViewModel model) 
-        { 
-            //oppdater database med nye data og returner resultat
-            return View(model);
+        [Authorize(Roles = AppRoles.Admin)]
+        [ValidateAntiForgeryToken]
+        public IActionResult Create(ResourceViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model); // Viser skjemaet igjen med feilmeldingene.
+            }
+
+            var id = _resourceRepository.Add(new Resource
+            {
+                Name = model.Name.Trim(),
+                Description = model.Description.Trim(),
+                Type = model.Type.Trim(),
+                Address = EmptyToNull(model.Address),
+                City = EmptyToNull(model.City),
+                ZipCode = EmptyToNull(model.ZipCode),
+                OwnerTelephoneNumber = EmptyToNull(model.OwnerTelephoneNumber)
+            });
+
+            // TempData overlever én redirect, så detaljsiden kan vise en bekreftelse.
+            TempData["Message"] = "Ressursen ble lagret.";
+            return RedirectToAction("Index", "Resource", new { id });
+        }
+
+        private static string? EmptyToNull(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         }
     }
 }

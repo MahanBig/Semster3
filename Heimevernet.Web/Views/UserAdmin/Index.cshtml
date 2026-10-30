@@ -1,0 +1,47 @@
+@using Heimevernet.Web.Models.ViewModels.UserAdmin
+@model List<UserWithRolesViewModel>
+@{
+    ViewData["Title"] = "Brukere";
+}
+
+<h1>Brukere og roller</h1>
+
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger" role="alert">@error</div>
+}
+
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <caption>Alle registrerte brukere. Legg til eller fjern roller med knappene.</caption>
+        <thead>
+            <tr>
+                <th scope="col">E-post</th>
+                <th scope="col">Roller</th>
+                <th scope="col">Endre roller</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in Model)
+            {
+                <tr>
+                    <td>@user.Email</td>
+                    <td>@(user.Roles.Count == 0 ? "Ingen" : string.Join(", ", user.Roles))</td>
+                    <td>
+                        @foreach (var role in AppRoles.All)
+                        {
+                            var hasRole = user.Roles.Contains(role);
+                            <form asp-action="@(hasRole ? "RemoveRole" : "AddRole")" method="post" class="d-inline">
+                                <input type="hidden" name="userId" value="@user.Id" />
+                                <input type="hidden" name="role" value="@role" />
+                                <button type="submit" class="btn btn-sm @(hasRole ? "btn-outline-danger" : "btn-outline-primary")">
+                                    @(hasRole ? "Fjern" : "Gi") @role
+                                </button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

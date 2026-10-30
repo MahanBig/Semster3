@@ -33,7 +33,11 @@ namespace Heimevernet.Web.Controllers
                 Id = resource.Id,
                 Name = resource.Name,
                 Description = resource.Description,
-                Type = resource.Type
+                Type = resource.Type,
+                Address = resource.Address,
+                City = resource.City,
+                ZipCode = resource.ZipCode,
+                OwnerTelephoneNumber = resource.OwnerTelephoneNumber
             };
 
             return View(viewModel);

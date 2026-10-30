@@ -1,43 +1,64 @@
-﻿@model Heimevernet.Web.Models.ViewModels.PositionModel
+@model Heimevernet.Web.Models.ViewModels.PositionModel
+@{
+    ViewData["Title"] = "Registrer posisjon";
+}
 
-<h2>Register a position</h2>
+<h1>Registrer en posisjon</h1>
+<p>Klikk i kartet for å velge et punkt, skriv en beskrivelse og trykk Lagre.</p>
 
-<form asp-action="CorrectMap" method="post">
-    <div class="form-group">
-        <label for="latitude">Latitude</label>
-        <input type="text" id="latitude" name="Latitude" class="form-control" readonly/>
+<div class="row">
+    <div class="col-lg-4 mb-3">
+        @* asp-action + method="post" legger automatisk til en anti-forgery-token. *@
+        <form asp-action="CorrectMap" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+
+            <div class="mb-3">
+                <label asp-for="Latitude" class="form-label">Breddegrad</label>
+                <input asp-for="Latitude" class="form-control" readonly />
+                <span asp-validation-for="Latitude" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Longitude" class="form-label">Lengdegrad</label>
+                <input asp-for="Longitude" class="form-control" readonly />
+                <span asp-validation-for="Longitude" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Description" class="form-label"></label>
+                <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+            <button type="submit" class="btn btn-primary">Lagre</button>
+            <a asp-action="CorrectionOverview" class="btn btn-link">Se alle posisjoner</a>
+        </form>
     </div>
-    <div class="form-group">
-        <label for="longitude">Longitude</label>
-        <input type="text" id="longitude" name="Longitude" class="form-control" readonly/>
+    <div class="col-lg-8">
+        <div id="map" style="height: 450px;" role="application" aria-label="Kart. Klikk for å velge posisjon."></div>
     </div>
-
-    <div class="form-group">
-        <label for="description">Description</label>
-        <textarea id="description" name="Description" class="form-control"></textarea>
-    </div>
-    <button type="submit" class="btn btn-primary">Submit</button>
-</form>
-
-<div id="map" style="height: 400px;"></div>
+</div>
 
 @section Scripts {
+    <partial name="_ValidationScriptsPartial" />
     <script>
-        var map = L.map('map').setView([51.505, -0.09], 15);
+        // Readonly-felt valideres ikke av jQuery Validation som standard. Vi vil at "velg et punkt"-feilen vises.
+        $.validator.setDefaults({ ignore: [] });
 
+        var map = L.map('map').setView([64.5, 12], 5); // Norge
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        map.on('click', function(e) {
-            var lat = e.latlng.lat;
-            var lng = e.latlng.lng;
-        
-            document.getElementById('latitude').value = lat;
-            document.getElementById('longitude').value = lng;
+        var marker = null;
+        function setPosition(lat, lng) {
+            document.getElementById('Latitude').value = lat.toFixed(6);
+            document.getElementById('Longitude').value = lng.toFixed(6);
+            if (marker) { marker.setLatLng([lat, lng]); } else { marker = L.marker([lat, lng]).addTo(map); }
+        }
 
-            L.marker([lat, lng]).addTo(map);
-        });
+        // Etter en valideringsfeil kommer verdiene tilbake fra serveren: vis markøren igjen.
+        var startLat = parseFloat(document.getElementById('Latitude').value);
+        var startLng = parseFloat(document.getElementById('Longitude').value);
+        if (!isNaN(startLat) && !isNaN(startLng)) { setPosition(startLat, startLng); map.setView([startLat, startLng], 10); }
+
+        map.on('click', function (e) { setPosition(e.latlng.lat, e.latlng.lng); });
     </script>
 }
-

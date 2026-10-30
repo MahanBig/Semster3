@@ -49,19 +49,59 @@ public class ResourceHandlerControllerTests
     }
 
     [Fact]
-    public void Create_ReturnsViewWithSubmittedModel()
+    public void Create_Get_ReturnsEmptyForm()
     {
         var controller = new ResourceHandlerController(new FakeResourceRepository());
+
+        var result = controller.Create();
+
+        var viewResult = Assert.IsType<ViewResult>(result);
+        var model = Assert.IsType<ResourceViewModel>(viewResult.Model);
+        Assert.Equal(string.Empty, model.Name);
+    }
+
+    [Fact]
+    public void Create_Post_ValidModel_SavesAndRedirectsToNewResource()
+    {
+        var repository = new FakeResourceRepository(
+            new Resource { Id = 7, Name = "Water pump", Description = "Stored in depot A", Type = "Equipment" });
+        var controller = new ResourceHandlerController(repository).WithUser("admin@test.no");
         var model = new ResourceViewModel
         {
-            Name = "Lastebil",
+            Name = "  Lastebil ",
             Description = "Lastebil med tilhenger",
-            Type = "Kjøretøy"
+            Type = "Kjøretøy",
+            City = "Kristiansand",
+            ZipCode = "4630",
+            Address = "   " // Blank optional field is saved as null.
         };
+
+        var result = controller.Create(model);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal("Index", redirect.ActionName);
+        Assert.Equal("Resource", redirect.ControllerName);
+        Assert.Equal(8, redirect.RouteValues!["id"]);
+        var saved = Assert.Single(repository.Added);
+        Assert.Equal("Lastebil", saved.Name);
+        Assert.Equal("Kristiansand", saved.City);
+        Assert.Equal("4630", saved.ZipCode);
+        Assert.Null(saved.Address);
+        Assert.Equal("Ressursen ble lagret.", controller.TempData["Message"]);
+    }
+
+    [Fact]
+    public void Create_Post_InvalidModel_ShowsFormAgainAndDoesNotSave()
+    {
+        var repository = new FakeResourceRepository();
+        var controller = new ResourceHandlerController(repository).WithUser("admin@test.no");
+        controller.ModelState.AddModelError(nameof(ResourceViewModel.Name), "Skriv et navn.");
+        var model = new ResourceViewModel { Description = "Uten navn", Type = "Utstyr" };
 
         var result = controller.Create(model);
 
         var viewResult = Assert.IsType<ViewResult>(result);
         Assert.Same(model, viewResult.Model);
+        Assert.Empty(repository.Added);
     }
 }

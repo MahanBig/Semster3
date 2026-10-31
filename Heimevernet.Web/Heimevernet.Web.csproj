@@ -8,13 +8,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="leaflet" Version="0.7.3" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.20">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.20" />
-    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
+    <!-- Dapper: kjører SQL-en vi skriver selv og gjør om radene til C#-objekter. -->
+    <PackageReference Include="Dapper" Version="2.1.89" />
+    <!-- MySqlConnector: selve koblingen ("driveren") til MariaDB/MySQL. -->
+    <PackageReference Include="MySqlConnector" Version="2.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- SQL-skriptet som lager tabellene bakes inn i programfilen (.dll), så det alltid er med, også i Docker. -->
+    <None Remove="DataAccess\Sql\Schema.sql" />
+    <EmbeddedResource Include="DataAccess\Sql\Schema.sql" LogicalName="Heimevernet.Web.Schema.sql" />
   </ItemGroup>
 
 </Project>

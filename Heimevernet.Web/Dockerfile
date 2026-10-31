@@ -16,5 +16,11 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
 
+#Mappe for innloggingsnøklene (Data Protection). Den eies av brukeren "app", som appen kjører som.
+RUN mkdir -p /keys && chown $APP_UID /keys
+
+#Kjør som vanlig bruker i stedet for root. Blir appen angrepet, får angriperen færre rettigheter.
+USER $APP_UID
+
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "Heimevernet.Web.dll"]

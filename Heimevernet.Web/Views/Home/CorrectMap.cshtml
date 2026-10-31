@@ -1,43 +1,96 @@
-﻿@model Heimevernet.Web.Models.ViewModels.PositionModel
-
-<h2>Register a position</h2>
-
-<form asp-action="CorrectMap" method="post">
-    <div class="form-group">
-        <label for="latitude">Latitude</label>
-        <input type="text" id="latitude" name="Latitude" class="form-control" readonly/>
-    </div>
-    <div class="form-group">
-        <label for="longitude">Longitude</label>
-        <input type="text" id="longitude" name="Longitude" class="form-control" readonly/>
-    </div>
-
-    <div class="form-group">
-        <label for="description">Description</label>
-        <textarea id="description" name="Description" class="form-control"></textarea>
-    </div>
-    <button type="submit" class="btn btn-primary">Submit</button>
-</form>
-
-<div id="map" style="height: 400px;"></div>
-
-@section Scripts {
-    <script>
-        var map = L.map('map').setView([51.505, -0.09], 15);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-
-        map.on('click', function(e) {
-            var lat = e.latlng.lat;
-            var lng = e.latlng.lng;
-        
-            document.getElementById('latitude').value = lat;
-            document.getElementById('longitude').value = lng;
-
-            L.marker([lat, lng]).addTo(map);
-        });
-    </script>
+@model Heimevernet.Web.Models.ViewModels.PositionModel
+@{
+    ViewData["Title"] = "Meld inn posisjon";
 }
 
+<div class="d-flex flex-column gap-2">
+    <h1 class="m-0">Meld inn en posisjon</h1>
+    <p class="lead-text d-flex gap-2 align-items-center">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#14305A" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+        Klikk i kartet for å velge stedet, beskriv det og trykk Send inn.
+    </p>
+</div>
+
+@* asp-action + method="post" legger automatisk til en anti-forgery-token. *@
+<form asp-action="CorrectMap" method="post" class="panel-grid">
+    <div class="panel d-flex flex-column gap-4">
+        <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+
+        <div>
+            <label asp-for="Description" class="form-label">Hva er det her?</label>
+            <div id="description-hint" class="form-text mb-2">F.eks. «Tankbil med drikkevann. Ta med egne kanner.»</div>
+            <textarea asp-for="Description" class="form-control" rows="5" aria-describedby="description-hint"></textarea>
+            <span asp-validation-for="Description" class="text-danger"></span>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-6">
+                <label asp-for="Latitude" class="form-label">Breddegrad</label>
+                <input asp-for="Latitude" class="form-control" readonly />
+                <span asp-validation-for="Latitude" class="text-danger"></span>
+            </div>
+            <div class="col-6">
+                <label asp-for="Longitude" class="form-label">Lengdegrad</label>
+                <input asp-for="Longitude" class="form-control" readonly />
+                <span asp-validation-for="Longitude" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel d-flex flex-column gap-3">
+        <span class="form-label m-0">Hvor er det?</span>
+        <div class="map-box">
+            <div id="map" class="map-canvas" role="application" aria-label="Kart. Klikk for å velge posisjon."></div>
+            <span class="map-hint">Klikk i kartet for å sette nålen</span>
+        </div>
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <span id="picked-text" class="text-muted" aria-live="polite">Ingen posisjon valgt ennå</span>
+            <button type="button" id="use-my-position" class="btn-pill btn-pill-outline btn-pill-small">Bruk min posisjon</button>
+        </div>
+        <button type="submit" class="btn-pill btn-pill-block">Send inn</button>
+        <a asp-action="CorrectionOverview" class="text-center fw-bold">Se alle posisjoner</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            // Readonly-felt valideres ikke av jQuery Validation som standard. Vi vil at "velg et punkt"-feilen vises.
+            $.validator.setDefaults({ ignore: [] });
+
+            var map = L.map('map').setView([64.5, 12], 5); // Norge
+            beredskapTiles(map);
+
+            var marker = null;
+            var pickedText = document.getElementById('picked-text');
+            function setPosition(lat, lng) {
+                document.getElementById('Latitude').value = lat.toFixed(6);
+                document.getElementById('Longitude').value = lng.toFixed(6);
+                pickedText.textContent = 'Valgt: ' + lat.toFixed(4) + ', ' + lng.toFixed(4);
+                if (marker) { marker.setLatLng([lat, lng]); }
+                else { marker = L.marker([lat, lng], { icon: beredskapMarker('picked') }).addTo(map); }
+            }
+
+            // Etter en valideringsfeil kommer verdiene tilbake fra serveren: vis nålen igjen.
+            var startLat = parseFloat(document.getElementById('Latitude').value);
+            var startLng = parseFloat(document.getElementById('Longitude').value);
+            if (!isNaN(startLat) && !isNaN(startLng)) { setPosition(startLat, startLng); map.setView([startLat, startLng], 12); }
+
+            map.on('click', function (e) { setPosition(e.latlng.lat, e.latlng.lng); });
+
+            // "Bruk min posisjon": nettleseren spør brukeren om lov før den deler posisjonen.
+            var button = document.getElementById('use-my-position');
+            if (!('geolocation' in navigator)) { button.hidden = true; }
+            button.addEventListener('click', function () {
+                pickedText.textContent = 'Henter posisjonen din...';
+                navigator.geolocation.getCurrentPosition(function (result) {
+                    setPosition(result.coords.latitude, result.coords.longitude);
+                    map.setView([result.coords.latitude, result.coords.longitude], 15);
+                }, function () {
+                    pickedText.textContent = 'Fikk ikke tak i posisjonen. Klikk i kartet i stedet.';
+                });
+            });
+        })();
+    </script>
+}

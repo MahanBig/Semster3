@@ -1,0 +1,23 @@
+@* Nederst i sidemenyen: hvem som er logget inn + Logg ut, eller Logg inn / Registrer. *@
+<div class="sidebar-user">
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        var name = User.Identity.Name ?? "";
+        var initials = name.Length > 0 ? name.Substring(0, 1).ToUpperInvariant() : "?";
+        <div class="user-chip">
+            <span class="avatar" aria-hidden="true">@initials</span>
+            <span class="user-chip-text">
+                <span>Innlogget@(User.IsInRole(AppRoles.Admin) ? " · admin" : "")</span>
+                <strong><span class="visually-hidden">Logget inn som </span>@name</strong>
+            </span>
+        </div>
+        <form asp-controller="Account" asp-action="Logout" method="post">
+            <button type="submit" class="btn-pill btn-pill-light btn-pill-block">Logg ut</button>
+        </form>
+    }
+    else
+    {
+        <a class="btn-pill btn-pill-light btn-pill-block" asp-controller="Account" asp-action="Login">Logg inn</a>
+        <p class="sidebar-footer"><a asp-controller="Account" asp-action="Register">Ny bruker? Registrer deg</a></p>
+    }
+</div>

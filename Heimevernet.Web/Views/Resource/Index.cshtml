@@ -1,11 +1,80 @@
-﻿@using Heimevernet.Web.Models.ViewModels.Resource
+@using Heimevernet.Web.Models.ViewModels.Resource
 @model ResourceViewModel
 @{
-    ViewData["Title"] = "Ressurs";
+    ViewData["Title"] = Model.Name;
+    var category = ResourceCategory.FromType(Model.Type);
+    // "Storgata 1, 4790 Lillesand" – tomme deler hoppes over.
+    var place = $"{Model.ZipCode} {Model.City}".Trim();
+    var fullAddress = string.Join(", ", new[] { Model.Address, place }.Where(part => !string.IsNullOrWhiteSpace(part)));
 }
 
-<h1>@Model.Name</h1>
-<p>@Model.Description</p>
-<p>Type: @Model.Type</p>
+<a asp-controller="ResourceHandler" asp-action="Index" class="back-link">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+    Tilbake til ressurser
+</a>
 
-<a asp-controller="ResourceHandler" asp-action="Index">Tilbake til ressurslisten</a>
+@if (TempData["Message"] is string message)
+{
+    <div class="alert alert-success" role="status">@message</div>
+}
+
+<div class="panel-grid">
+    <article class="panel-wide d-flex flex-column gap-4">
+        <div class="detail-hero" style="background: @category.Tint; color: @category.Color" aria-hidden="true">
+            @Html.Raw(category.IconSvg(96, 1.4))
+        </div>
+
+        <div class="d-flex flex-column gap-3">
+            <span class="badge-category" style="background: @category.Tint; color: @category.Color">
+                @Html.Raw(category.IconSvg(16, 2.4))@category.Label
+            </span>
+            <h1 class="m-0">@Model.Name</h1>
+            <div class="d-flex flex-wrap gap-2">
+                <span class="status-pill">Type: @Model.Type</span>
+            </div>
+        </div>
+
+        <section class="panel">
+            <h2>Om stedet</h2>
+            <p class="m-0" style="font-size: 18px; line-height: 1.6; color: var(--text-2); max-width: 68ch">@Model.Description</p>
+        </section>
+    </article>
+
+    <aside class="panel-narrow d-flex flex-column gap-3">
+        <section class="panel">
+            <h2>Plassering</h2>
+            @if (fullAddress.Length > 0)
+            {
+                <dl class="facts">
+                    <div><dt>Adresse</dt><dd>@fullAddress</dd></div>
+                </dl>
+                <a class="btn-pill btn-pill-block mt-3" target="_blank" rel="noopener"
+                   href="https://www.openstreetmap.org/search?query=@Uri.EscapeDataString(fullAddress)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l18-8-8 18-2-8z"></path></svg>
+                    Finn i kart
+                    <span class="visually-hidden">(åpnes i ny fane)</span>
+                </a>
+            }
+            else
+            {
+                <p class="m-0 text-muted">Adressen er ikke registrert.</p>
+            }
+        </section>
+
+        <section class="panel">
+            <h2>Kontakt</h2>
+            @if (!string.IsNullOrEmpty(Model.OwnerTelephoneNumber))
+            {
+                <p class="mb-3">Eiers telefon: <strong>@Model.OwnerTelephoneNumber</strong></p>
+                <a class="btn-pill btn-pill-outline btn-pill-block" href="tel:@Model.OwnerTelephoneNumber">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg>
+                    Ring eier
+                </a>
+            }
+            else
+            {
+                <p class="m-0 text-muted">Ingen kontaktinformasjon er registrert.</p>
+            }
+        </section>
+    </aside>
+</div>

@@ -9,11 +9,25 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Heimevernet.Web.Controllers;
 
-public class HomeController(IPositionRepository positionRepository) : Controller
+public class HomeController(IPositionRepository positionRepository, IResourceRepository resourceRepository) : Controller
 {
+    // Forsiden: kart med registrerte posisjoner og liste over ressurser.
     public IActionResult Index()
     {
-        return View();
+        var model = new MapPageViewModel
+        {
+            Positions = positionRepository.GetAll(),
+            Resources = resourceRepository.GetAll()
+                .Select(resource => new Models.ViewModels.Resource.ResourceViewModel
+                {
+                    Id = resource.Id,
+                    Name = resource.Name,
+                    Description = resource.Description,
+                    Type = resource.Type
+                })
+                .ToList()
+        };
+        return View(model);
     }
 
     public IActionResult Privacy()

@@ -1,86 +1,95 @@
 @model IReadOnlyCollection<Heimevernet.Web.Models.Entities.Position>
 @{
-    ViewData["Title"] = "Registrerte posisjoner";
+    ViewData["Title"] = "Posisjoner";
 }
 
-<h1>Registrerte posisjoner</h1>
-<p><a asp-action="CorrectMap" class="btn btn-primary">Registrer ny posisjon</a></p>
+<div class="page-head">
+    <h1>Posisjoner</h1>
+    <a asp-action="CorrectMap" class="btn-pill btn-pill-small">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+        Meld inn posisjon
+    </a>
+</div>
 
 @if (Model.Count == 0)
 {
-    <p>Ingen posisjoner er registrert ennå.</p>
+    <p class="panel empty-state">Ingen posisjoner er meldt inn ennå.</p>
 }
 else
 {
-    <div id="map" style="height: 450px;" class="mb-3" role="application" aria-label="Kart med registrerte posisjoner"></div>
+    <section class="panel p-2">
+        <div class="map-box border-0" style="height: 420px">
+            <div id="map" class="map-canvas" role="application" aria-label="Kart med alle innmeldte posisjoner"></div>
+        </div>
+    </section>
 
-    <div class="table-responsive">
-        <table class="table table-striped">
-            <caption>Alle registrerte posisjoner, eldste først.</caption>
-            <thead>
-                <tr>
-                    <th scope="col">Breddegrad</th>
-                    <th scope="col">Lengdegrad</th>
-                    <th scope="col">Beskrivelse</th>
-                    <th scope="col">Registrert av</th>
-                    <th scope="col">Tidspunkt (UTC)</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var position in Model)
-                {
+    <section class="panel">
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <caption>Alle innmeldte posisjoner, eldste først.</caption>
+                <thead>
                     <tr>
-                        <td>@position.Latitude.ToString("0.00000", System.Globalization.CultureInfo.InvariantCulture)</td>
-                        <td>@position.Longitude.ToString("0.00000", System.Globalization.CultureInfo.InvariantCulture)</td>
-                        <td>@position.Description</td>
-                        <td>@(position.CreatedBy ?? "Ukjent")</td>
-                        <td>@position.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                        <th scope="col">Beskrivelse</th>
+                        <th scope="col">Meldt inn av</th>
+                        <th scope="col">Tidspunkt (UTC)</th>
+                        <th scope="col">Koordinater</th>
                     </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+                </thead>
+                <tbody>
+                    @foreach (var position in Model)
+                    {
+                        <tr>
+                            <td class="fw-bold">@position.Description</td>
+                            <td>@(position.CreatedBy ?? "Ukjent")</td>
+                            <td>@position.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td class="text-nowrap">@position.Latitude.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture), @position.Longitude.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
 }
 
 @section Scripts {
     @if (Model.Count > 0)
     {
         <script>
-            var map = L.map('map');
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
+            (function () {
+                var map = L.map('map');
+                beredskapTiles(map);
 
-            // Json.Serialize gjør C#-listen om til JavaScript. Egenskapene får liten forbokstav (latitude osv.).
-            var positions = @Json.Serialize(Model);
-            var bounds = [];
+                // Json.Serialize gjør C#-listen om til JavaScript. Egenskapene får liten forbokstav (latitude osv.).
+                var positions = @Json.Serialize(Model);
+                var bounds = [];
 
-            positions.forEach(function (position) {
-                var marker = L.marker([position.latitude, position.longitude]).addTo(map);
-                bounds.push([position.latitude, position.longitude]);
+                positions.forEach(function (position) {
+                    var marker = L.marker([position.latitude, position.longitude], { icon: beredskapMarker(), title: position.description }).addTo(map);
+                    bounds.push([position.latitude, position.longitude]);
 
-                // Popup med beskrivelse. textContent hindrer at tekst fra brukeren tolkes som HTML (XSS).
-                var popup = document.createElement('div');
-                var text = document.createElement('strong');
-                text.textContent = position.description;
-                var address = document.createElement('div');
-                address.textContent = 'Henter adresse...';
-                popup.appendChild(text);
-                popup.appendChild(address);
-                marker.bindPopup(popup);
+                    // Popup med beskrivelse. textContent hindrer at tekst fra brukeren tolkes som HTML (XSS).
+                    var popup = document.createElement('div');
+                    var text = document.createElement('strong');
+                    text.textContent = position.description;
+                    var address = document.createElement('div');
+                    address.textContent = 'Henter adresse...';
+                    popup.appendChild(text);
+                    popup.appendChild(address);
+                    marker.bindPopup(popup);
 
-                // Adressen slås opp først når brukeren åpner popupen, så vi ikke sender mange forespørsler på en gang.
-                marker.on('popupopen', function () {
-                    if (address.dataset.loaded) { return; }
-                    address.dataset.loaded = 'true';
-                    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + position.latitude + '&lon=' + position.longitude)
-                        .then(function (response) { return response.json(); })
-                        .then(function (data) { address.textContent = data.display_name || 'Adresse ikke funnet'; })
-                        .catch(function () { address.textContent = 'Adresse ikke tilgjengelig'; });
+                    // Adressen slås opp først når brukeren åpner popupen, så vi ikke sender mange forespørsler på en gang.
+                    marker.on('popupopen', function () {
+                        if (address.dataset.loaded) { return; }
+                        address.dataset.loaded = 'true';
+                        fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + position.latitude + '&lon=' + position.longitude)
+                            .then(function (response) { return response.json(); })
+                            .then(function (data) { address.textContent = data.display_name || 'Adresse ikke funnet'; })
+                            .catch(function () { address.textContent = 'Adresse ikke tilgjengelig'; });
+                    });
                 });
-            });
 
-            map.fitBounds(bounds, { maxZoom: 12, padding: [30, 30] });
+                map.fitBounds(bounds, { maxZoom: 12, padding: [30, 30] });
+            })();
         </script>
     }
 }

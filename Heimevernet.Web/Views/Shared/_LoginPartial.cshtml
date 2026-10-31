@@ -1,24 +1,23 @@
-@* Viser "Logg inn / Registrer" eller hvem som er logget inn + "Logg ut". *@
-@* User er den innloggede brukeren, fylt inn av UseAuthentication() i Program.cs. *@
-<ul class="navbar-nav">
+@* Nederst i sidemenyen: hvem som er logget inn + Logg ut, eller Logg inn / Registrer. *@
+<div class="sidebar-user">
     @if (User.Identity?.IsAuthenticated == true)
     {
-        <li class="nav-item">
-            <span class="nav-link text-dark">Logget inn som @User.Identity.Name</span>
-        </li>
-        <li class="nav-item">
-            <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                <button type="submit" class="nav-link btn btn-link text-dark">Logg ut</button>
-            </form>
-        </li>
+        var name = User.Identity.Name ?? "";
+        var initials = name.Length > 0 ? name.Substring(0, 1).ToUpperInvariant() : "?";
+        <div class="user-chip">
+            <span class="avatar" aria-hidden="true">@initials</span>
+            <span class="user-chip-text">
+                <span>Innlogget@(User.IsInRole(AppRoles.Admin) ? " · admin" : "")</span>
+                <strong><span class="visually-hidden">Logget inn som </span>@name</strong>
+            </span>
+        </div>
+        <form asp-controller="Account" asp-action="Logout" method="post">
+            <button type="submit" class="btn-pill btn-pill-light btn-pill-block">Logg ut</button>
+        </form>
     }
     else
     {
-        <li class="nav-item">
-            <a class="nav-link text-dark" asp-controller="Account" asp-action="Register">Registrer</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link text-dark" asp-controller="Account" asp-action="Login">Logg inn</a>
-        </li>
+        <a class="btn-pill btn-pill-light btn-pill-block" asp-controller="Account" asp-action="Login">Logg inn</a>
+        <p class="sidebar-footer"><a asp-controller="Account" asp-action="Register">Ny bruker? Registrer deg</a></p>
     }
-</ul>
+</div>

@@ -127,7 +127,8 @@ Controllerne kjenner bare grensesnittene (`IResourceRepository`, `IPositionRepos
 | ASP.NET Core MVC (.NET 10) | Krav i oppgaven |
 | Docker og Docker Compose | Likt kjøremiljø på alle maskiner, én kommando starter alt |
 | Leaflet 1.9.4 + OpenStreetMap | Fra forelesning. Gratis kart uten API-nøkkel |
-| Bootstrap 5 | Responsivt design |
+| Bootstrap 5 + eget designsystem (`wwwroot/css/site.css`) | Responsivt design. Farger, komponenter og sideoppsett følger designet «Beredskapskart» |
+| Atkinson Hyperlegible (Google Fonts) | Skrift laget for god lesbarhet, valgt i designet |
 | MariaDB | Fra forelesning |
 | Dapper + MySqlConnector | Vi skriver SQL-en selv og ser nøyaktig hva som sendes til databasen. Dapper gjør radene om til C#-objekter |
 | ASP.NET Core Identity | Ferdig og sikker håndtering av passord-hashing, innlogging, låsing av konto og roller |
@@ -187,6 +188,7 @@ dotnet test --project .\Heimevernet.Web.UnitTests\Heimevernet.Web.UnitTests.cspr
 - Vi brukte Claude til å strukturere oppgaven og hjelpe oss videre når det oppsto problemer
 - Vi brukte Claude til å hjelpe oss med å få opp README mappen og strukturere den siden vi var ikke sikre på hvordan den skulle se ut
 - Vi fikk Claude til å se gjennom koden for å feilsøke og hjelpe med eventuelle endringer
+- Frontenden er laget etter et design fra Claude Design («Beredskapskart»). Claude gjorde designet om til Razor-sider og CSS
 - Claude skrev overgangen fra Entity Framework til Dapper (repositoriene, Identity-stores og `Schema.sql`), Docker Compose-oppsettet, lagring av kartposisjoner og siden for nye ressurser. Vi kjørte testene og gikk gjennom koden etterpå
 
 ## Eksempel på prompt

@@ -4,61 +4,75 @@
     ViewData["Title"] = "Ny ressurs";
 }
 
-<h1>Ny ressurs</h1>
+<a asp-action="Index" class="back-link">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+    Avbryt
+</a>
 
-<div class="row">
-    <div class="col-md-8 col-lg-6">
-        <form asp-action="Create" method="post">
-            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+<h1 class="m-0">Meld inn en ressurs</h1>
 
-            <div class="mb-3">
-                <label asp-for="Name" class="form-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
+<form asp-action="Create" method="post" class="panel-grid">
+    <div class="panel d-flex flex-column gap-4">
+        <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+
+        @* Kategoriene fra designet som radioknapper. Verdien lagres i Type. *@
+        <fieldset>
+            <legend class="mb-3">Hva slags ressurs er det?</legend>
+            <div class="chip-row">
+                @foreach (var category in ResourceCategory.All)
+                {
+                    var id = $"type-{category.Key}";
+                    <input type="radio" class="chip-radio" id="@id" asp-for="Type" value="@category.Label" />
+                    <label class="chip" for="@id" style="--chip-color: @category.Color">@Html.Raw(category.IconSvg(18, 2.3))@category.Label</label>
+                }
             </div>
-            <div class="mb-3">
-                <label asp-for="Type" class="form-label"></label>
-                <input asp-for="Type" class="form-control" placeholder="F.eks. Kjøretøy eller Utstyr" />
-                <span asp-validation-for="Type" class="text-danger"></span>
-            </div>
-            <div class="mb-3">
-                <label asp-for="Description" class="form-label"></label>
-                <textarea asp-for="Description" class="form-control" rows="3"></textarea>
-                <span asp-validation-for="Description" class="text-danger"></span>
-            </div>
+            <span asp-validation-for="Type" class="text-danger"></span>
+        </fieldset>
 
-            <fieldset class="mb-3">
-                <legend class="fs-6">Valgfritt</legend>
-                <div class="mb-3">
-                    <label asp-for="Address" class="form-label"></label>
-                    <input asp-for="Address" class="form-control" autocomplete="street-address" />
-                    <span asp-validation-for="Address" class="text-danger"></span>
-                </div>
-                <div class="row">
-                    <div class="col-4 mb-3">
-                        <label asp-for="ZipCode" class="form-label"></label>
-                        <input asp-for="ZipCode" class="form-control" inputmode="numeric" autocomplete="postal-code" />
-                        <span asp-validation-for="ZipCode" class="text-danger"></span>
-                    </div>
-                    <div class="col-8 mb-3">
-                        <label asp-for="City" class="form-label"></label>
-                        <input asp-for="City" class="form-control" autocomplete="address-level2" />
-                        <span asp-validation-for="City" class="text-danger"></span>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label asp-for="OwnerTelephoneNumber" class="form-label"></label>
-                    <input asp-for="OwnerTelephoneNumber" class="form-control" type="tel" autocomplete="tel" />
-                    <span asp-validation-for="OwnerTelephoneNumber" class="text-danger"></span>
-                </div>
-            </fieldset>
-
-            <button type="submit" class="btn btn-primary">Lagre</button>
-            <a asp-action="Index" class="btn btn-link">Avbryt</a>
-        </form>
+        <div>
+            <label asp-for="Name" class="form-label">Navn på stedet</label>
+            <input asp-for="Name" class="form-control" placeholder="F.eks. Vannpost ved Kampen kirke" />
+            <span asp-validation-for="Name" class="text-danger"></span>
+        </div>
+        <div>
+            <label asp-for="Description" class="form-label"></label>
+            <div id="desc-hint" class="form-text mb-2">Hva finnes her, og hva bør folk ta med?</div>
+            <textarea asp-for="Description" class="form-control" rows="5" aria-describedby="desc-hint"></textarea>
+            <span asp-validation-for="Description" class="text-danger"></span>
+        </div>
     </div>
-</div>
+
+    <div class="panel d-flex flex-column gap-4">
+        <div>
+            <label asp-for="Address" class="form-label">Adresse <span class="optional">(valgfritt)</span></label>
+            <input asp-for="Address" class="form-control" autocomplete="street-address" />
+            <span asp-validation-for="Address" class="text-danger"></span>
+        </div>
+        <div class="row g-3">
+            <div class="col-5">
+                <label asp-for="ZipCode" class="form-label">Postnummer</label>
+                <input asp-for="ZipCode" class="form-control" inputmode="numeric" autocomplete="postal-code" />
+                <span asp-validation-for="ZipCode" class="text-danger"></span>
+            </div>
+            <div class="col-7">
+                <label asp-for="City" class="form-label">Poststed</label>
+                <input asp-for="City" class="form-control" autocomplete="address-level2" />
+                <span asp-validation-for="City" class="text-danger"></span>
+            </div>
+        </div>
+        <div>
+            <label asp-for="OwnerTelephoneNumber" class="form-label">Eiers telefon <span class="optional">(valgfritt)</span></label>
+            <input asp-for="OwnerTelephoneNumber" class="form-control" type="tel" autocomplete="tel" />
+            <span asp-validation-for="OwnerTelephoneNumber" class="text-danger"></span>
+        </div>
+        <button type="submit" class="btn-pill btn-pill-block">Lagre ressurs</button>
+    </div>
+</form>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Radioknappene er skjult (vi viser "chips" i stedet), så de må ikke hoppes over av valideringen.
+        $.validator.setDefaults({ ignore: [] });
+    </script>
 }

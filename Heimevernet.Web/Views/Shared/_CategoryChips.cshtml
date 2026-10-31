@@ -1,0 +1,9 @@
+@* Kategoriknappene fra designet. Brukes som filter sammen med site.js (data-resource-filter). *@
+<div class="chip-row" role="group" aria-label="Filtrer på kategori">
+    @foreach (var category in ResourceCategory.All)
+    {
+        <button type="button" class="chip" data-filter-chip data-category="@category.Key" aria-pressed="false" style="--chip-color: @category.Color">
+            @Html.Raw(category.IconSvg(18, 2.3))@category.Label
+        </button>
+    }
+</div>

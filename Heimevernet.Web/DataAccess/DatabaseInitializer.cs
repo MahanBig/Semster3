@@ -12,7 +12,26 @@ public static class DatabaseInitializer
         ArgumentNullException.ThrowIfNull(connectionFactory);
 
         using var connection = connectionFactory.CreateConnection();
+        StopIfDatabaseIsFromOldVersion(connection);
         connection.Execute(ReadSchemaScript()); // Dapper åpner tilkoblingen selv hvis den er lukket.
+    }
+
+    // Schema.sql endrer ikke tabeller som finnes. En gammel database ville gitt en uklar SQL-feil senere.
+    private static void StopIfDatabaseIsFromOldVersion(System.Data.Common.DbConnection connection)
+    {
+        var hasOldResourcesTable = connection.ExecuteScalar<int>(
+            """
+            SELECT COUNT(*) FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Resources' AND COLUMN_NAME = 'Type'
+            """) > 0;
+
+        if (hasOldResourcesTable)
+        {
+            throw new InvalidOperationException(
+                "The database was created by an older version of the app (Resources still has the column 'Type'). " +
+                "Delete it and start again with: docker compose down -v, then docker compose up --build. " +
+                "(Databasen er fra en eldre versjon. Slett den med 'docker compose down -v' og start på nytt.)");
+        }
     }
 
     private static string ReadSchemaScript()

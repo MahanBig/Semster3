@@ -1,4 +1,6 @@
+using Heimevernet.Web.DataAccess.Identity;
 using Heimevernet.Web.Models;
+using Heimevernet.Web.Models.Entities;
 using Heimevernet.Web.Models.ViewModels.UserAdmin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -9,7 +11,9 @@ namespace Heimevernet.Web.Controllers;
 // Hele controlleren krever at brukeren er logget inn OG har rollen Admin.
 // Er man ikke logget inn, sendes man til /Account/Login. Mangler man rollen, til /Account/AccessDenied.
 [Authorize(Roles = AppRoles.Admin)]
-public class UserAdminController(UserManager<IdentityUser> userManager) : Controller
+public class UserAdminController(
+    UserManager<ApplicationUser> userManager,
+    IRoleVerificationRepository roleVerification) : Controller
 {
     [HttpGet]
     public async Task<IActionResult> Index()
@@ -24,13 +28,17 @@ public class UserAdminController(UserManager<IdentityUser> userManager) : Contro
             {
                 Id = user.Id,
                 Email = user.Email ?? user.UserName ?? string.Empty,
-                Roles = await userManager.GetRolesAsync(user)
+                Name = user.Name,
+                PhoneNumber = user.PhoneNumber,
+                CreatedAt = user.CreatedAt,
+                Roles = await roleVerification.GetRolesAsync(user.Id)
             });
         }
 
         return View(model);
     }
 
+    // En rolle admin gir, er godkjent med en gang.
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddRole(string userId, string role)
@@ -41,10 +49,14 @@ public class UserAdminController(UserManager<IdentityUser> userManager) : Contro
             return NotFound();
         }
 
-        if (!await userManager.IsInRoleAsync(user, role))
+        // Finnes koblingen allerede (venter på godkjenning), legges den ikke inn på nytt.
+        var existing = (await roleVerification.GetRolesAsync(user.Id)).FirstOrDefault(status => status.RoleName == role);
+        if (existing is null)
         {
             await userManager.AddToRoleAsync(user, role);
         }
+
+        await roleVerification.VerifyAsync(user.Id, role, verifiedBy: userManager.GetUserId(User));
         return RedirectToAction(nameof(Index));
     }
 

@@ -17,7 +17,9 @@
         <caption>Alle registrerte brukere. Legg til eller fjern roller med knappene.</caption>
         <thead>
             <tr>
+                <th scope="col">Navn</th>
                 <th scope="col">E-post</th>
+                <th scope="col">Telefon</th>
                 <th scope="col">Roller</th>
                 <th scope="col">Endre roller</th>
             </tr>
@@ -26,17 +28,41 @@
             @foreach (var user in Model)
             {
                 <tr>
+                    <td>@(user.Name ?? "Ikke oppgitt")</td>
                     <td>@user.Email</td>
-                    <td>@(user.Roles.Count == 0 ? "Ingen" : string.Join(", ", user.Roles))</td>
+                    <td>@(user.PhoneNumber ?? "–")</td>
+                    <td>
+                        @if (user.Roles.Count == 0)
+                        {
+                            <span>Ingen</span>
+                        }
+                        @foreach (var status in user.Roles)
+                        {
+                            <div>
+                                <strong>@status.RoleName</strong>
+                                @if (!status.IsActive)
+                                {
+                                    <span class="text-danger">(venter på godkjenning)</span>
+                                }
+                                else if (status.RequiresVerification)
+                                {
+                                    <span class="text-muted" style="font-size: 14px">
+                                        (godkjent @status.VerifiedAt?.ToString("yyyy-MM-dd")@(status.VerifiedByEmail is null ? " ved oppstart" : $" av {status.VerifiedByEmail}"))
+                                    </span>
+                                }
+                            </div>
+                        }
+                    </td>
                     <td>
                         @foreach (var role in AppRoles.All)
                         {
-                            var hasRole = user.Roles.Contains(role);
+                            var status = user.Roles.FirstOrDefault(s => s.RoleName == role);
+                            var hasRole = status is { IsActive: true };
                             <form asp-action="@(hasRole ? "RemoveRole" : "AddRole")" method="post" class="d-inline">
                                 <input type="hidden" name="userId" value="@user.Id" />
                                 <input type="hidden" name="role" value="@role" />
                                 <button type="submit" class="btn btn-sm @(hasRole ? "btn-outline-danger" : "btn-outline-primary")">
-                                    @(hasRole ? "Fjern" : "Gi") @role
+                                    @(hasRole ? "Fjern" : status is null ? "Gi" : "Godkjenn") @role
                                 </button>
                             </form>
                         }

@@ -1,5 +1,6 @@
 using Heimevernet.Web.DataAccess;
 using Heimevernet.Web.DataAccess.Identity;
+using Heimevernet.Web.Models.Entities;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 
@@ -23,10 +24,15 @@ if (string.IsNullOrWhiteSpace(connectionString))
 builder.Services.AddSingleton<IDbConnectionFactory>(new MySqlConnectionFactory(connectionString));
 builder.Services.AddScoped<IResourceRepository, DapperResourceRepository>();
 builder.Services.AddScoped<IPositionRepository, DapperPositionRepository>();
+builder.Services.AddScoped<ICategoryRepository, DapperCategoryRepository>();
+builder.Services.AddScoped<INeedRepository, DapperNeedRepository>();
+builder.Services.AddScoped<IAllocationRepository, DapperAllocationRepository>();
+builder.Services.AddScoped<IOrganizationRepository, DapperOrganizationRepository>();
+builder.Services.AddScoped<IRoleVerificationRepository, DapperRoleVerificationRepository>();
 
-// Identity: brukere (IdentityUser) og roller (IdentityRole).
+// Identity: brukere (ApplicationUser) og roller (ApplicationRole).
 // Identity tar seg av passord-hashing, cookies og regler. Lagringen gjør våre egne Dapper-klasser.
-builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
+builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
     {
         options.User.RequireUniqueEmail = true;      // To brukere kan ikke ha samme e-post.
         options.Password.RequiredLength = 8;         // Standard er 6.
@@ -75,8 +81,9 @@ using (var scope = app.Services.CreateScope())
 
     // Lager rollene og en admin-bruker. E-post og passord kommer fra konfigurasjon, ikke fra koden.
     await IdentitySeeder.SeedAsync(
-        scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>(),
-        scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>(),
+        scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>(),
+        scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(),
+        scope.ServiceProvider.GetRequiredService<IRoleVerificationRepository>(),
         builder.Configuration["AdminUser:Email"],
         builder.Configuration["AdminUser:Password"],
         scope.ServiceProvider.GetRequiredService<ILogger<Program>>());

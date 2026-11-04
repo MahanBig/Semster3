@@ -1,9 +1,9 @@
-using Microsoft.AspNetCore.Identity;
+using Heimevernet.Web.Models.Entities;
 
 namespace Heimevernet.Web.DataAccess.Identity;
 
 // Én rad i tabellen AspNetUsers, slik den ser ut i databasen.
-// Hvorfor ikke bruke IdentityUser direkte? IdentityUser.LockoutEnd er en DateTimeOffset (tid + tidssone),
+// Hvorfor ikke bruke ApplicationUser direkte? LockoutEnd er en DateTimeOffset (tid + tidssone),
 // men MariaDB har bare DATETIME uten tidssone. Her lagrer vi tiden i UTC og gjør om begge veier.
 public sealed class UserRow
 {
@@ -22,8 +22,11 @@ public sealed class UserRow
     public DateTime? LockoutEnd { get; set; } // UTC
     public bool LockoutEnabled { get; set; }
     public int AccessFailedCount { get; set; }
+    public string? Name { get; set; }
+    public bool Consent { get; set; }
+    public DateTime CreatedAt { get; set; } // UTC
 
-    public static UserRow FromIdentityUser(IdentityUser user) => new()
+    public static UserRow FromIdentityUser(ApplicationUser user) => new()
     {
         Id = user.Id,
         UserName = user.UserName,
@@ -39,10 +42,13 @@ public sealed class UserRow
         TwoFactorEnabled = user.TwoFactorEnabled,
         LockoutEnd = user.LockoutEnd?.UtcDateTime,
         LockoutEnabled = user.LockoutEnabled,
-        AccessFailedCount = user.AccessFailedCount
+        AccessFailedCount = user.AccessFailedCount,
+        Name = user.Name,
+        Consent = user.Consent,
+        CreatedAt = user.CreatedAt
     };
 
-    public IdentityUser ToIdentityUser() => new()
+    public ApplicationUser ToIdentityUser() => new()
     {
         Id = Id,
         UserName = UserName,
@@ -60,6 +66,9 @@ public sealed class UserRow
             ? new DateTimeOffset(DateTime.SpecifyKind(lockoutEnd, DateTimeKind.Utc))
             : null,
         LockoutEnabled = LockoutEnabled,
-        AccessFailedCount = AccessFailedCount
+        AccessFailedCount = AccessFailedCount,
+        Name = Name,
+        Consent = Consent,
+        CreatedAt = DateTime.SpecifyKind(CreatedAt, DateTimeKind.Utc)
     };
 }

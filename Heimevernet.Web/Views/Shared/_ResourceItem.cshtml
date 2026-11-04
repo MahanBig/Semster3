@@ -1,17 +1,17 @@
 @using Heimevernet.Web.Models.ViewModels.Resource
 @model ResourceViewModel
 @{
-    // Ett ressurskort i en liste. Kategori (farge og ikon) gjettes ut fra ressurstypen.
-    var category = ResourceCategory.FromType(Model.Type);
+    // Ett ressurskort i en liste.
+    var category = ResourceCategory.FromType(Model.Category);
     var showDescription = ViewData["ShowDescription"] is true;
-    var searchText = $"{Model.Name} {Model.Type} {Model.Description} {category.Label}".ToLowerInvariant();
+    var searchText = $"{Model.Name} {Model.Category} {Model.Description} {Model.PostalPlace}".ToLowerInvariant();
 }
 <li data-filter-item data-category="@category.Key" data-search="@searchText">
     <a class="resource-item" asp-controller="Resource" asp-action="Index" asp-route-id="@Model.Id">
         <span class="resource-thumb" style="background: @category.Tint; color: @category.Color">@Html.Raw(category.IconSvg(22))</span>
         <span class="resource-text">
             <strong>@Model.Name</strong>
-            <span>@Model.Type</span>
+            <span>@Model.Category · @ResourceStatus.Label(Model.Status)</span>
             @if (showDescription)
             {
                 <span class="resource-desc">@Model.Description</span>

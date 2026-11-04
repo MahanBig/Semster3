@@ -1,0 +1,24 @@
+@using Heimevernet.Web.Models.ViewModels.Need
+@model NeedViewModel
+@{
+    ViewData["Title"] = "Slett " + Model.Title;
+}
+
+<a asp-action="Details" asp-route-id="@Model.Id" class="back-link">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+    Avbryt
+</a>
+
+<section class="panel d-flex flex-column gap-3" style="max-width: 640px" aria-labelledby="delete-heading">
+    <h1 id="delete-heading" class="m-0">Slette behovet?</h1>
+    <div>
+        <strong class="d-block" style="font-size: 20px">@Model.Title</strong>
+        <span class="text-muted">@Model.Category · @NeedPriority.Label(Model.Priority) prioritet</span>
+    </div>
+    <p class="m-0">Behovet fjernes for alle brukere. Ressurser som var tildelt blir ledige igjen. Dette kan ikke angres.</p>
+
+    <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-flex flex-wrap gap-2">
+        <button type="submit" class="btn-pill btn-pill-danger">Ja, slett behovet</button>
+        <a asp-action="Details" asp-route-id="@Model.Id" class="btn-pill btn-pill-outline">Nei, behold det</a>
+    </form>
+</section>

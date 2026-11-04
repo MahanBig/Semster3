@@ -1,5 +1,6 @@
 using Heimevernet.Web.Authorization;
 using Heimevernet.Web.DataAccess;
+using System.Security.Claims;
 using Heimevernet.Web.Models.Entities;
 using Heimevernet.Web.Models.ViewModels.Resource;
 using Microsoft.AspNetCore.Authorization;
@@ -12,23 +13,20 @@ namespace Heimevernet.Web.Controllers
     public class ResourceHandlerController : Controller
     {
         private readonly IResourceRepository _resourceRepository;
+        private readonly ICategoryRepository _categoryRepository;
 
-        public ResourceHandlerController(IResourceRepository resourceRepository) // Repository kommer inn via dependency injection. Det er registrert i Program.cs.
+        // Repositoryene kommer inn via dependency injection. De er registrert i Program.cs.
+        public ResourceHandlerController(IResourceRepository resourceRepository, ICategoryRepository categoryRepository)
         {
             _resourceRepository = resourceRepository;
+            _categoryRepository = categoryRepository;
         }
 
         [HttpGet] // Henter alle ressurser fra databasen og sender dem til viewet som en liste.
         public IActionResult Index()
         {
             var model = _resourceRepository.GetAll()
-                .Select(resource => new ResourceViewModel
-                {
-                    Id = resource.Id,
-                    Name = resource.Name,
-                    Description = resource.Description,
-                    Type = resource.Type
-                })
+                .Select(ResourceViewModel.FromEntity)
                 .ToList();
 
             return View(model);
@@ -48,13 +46,15 @@ namespace Heimevernet.Web.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Create(ResourceViewModel model)
         {
-            if (!ModelState.IsValid)
+            var category = FindCategory(model);
+            if (!ModelState.IsValid || category is null)
             {
                 return View(model); // Viser skjemaet igjen med feilmeldingene.
             }
 
-            var resource = ToEntity(model, id: 0);
-            resource.CreatedBy = User.Identity?.Name; // Den innloggede brukeren blir eier av ressursen.
+            var resource = ToEntity(model, id: 0, category.Id);
+            resource.UserId = User.FindFirstValue(ClaimTypes.NameIdentifier); // Den innloggede brukeren blir eier.
+            resource.RegisteredAt = DateTime.UtcNow;
             var id = _resourceRepository.Add(resource);
 
             // TempData overlever én redirect, så detaljsiden kan vise en bekreftelse.
@@ -78,7 +78,7 @@ namespace Heimevernet.Web.Controllers
                 return Forbid(); // Logget inn, men ikke eier eller admin: sendes til "Ingen tilgang".
             }
 
-            return View(ToViewModel(resource));
+            return View(ResourceViewModel.FromEntity(resource));
         }
 
         [HttpPost]
@@ -98,14 +98,15 @@ namespace Heimevernet.Web.Controllers
                 return Forbid();
             }
 
-            if (!ModelState.IsValid)
+            var category = FindCategory(model);
+            if (!ModelState.IsValid || category is null)
             {
                 model.Id = id;
                 return View(model);
             }
 
-            var updated = ToEntity(model, id);
-            updated.CreatedBy = existing.CreatedBy; // Eieren endres ikke.
+            var updated = ToEntity(model, id, category.Id);
+            updated.UserId = existing.UserId; // Eieren endres ikke.
             _resourceRepository.Update(updated);
 
             TempData["Message"] = "Endringene ble lagret.";
@@ -128,7 +129,7 @@ namespace Heimevernet.Web.Controllers
                 return Forbid();
             }
 
-            return View(ToViewModel(resource)); // Viser en side der brukeren må bekrefte slettingen.
+            return View(ResourceViewModel.FromEntity(resource)); // Viser en side der brukeren må bekrefte slettingen.
         }
 
         // POST /ResourceHandler/Delete/5. Egen metodenavn fordi GET og POST har samme parametere.
@@ -155,29 +156,28 @@ namespace Heimevernet.Web.Controllers
 
         // ---------- Hjelpemetoder ----------
 
-        private static Resource ToEntity(ResourceViewModel model, int id) => new()
+        // Skjemaet sender kategorinavnet. Databasen trenger Id-en.
+        private Category? FindCategory(ResourceViewModel model)
+        {
+            var category = string.IsNullOrWhiteSpace(model.Category) ? null : _categoryRepository.GetByName(model.Category.Trim());
+            if (category is null && !string.IsNullOrWhiteSpace(model.Category))
+            {
+                ModelState.AddModelError(nameof(model.Category), "Ukjent kategori.");
+            }
+            return category;
+        }
+
+        private static Resource ToEntity(ResourceViewModel model, int id, int categoryId) => new()
         {
             Id = id,
             Name = model.Name.Trim(),
             Description = model.Description.Trim(),
-            Type = model.Type.Trim(),
+            Quantity = model.Quantity,
+            Status = model.Status,
+            CategoryId = categoryId,
             Address = EmptyToNull(model.Address),
-            City = EmptyToNull(model.City),
-            ZipCode = EmptyToNull(model.ZipCode),
-            OwnerTelephoneNumber = EmptyToNull(model.OwnerTelephoneNumber)
-        };
-
-        private static ResourceViewModel ToViewModel(Resource resource) => new()
-        {
-            Id = resource.Id,
-            Name = resource.Name,
-            Description = resource.Description,
-            Type = resource.Type,
-            Address = resource.Address,
-            City = resource.City,
-            ZipCode = resource.ZipCode,
-            OwnerTelephoneNumber = resource.OwnerTelephoneNumber,
-            CreatedBy = resource.CreatedBy
+            PostalCode = EmptyToNull(model.PostalCode),
+            PostalPlace = EmptyToNull(model.PostalPlace)
         };
 
         private static string? EmptyToNull(string? value)

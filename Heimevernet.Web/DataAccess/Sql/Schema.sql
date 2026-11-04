@@ -1,39 +1,5 @@
--- Lager alle tabellene appen trenger i MariaDB.
--- Kjøres hver gang appen starter (se DatabaseInitializer.cs).
--- "IF NOT EXISTS" gjør at ingenting skjer med tabeller som allerede finnes, så data blir ikke slettet.
--- Vil du endre en eksisterende tabell, må du skrive en ALTER TABLE-setning i tillegg.
+-- Kjøres ved oppstart. IF NOT EXISTS endrer ikke tabeller som finnes, så kjør docker compose down -v etter endringer.
 
--- Ressursene som vises på /ResourceHandler.
-CREATE TABLE IF NOT EXISTS Resources (
-    Id INT NOT NULL AUTO_INCREMENT,
-    Name VARCHAR(200) NOT NULL,
-    Description VARCHAR(2000) NOT NULL,
-    Type VARCHAR(100) NOT NULL,
-    Address VARCHAR(200) NULL,
-    City VARCHAR(100) NULL,
-    ZipCode VARCHAR(6) NULL,
-    OwnerTelephoneNumber VARCHAR(20) NULL,
-    CreatedBy VARCHAR(256) NULL,         -- Brukernavnet (e-post) til den som la inn ressursen.
-    PRIMARY KEY (Id)
-);
-
--- Kolonnen CreatedBy kom til senere. "CREATE TABLE IF NOT EXISTS" endrer ikke en tabell som finnes fra før,
--- så databaser som allerede har tabellen får kolonnen her. IF NOT EXISTS gjør at det er trygt å kjøre hver gang.
-ALTER TABLE Resources ADD COLUMN IF NOT EXISTS CreatedBy VARCHAR(256) NULL;
-
--- Posisjoner som brukerne har registrert på kartet (/Home/CorrectMap).
-CREATE TABLE IF NOT EXISTS Positions (
-    Id INT NOT NULL AUTO_INCREMENT,
-    Latitude DOUBLE NOT NULL,
-    Longitude DOUBLE NOT NULL,
-    Description VARCHAR(1000) NOT NULL,
-    CreatedBy VARCHAR(256) NULL,         -- Brukernavnet til den som registrerte posisjonen.
-    CreatedAtUtc DATETIME(6) NOT NULL,   -- Tidspunkt i UTC.
-    PRIMARY KEY (Id)
-);
-
--- Brukerne. Kolonnene tilsvarer egenskapene på IdentityUser.
--- "Normalized"-kolonnene er STORE BOKSTAVER, så søk ikke skiller på store og små bokstaver.
 CREATE TABLE IF NOT EXISTS AspNetUsers (
     Id VARCHAR(255) NOT NULL,
     UserName VARCHAR(256) NULL,
@@ -41,36 +7,173 @@ CREATE TABLE IF NOT EXISTS AspNetUsers (
     Email VARCHAR(256) NULL,
     NormalizedEmail VARCHAR(256) NULL,
     EmailConfirmed BOOLEAN NOT NULL,
-    PasswordHash LONGTEXT NULL,          -- Aldri selve passordet, bare en hash av det.
-    SecurityStamp LONGTEXT NULL,         -- Endres når passordet endres, så gamle innlogginger blir ugyldige.
-    ConcurrencyStamp LONGTEXT NULL,      -- Hindrer at to samtidige endringer overskriver hverandre.
-    PhoneNumber LONGTEXT NULL,
+    PasswordHash LONGTEXT NULL,
+    SecurityStamp LONGTEXT NULL,
+    ConcurrencyStamp LONGTEXT NULL,
+    PhoneNumber VARCHAR(20) NULL,
     PhoneNumberConfirmed BOOLEAN NOT NULL,
     TwoFactorEnabled BOOLEAN NOT NULL,
-    LockoutEnd DATETIME(6) NULL,         -- Lagres i UTC. Kontoen er låst til dette tidspunktet.
+    LockoutEnd DATETIME(6) NULL,
     LockoutEnabled BOOLEAN NOT NULL,
-    AccessFailedCount INT NOT NULL,      -- Antall feil passord på rad.
+    AccessFailedCount INT NOT NULL,
+    Name VARCHAR(100) NULL,
+    Consent BOOLEAN NOT NULL DEFAULT FALSE,
+    CreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (Id),
     UNIQUE INDEX UserNameIndex (NormalizedUserName),
     INDEX EmailIndex (NormalizedEmail)
 );
 
--- Rollene, f.eks. Admin og Bruker.
 CREATE TABLE IF NOT EXISTS AspNetRoles (
     Id VARCHAR(255) NOT NULL,
     Name VARCHAR(256) NULL,
     NormalizedName VARCHAR(256) NULL,
     ConcurrencyStamp LONGTEXT NULL,
+    Description VARCHAR(255) NULL,
+    AccessLevel TINYINT NOT NULL DEFAULT 0,
+    RequiresVerification BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (Id),
     UNIQUE INDEX RoleNameIndex (NormalizedName)
 );
 
--- Koblingstabell: hvilken bruker har hvilken rolle (mange-til-mange).
--- ON DELETE CASCADE: slettes en bruker eller rolle, forsvinner koblingene automatisk.
+-- En rolle som krever godkjenning teller ikke før VerifiedAt har en verdi.
 CREATE TABLE IF NOT EXISTS AspNetUserRoles (
     UserId VARCHAR(255) NOT NULL,
     RoleId VARCHAR(255) NOT NULL,
+    VerifiedBy VARCHAR(255) NULL,
+    VerifiedAt DATETIME NULL,
     PRIMARY KEY (UserId, RoleId),
     CONSTRAINT FK_AspNetUserRoles_AspNetUsers_UserId FOREIGN KEY (UserId) REFERENCES AspNetUsers (Id) ON DELETE CASCADE,
-    CONSTRAINT FK_AspNetUserRoles_AspNetRoles_RoleId FOREIGN KEY (RoleId) REFERENCES AspNetRoles (Id) ON DELETE CASCADE
+    CONSTRAINT FK_AspNetUserRoles_AspNetRoles_RoleId FOREIGN KEY (RoleId) REFERENCES AspNetRoles (Id) ON DELETE CASCADE,
+    CONSTRAINT FK_AspNetUserRoles_AspNetUsers_VerifiedBy FOREIGN KEY (VerifiedBy) REFERENCES AspNetUsers (Id) ON DELETE SET NULL
 );
+
+CREATE TABLE IF NOT EXISTS PostalCodes (
+    PostalCode CHAR(4) NOT NULL,
+    PostalPlace VARCHAR(50) NOT NULL,
+    PRIMARY KEY (PostalCode)
+);
+
+CREATE TABLE IF NOT EXISTS Locations (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Address VARCHAR(150) NULL,
+    PostalCode CHAR(4) NULL,
+    Latitude DECIMAL(9,6) NULL,
+    Longitude DECIMAL(9,6) NULL,
+    Description VARCHAR(255) NULL,
+    PRIMARY KEY (Id),
+    CONSTRAINT FK_Locations_PostalCodes FOREIGN KEY (PostalCode) REFERENCES PostalCodes (PostalCode)
+);
+
+CREATE TABLE IF NOT EXISTS Categories (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Name VARCHAR(100) NOT NULL,
+    Description VARCHAR(255) NULL,
+    PRIMARY KEY (Id),
+    UNIQUE INDEX CategoryNameIndex (Name)
+);
+
+CREATE TABLE IF NOT EXISTS Organizations (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Name VARCHAR(100) NOT NULL,
+    Type VARCHAR(50) NULL,
+    PRIMARY KEY (Id)
+);
+
+CREATE TABLE IF NOT EXISTS Competences (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Name VARCHAR(100) NOT NULL,
+    Certification VARCHAR(100) NULL,
+    Description VARCHAR(255) NULL,
+    PRIMARY KEY (Id)
+);
+
+CREATE TABLE IF NOT EXISTS Resources (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Name VARCHAR(100) NOT NULL,
+    Description TEXT NOT NULL,
+    Quantity INT NOT NULL DEFAULT 1,
+    Status ENUM('tilgjengelig', 'i_bruk', 'utilgjengelig') NOT NULL DEFAULT 'tilgjengelig',
+    RegisteredAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UserId VARCHAR(255) NULL,
+    CategoryId INT NOT NULL,
+    LocationId INT NULL,
+    PRIMARY KEY (Id),
+    CONSTRAINT FK_Resources_AspNetUsers FOREIGN KEY (UserId) REFERENCES AspNetUsers (Id) ON DELETE SET NULL,
+    CONSTRAINT FK_Resources_Categories FOREIGN KEY (CategoryId) REFERENCES Categories (Id),
+    CONSTRAINT FK_Resources_Locations FOREIGN KEY (LocationId) REFERENCES Locations (Id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS Needs (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Title VARCHAR(100) NOT NULL,
+    Description TEXT NOT NULL,
+    Quantity INT NOT NULL DEFAULT 1,
+    Priority ENUM('lav', 'middels', 'høy', 'kritisk') NOT NULL DEFAULT 'middels',
+    Status ENUM('åpen', 'under_behandling', 'dekket') NOT NULL DEFAULT 'åpen',
+    RegisteredAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    Deadline DATETIME NULL,
+    UserId VARCHAR(255) NULL,
+    OrganizationId INT NULL,
+    CategoryId INT NOT NULL,
+    LocationId INT NULL,
+    PRIMARY KEY (Id),
+    CONSTRAINT FK_Needs_AspNetUsers FOREIGN KEY (UserId) REFERENCES AspNetUsers (Id) ON DELETE SET NULL,
+    CONSTRAINT FK_Needs_Organizations FOREIGN KEY (OrganizationId) REFERENCES Organizations (Id) ON DELETE SET NULL,
+    CONSTRAINT FK_Needs_Categories FOREIGN KEY (CategoryId) REFERENCES Categories (Id),
+    CONSTRAINT FK_Needs_Locations FOREIGN KEY (LocationId) REFERENCES Locations (Id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS UserOrganizations (
+    UserId VARCHAR(255) NOT NULL,
+    OrganizationId INT NOT NULL,
+    PRIMARY KEY (UserId, OrganizationId),
+    CONSTRAINT FK_UserOrganizations_AspNetUsers FOREIGN KEY (UserId) REFERENCES AspNetUsers (Id) ON DELETE CASCADE,
+    CONSTRAINT FK_UserOrganizations_Organizations FOREIGN KEY (OrganizationId) REFERENCES Organizations (Id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS UserCompetences (
+    UserId VARCHAR(255) NOT NULL,
+    CompetenceId INT NOT NULL,
+    PRIMARY KEY (UserId, CompetenceId),
+    CONSTRAINT FK_UserCompetences_AspNetUsers FOREIGN KEY (UserId) REFERENCES AspNetUsers (Id) ON DELETE CASCADE,
+    CONSTRAINT FK_UserCompetences_Competences FOREIGN KEY (CompetenceId) REFERENCES Competences (Id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS ResourceCompetences (
+    ResourceId INT NOT NULL,
+    CompetenceId INT NOT NULL,
+    PRIMARY KEY (ResourceId, CompetenceId),
+    CONSTRAINT FK_ResourceCompetences_Resources FOREIGN KEY (ResourceId) REFERENCES Resources (Id) ON DELETE CASCADE,
+    CONSTRAINT FK_ResourceCompetences_Competences FOREIGN KEY (CompetenceId) REFERENCES Competences (Id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Allocations (
+    NeedId INT NOT NULL,
+    ResourceId INT NOT NULL,
+    Quantity INT NOT NULL DEFAULT 1,
+    AllocatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (NeedId, ResourceId),
+    CONSTRAINT FK_Allocations_Needs FOREIGN KEY (NeedId) REFERENCES Needs (Id) ON DELETE CASCADE,
+    CONSTRAINT FK_Allocations_Resources FOREIGN KEY (ResourceId) REFERENCES Resources (Id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Positions (
+    Id INT NOT NULL AUTO_INCREMENT,
+    Latitude DOUBLE NOT NULL,
+    Longitude DOUBLE NOT NULL,
+    Description VARCHAR(1000) NOT NULL,
+    CreatedBy VARCHAR(256) NULL,
+    CreatedAtUtc DATETIME(6) NOT NULL,
+    PRIMARY KEY (Id)
+);
+
+-- Name må være lik Label i ResourceCategory.cs.
+INSERT IGNORE INTO Categories (Name, Description) VALUES
+    ('Mat', 'Mat og matutdeling'),
+    ('Vann', 'Drikkevann'),
+    ('Ly og varme', 'Husly, overnatting og varme'),
+    ('Helse', 'Førstehjelp, medisin og helsehjelp'),
+    ('Verktøy', 'Verktøy, utstyr og kjøretøy'),
+    ('Strøm og lading', 'Aggregat, nødstrøm og lading'),
+    ('Informasjon', 'Informasjonspunkter og annet');

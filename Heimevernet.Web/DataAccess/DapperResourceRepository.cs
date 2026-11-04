@@ -3,17 +3,28 @@ using Heimevernet.Web.Models.Entities;
 
 namespace Heimevernet.Web.DataAccess;
 
-// Henter ressurser fra MariaDB med Dapper.
+// Henter og lagrer ressurser i MariaDB med Dapper.
 // Vi skriver SQL-en selv. Dapper kjører den og fyller Resource-objekter: kolonnenavn = egenskapsnavn.
 public class DapperResourceRepository(IDbConnectionFactory connectionFactory) : IResourceRepository
 {
+    // LEFT JOIN fordi adresse og eier kan mangle.
     private const string SelectResources =
-        "SELECT Id, Name, Description, Type, Address, City, ZipCode, OwnerTelephoneNumber, CreatedBy FROM Resources";
+        """
+        SELECT r.Id, r.Name, r.Description, r.Quantity, r.Status, r.RegisteredAt, r.UserId, r.CategoryId, r.LocationId,
+               c.Name AS CategoryName,
+               l.Address, l.PostalCode, p.PostalPlace,
+               u.Name AS OwnerName, u.Email AS OwnerEmail, u.PhoneNumber AS OwnerPhone
+        FROM Resources r
+        INNER JOIN Categories c ON c.Id = r.CategoryId
+        LEFT JOIN Locations l ON l.Id = r.LocationId
+        LEFT JOIN PostalCodes p ON p.PostalCode = l.PostalCode
+        LEFT JOIN AspNetUsers u ON u.Id = r.UserId
+        """;
 
     public IReadOnlyCollection<Resource> GetAll()
     {
         using var connection = connectionFactory.CreateConnection();
-        return connection.Query<Resource>($"{SelectResources} ORDER BY Id").ToList().AsReadOnly();
+        return connection.Query<Resource>($"{SelectResources} ORDER BY r.Id").ToList().AsReadOnly();
     }
 
     public Resource? GetById(int id) // Returnerer null hvis det ikke finnes en ressurs med denne id-en.
@@ -22,7 +33,7 @@ public class DapperResourceRepository(IDbConnectionFactory connectionFactory) : 
 
         // @Id er en parameter. Verdien sendes separat fra SQL-teksten, så ingen kan endre spørringen
         // ved å sende inn ondsinnet tekst (SQL injection). Lim aldri brukerdata rett inn i SQL-strengen.
-        return connection.QuerySingleOrDefault<Resource>($"{SelectResources} WHERE Id = @Id", new { Id = id });
+        return connection.QuerySingleOrDefault<Resource>($"{SelectResources} WHERE r.Id = @Id", new { Id = id });
     }
 
     public int Add(Resource resource)
@@ -30,15 +41,26 @@ public class DapperResourceRepository(IDbConnectionFactory connectionFactory) : 
         ArgumentNullException.ThrowIfNull(resource);
 
         using var connection = connectionFactory.CreateConnection();
+        connection.Open();
+
+        // Transaksjon: lokasjonen og ressursen lagres sammen eller ikke i det hele tatt.
+        using var transaction = connection.BeginTransaction();
+
+        resource.LocationId = LocationWriter.Save(
+            connection, transaction, existingLocationId: null, resource.Address, resource.PostalCode, resource.PostalPlace);
 
         // Id står ikke med: MariaDB lager den (AUTO_INCREMENT), og RETURNING Id gir oss den tilbake.
-        return connection.ExecuteScalar<int>(
+        var id = connection.ExecuteScalar<int>(
             """
-            INSERT INTO Resources (Name, Description, Type, Address, City, ZipCode, OwnerTelephoneNumber, CreatedBy)
-            VALUES (@Name, @Description, @Type, @Address, @City, @ZipCode, @OwnerTelephoneNumber, @CreatedBy)
+            INSERT INTO Resources (Name, Description, Quantity, Status, RegisteredAt, UserId, CategoryId, LocationId)
+            VALUES (@Name, @Description, @Quantity, @Status, @RegisteredAt, @UserId, @CategoryId, @LocationId)
             RETURNING Id
             """,
-            resource);
+            resource,
+            transaction);
+
+        transaction.Commit();
+        return id;
     }
 
     public bool Update(Resource resource)
@@ -46,22 +68,49 @@ public class DapperResourceRepository(IDbConnectionFactory connectionFactory) : 
         ArgumentNullException.ThrowIfNull(resource);
 
         using var connection = connectionFactory.CreateConnection();
+        connection.Open();
+        using var transaction = connection.BeginTransaction();
 
-        // CreatedBy endres ikke: den som la inn ressursen er fortsatt eier etter en endring.
+        var oldLocationId = connection.QuerySingleOrDefault<int?>(
+            "SELECT LocationId FROM Resources WHERE Id = @Id", new { resource.Id }, transaction);
+
+        resource.LocationId = LocationWriter.Save(
+            connection, transaction, oldLocationId, resource.Address, resource.PostalCode, resource.PostalPlace);
+
+        // UserId og RegisteredAt endres ikke.
         var changedRows = connection.Execute(
             """
             UPDATE Resources
-            SET Name = @Name, Description = @Description, Type = @Type, Address = @Address,
-                City = @City, ZipCode = @ZipCode, OwnerTelephoneNumber = @OwnerTelephoneNumber
+            SET Name = @Name, Description = @Description, Quantity = @Quantity, Status = @Status,
+                CategoryId = @CategoryId, LocationId = @LocationId
             WHERE Id = @Id
             """,
-            resource);
+            resource,
+            transaction);
+
+        if (resource.LocationId is null)
+        {
+            LocationWriter.DeleteIfUnused(connection, transaction, oldLocationId);
+        }
+
+        transaction.Commit();
         return changedRows == 1;
     }
 
     public bool Delete(int id)
     {
         using var connection = connectionFactory.CreateConnection();
-        return connection.Execute("DELETE FROM Resources WHERE Id = @Id", new { Id = id }) == 1;
+        connection.Open();
+        using var transaction = connection.BeginTransaction();
+
+        var locationId = connection.QuerySingleOrDefault<int?>(
+            "SELECT LocationId FROM Resources WHERE Id = @Id", new { Id = id }, transaction);
+
+        // Tildelingene slettes av ON DELETE CASCADE.
+        var deleted = connection.Execute("DELETE FROM Resources WHERE Id = @Id", new { Id = id }, transaction) == 1;
+        LocationWriter.DeleteIfUnused(connection, transaction, locationId);
+
+        transaction.Commit();
+        return deleted;
     }
 }

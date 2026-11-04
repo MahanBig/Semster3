@@ -48,11 +48,14 @@ internal sealed class FakeResourceRepository(params Resource[] resources) : IRes
         Id = id,
         Name = resource.Name,
         Description = resource.Description,
-        Type = resource.Type,
+        Quantity = resource.Quantity,
+        Status = resource.Status,
+        RegisteredAt = resource.RegisteredAt,
+        UserId = resource.UserId,
+        CategoryId = resource.CategoryId,
+        CategoryName = resource.CategoryName,
         Address = resource.Address,
-        City = resource.City,
-        ZipCode = resource.ZipCode,
-        OwnerTelephoneNumber = resource.OwnerTelephoneNumber,
-        CreatedBy = resource.CreatedBy
+        PostalCode = resource.PostalCode,
+        PostalPlace = resource.PostalPlace
     };
 }

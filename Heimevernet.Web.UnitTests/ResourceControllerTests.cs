@@ -11,8 +11,8 @@ public class ResourceControllerTests
     public void Index_ExistingId_ReturnsSelectedResource()
     {
         var repository = new FakeResourceRepository(
-            new Resource { Id = 7, Name = "Water pump", Description = "Stored in depot A", Type = "Equipment" },
-            new Resource { Id = 12, Name = "Minibus", Description = "Nine seats", Type = "Vehicle" });
+            new Resource { Id = 7, Name = "Water pump", Description = "Stored in depot A", CategoryName = "Verktøy" },
+            new Resource { Id = 12, Name = "Minibus", Description = "Nine seats", CategoryName = "Informasjon", OwnerName = "Ola", OwnerPhone = "12345678" });
         var controller = new ResourceController(repository);
 
         var result = controller.Index(12);
@@ -22,7 +22,9 @@ public class ResourceControllerTests
         Assert.Equal(12, model.Id);
         Assert.Equal("Minibus", model.Name);
         Assert.Equal("Nine seats", model.Description);
-        Assert.Equal("Vehicle", model.Type);
+        Assert.Equal("Informasjon", model.Category);
+        Assert.Equal("Ola", model.OwnerName);
+        Assert.Equal("12345678", model.OwnerPhone);
     }
 
     [Fact]

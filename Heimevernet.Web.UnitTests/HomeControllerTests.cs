@@ -13,7 +13,7 @@ public class HomeControllerTests
         var positions = new FakePositionRepository();
         positions.Add(new Position { Latitude = 58.1, Longitude = 8.0, Description = "Vannpost" });
         var resources = new FakeResourceRepository(
-            new Resource { Id = 3, Name = "Aggregat", Description = "5 kW", Type = "Utstyr" });
+            new Resource { Id = 3, Name = "Aggregat", Description = "5 kW", CategoryName = "Strøm og lading" });
         var controller = new HomeController(positions, resources);
 
         var result = controller.Index();

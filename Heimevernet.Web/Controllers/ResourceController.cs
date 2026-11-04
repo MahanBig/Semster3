@@ -29,19 +29,9 @@ namespace Heimevernet.Web.Controllers
                 return NotFound();
             }
 
-            var viewModel = new ResourceViewModel  // Vi mapper entiteten til en view model, så viewet bare får feltene det trenger.
-            {
-                Id = resource.Id,
-                Name = resource.Name,
-                Description = resource.Description,
-                Type = resource.Type,
-                Address = resource.Address,
-                City = resource.City,
-                ZipCode = resource.ZipCode,
-                OwnerTelephoneNumber = resource.OwnerTelephoneNumber,
-                CreatedBy = resource.CreatedBy,
-                CanModify = ResourcePermissions.CanModify(User, resource) // Viser Endre/Slett bare for eier og admin.
-            };
+            // Vi mapper entiteten til en view model, så viewet bare får feltene det trenger.
+            var viewModel = ResourceViewModel.FromEntity(resource);
+            viewModel.CanModify = ResourcePermissions.CanModify(User, resource); // Viser Endre/Slett bare for eier og admin.
 
             return View(viewModel);
         }

@@ -1,0 +1,158 @@
+@using Heimevernet.Web.Models.ViewModels.Need
+@model NeedDetailsViewModel
+@{
+    var need = Model.Need;
+    ViewData["Title"] = need.Title;
+    var category = ResourceCategory.FromType(need.Category);
+    var (priorityColor, priorityTint) = NeedPriority.Colors(need.Priority);
+    var place = $"{need.PostalCode} {need.PostalPlace}".Trim();
+    var fullAddress = string.Join(", ", new[] { need.Address, place }.Where(part => !string.IsNullOrWhiteSpace(part)));
+}
+
+<a asp-action="Index" class="back-link">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+    Tilbake til behov
+</a>
+
+@if (TempData["Message"] is string message)
+{
+    <div class="alert alert-success" role="status">@message</div>
+}
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger" role="alert">@error</div>
+}
+
+<div class="panel-grid">
+    <article class="panel-wide d-flex flex-column gap-4">
+        <div class="d-flex flex-column gap-3">
+            <div class="d-flex flex-wrap gap-2">
+                <span class="badge-category" style="background: @category.Tint; color: @category.Color">
+                    @Html.Raw(category.IconSvg(16, 2.4))@category.Label
+                </span>
+                <span class="badge-category" style="background: @priorityTint; color: @priorityColor">@NeedPriority.Label(need.Priority) prioritet</span>
+            </div>
+            <h1 class="m-0">@need.Title</h1>
+            <div class="d-flex flex-wrap gap-2">
+                <span class="status-pill">@NeedStatus.Label(need.Status)</span>
+                <span class="status-pill fw-normal">@need.AllocatedQuantity av @need.Quantity dekket</span>
+                @if (need.Deadline is { } deadline)
+                {
+                    <span class="status-pill fw-normal">Frist: @deadline.ToString("dd.MM.yyyy")</span>
+                }
+            </div>
+            @if (need.CanModify)
+            {
+                <div class="d-flex flex-wrap gap-2">
+                    <a asp-action="Edit" asp-route-id="@need.Id" class="btn-pill btn-pill-outline btn-pill-small">Endre</a>
+                    <a asp-action="Delete" asp-route-id="@need.Id" class="btn-pill btn-pill-danger-outline btn-pill-small">Slett</a>
+                </div>
+            }
+        </div>
+
+        <section class="panel">
+            <h2>Om behovet</h2>
+            <p class="m-0" style="font-size: 18px; line-height: 1.6; color: var(--text-2); max-width: 68ch">@need.Description</p>
+        </section>
+
+        <section class="panel" aria-labelledby="allocations-heading">
+            <h2 id="allocations-heading">Tildelte ressurser</h2>
+            @if (Model.Allocations.Count == 0)
+            {
+                <p class="m-0 text-muted">Ingen ressurser er tildelt ennå.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <caption>Ressurser som er gitt til dette behovet.</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Ressurs</th>
+                                <th scope="col">Eier</th>
+                                <th scope="col">Antall</th>
+                                <th scope="col">Tildelt (UTC)</th>
+                                <th scope="col"><span class="visually-hidden">Handlinger</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model.Allocations)
+                            {
+                                <tr>
+                                    <td class="fw-bold">
+                                        <a asp-controller="Resource" asp-action="Index" asp-route-id="@row.Allocation.ResourceId">@row.Allocation.ResourceName</a>
+                                    </td>
+                                    <td>@(row.Allocation.ResourceOwnerName ?? "Ingen eier")</td>
+                                    <td>@row.Allocation.Quantity</td>
+                                    <td>@row.Allocation.AllocatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                    <td>
+                                        @if (row.CanRemove)
+                                        {
+                                            <form asp-action="RemoveAllocation" asp-route-id="@need.Id" method="post">
+                                                <input type="hidden" name="resourceId" value="@row.Allocation.ResourceId" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                    Fjern <span class="visually-hidden">@row.Allocation.ResourceName</span>
+                                                </button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    </article>
+
+    <aside class="panel-narrow d-flex flex-column gap-3">
+        <section class="panel" aria-labelledby="allocate-heading">
+            <h2 id="allocate-heading">Tildel en ressurs</h2>
+            @if (Model.IsCovered)
+            {
+                <p class="m-0 text-muted">Behovet er dekket.</p>
+            }
+            else if (Model.AvailableResources.Count == 0)
+            {
+                <p class="m-0 text-muted">Du har ingen ledige ressurser å tildele.</p>
+                <a asp-controller="ResourceHandler" asp-action="Create" class="btn-pill btn-pill-outline btn-pill-block mt-3">Meld inn en ressurs</a>
+            }
+            else
+            {
+                <form asp-action="Allocate" asp-route-id="@need.Id" method="post" class="d-flex flex-column gap-3">
+                    <div>
+                        <label for="resourceId" class="form-label">Ressurs</label>
+                        <select id="resourceId" name="resourceId" class="form-select form-control">
+                            @foreach (var resource in Model.AvailableResources)
+                            {
+                                <option value="@resource.Id">@resource.Name (@resource.CategoryName, @resource.Quantity stk.)</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label for="quantity" class="form-label">Antall</label>
+                        <input id="quantity" name="quantity" type="number" min="1" value="1" class="form-control" inputmode="numeric" required />
+                    </div>
+                    <button type="submit" class="btn-pill btn-pill-block">Tildel</button>
+                </form>
+            }
+        </section>
+
+        <section class="panel">
+            <h2>Detaljer</h2>
+            <dl class="facts">
+                <div><dt>Sted</dt><dd>@(fullAddress.Length > 0 ? fullAddress : "Ikke oppgitt")</dd></div>
+                <div><dt>Meldt inn av</dt><dd>@(need.OwnerName ?? "Ukjent")</dd></div>
+                @if (need.OrganizationName is not null)
+                {
+                    <div><dt>Organisasjon</dt><dd>@need.OrganizationName</dd></div>
+                }
+                @if (need.OwnerPhone is not null)
+                {
+                    <div><dt>Telefon</dt><dd><a href="tel:@need.OwnerPhone">@need.OwnerPhone</a></dd></div>
+                }
+                <div><dt>Registrert (UTC)</dt><dd>@need.RegisteredAt?.ToString("yyyy-MM-dd HH:mm")</dd></div>
+            </dl>
+        </section>
+    </aside>
+</div>

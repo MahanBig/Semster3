@@ -1,0 +1,45 @@
+@using Heimevernet.Web.Models.ViewModels.Need
+@model List<NeedViewModel>
+@{
+    ViewData["Title"] = "Behov";
+}
+
+<div class="page-head">
+    <h1>Behov</h1>
+    <a asp-action="Create" class="btn-pill btn-pill-small">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+        Nytt behov
+    </a>
+</div>
+<p class="lead-text">Det folk trenger nå. De mest kritiske står først, og dekkede behov står sist.</p>
+
+@if (TempData["Message"] is string message)
+{
+    <div class="alert alert-success" role="status">@message</div>
+}
+
+@if (Model.Count == 0)
+{
+    <p class="panel empty-state">Ingen behov er meldt inn ennå.</p>
+}
+else
+{
+    <ul class="resource-grid">
+        @foreach (var need in Model)
+        {
+            var category = ResourceCategory.FromType(need.Category);
+            var (color, tint) = NeedPriority.Colors(need.Priority);
+            <li>
+                <a class="resource-item" asp-action="Details" asp-route-id="@need.Id">
+                    <span class="resource-thumb" style="background: @category.Tint; color: @category.Color">@Html.Raw(category.IconSvg(22))</span>
+                    <span class="resource-text">
+                        <strong>@need.Title</strong>
+                        <span>@need.Category · @NeedStatus.Label(need.Status) · @need.AllocatedQuantity av @need.Quantity dekket</span>
+                        <span class="badge-category mt-1" style="background: @tint; color: @color">@NeedPriority.Label(need.Priority) prioritet</span>
+                    </span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A5868" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+                </a>
+            </li>
+        }
+    </ul>
+}

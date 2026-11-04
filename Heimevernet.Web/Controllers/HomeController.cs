@@ -18,13 +18,7 @@ public class HomeController(IPositionRepository positionRepository, IResourceRep
         {
             Positions = positionRepository.GetAll(),
             Resources = resourceRepository.GetAll()
-                .Select(resource => new Models.ViewModels.Resource.ResourceViewModel
-                {
-                    Id = resource.Id,
-                    Name = resource.Name,
-                    Description = resource.Description,
-                    Type = resource.Type
-                })
+                .Select(Models.ViewModels.Resource.ResourceViewModel.FromEntity)
                 .ToList()
         };
         return View(model);

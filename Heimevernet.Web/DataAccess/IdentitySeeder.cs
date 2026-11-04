@@ -1,4 +1,6 @@
+using Heimevernet.Web.DataAccess.Identity;
 using Heimevernet.Web.Models;
+using Heimevernet.Web.Models.Entities;
 using Microsoft.AspNetCore.Identity;
 
 namespace Heimevernet.Web.DataAccess;
@@ -8,20 +10,22 @@ namespace Heimevernet.Web.DataAccess;
 public static class IdentitySeeder
 {
     public static async Task SeedAsync(
-        RoleManager<IdentityRole> roleManager,
-        UserManager<IdentityUser> userManager,
+        RoleManager<ApplicationRole> roleManager,
+        UserManager<ApplicationUser> userManager,
+        IRoleVerificationRepository roleVerification,
         string? adminEmail,
         string? adminPassword,
         ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(roleManager);
         ArgumentNullException.ThrowIfNull(userManager);
+        ArgumentNullException.ThrowIfNull(roleVerification);
 
         foreach (var roleName in AppRoles.All)
         {
             if (!await roleManager.RoleExistsAsync(roleName))
             {
-                EnsureSucceeded(await roleManager.CreateAsync(new IdentityRole(roleName)), $"create role '{roleName}'");
+                EnsureSucceeded(await roleManager.CreateAsync(AppRoles.Create(roleName)), $"create role '{roleName}'");
             }
         }
 
@@ -36,7 +40,14 @@ public static class IdentitySeeder
         var admin = await userManager.FindByEmailAsync(adminEmail);
         if (admin is null)
         {
-            admin = new IdentityUser { UserName = adminEmail, Email = adminEmail, EmailConfirmed = true };
+            admin = new ApplicationUser
+            {
+                UserName = adminEmail,
+                Email = adminEmail,
+                EmailConfirmed = true,
+                Name = "Administrator",
+                Consent = true
+            };
             var result = await userManager.CreateAsync(admin, adminPassword);
             if (!result.Succeeded)
             {
@@ -50,9 +61,16 @@ public static class IdentitySeeder
             }
         }
 
-        if (!await userManager.IsInRoleAsync(admin, AppRoles.Admin))
+        // Admin krever godkjenning, så oppstarten godkjenner den første admin-brukeren.
+        // IsInRoleAsync kan ikke brukes til sjekken, fordi den overser roller som ikke er godkjent.
+        var adminRole = (await roleVerification.GetRolesAsync(admin.Id)).FirstOrDefault(role => role.RoleName == AppRoles.Admin);
+        if (adminRole is null)
         {
             EnsureSucceeded(await userManager.AddToRoleAsync(admin, AppRoles.Admin), "give the admin user the Admin role");
+        }
+        if (adminRole is null || !adminRole.IsActive)
+        {
+            await roleVerification.VerifyAsync(admin.Id, AppRoles.Admin, verifiedBy: null);
         }
     }
 

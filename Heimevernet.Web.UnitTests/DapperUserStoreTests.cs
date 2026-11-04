@@ -1,3 +1,5 @@
+using Heimevernet.Web.DataAccess.Identity;
+using Heimevernet.Web.Models.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,9 +16,10 @@ public class DapperUserStoreTests
         using var database = new SqliteTestDatabase();
         using var services = IdentityTestServices.Create(database);
         using var scope = services.CreateScope();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-        var created = await userManager.CreateAsync(new IdentityUser { UserName = "ola@test.no", Email = "ola@test.no" }, Password);
+        var created = await userManager.CreateAsync(
+            new ApplicationUser { UserName = "ola@test.no", Email = "ola@test.no", Name = "Ola Nordmann", Consent = true }, Password);
         Assert.True(created.Succeeded);
 
         var user = await userManager.FindByEmailAsync("OLA@Test.no");
@@ -27,6 +30,8 @@ public class DapperUserStoreTests
         var reloaded = await userManager.FindByIdAsync(user.Id);
         Assert.NotNull(reloaded);
         Assert.Equal("12345678", reloaded.PhoneNumber);
+        Assert.Equal("Ola Nordmann", reloaded.Name);
+        Assert.True(reloaded.Consent);
         Assert.True(await userManager.CheckPasswordAsync(reloaded, Password));
     }
 
@@ -36,8 +41,8 @@ public class DapperUserStoreTests
         using var database = new SqliteTestDatabase();
         using var services = IdentityTestServices.Create(database);
         using var scope = services.CreateScope();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-        var user = new IdentityUser { UserName = "kari@test.no", Email = "kari@test.no" };
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = new ApplicationUser { UserName = "kari@test.no", Email = "kari@test.no" };
         await userManager.CreateAsync(user, Password);
 
         // Two separate copies of the same row, like two browser tabs editing the same user.
@@ -60,11 +65,11 @@ public class DapperUserStoreTests
         using var database = new SqliteTestDatabase();
         using var services = IdentityTestServices.Create(database);
         using var scope = services.CreateScope();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        await roleManager.CreateAsync(new IdentityRole("Admin"));
-        await roleManager.CreateAsync(new IdentityRole("Bruker"));
-        var user = new IdentityUser { UserName = "per@test.no", Email = "per@test.no" };
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
+        await roleManager.CreateAsync(new ApplicationRole("Admin"));
+        await roleManager.CreateAsync(new ApplicationRole("Bruker"));
+        var user = new ApplicationUser { UserName = "per@test.no", Email = "per@test.no" };
         await userManager.CreateAsync(user, Password);
 
         await userManager.AddToRoleAsync(user, "Admin");
@@ -86,8 +91,8 @@ public class DapperUserStoreTests
         using var database = new SqliteTestDatabase();
         using var services = IdentityTestServices.Create(database);
         using var scope = services.CreateScope();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-        var user = new IdentityUser { UserName = "lise@test.no", Email = "lise@test.no" };
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = new ApplicationUser { UserName = "lise@test.no", Email = "lise@test.no" };
         await userManager.CreateAsync(user, Password);
 
         for (var attempt = 0; attempt < 5; attempt++)
@@ -99,5 +104,32 @@ public class DapperUserStoreTests
         var reloaded = await userManager.FindByIdAsync(user.Id);
         Assert.NotNull(reloaded);
         Assert.True(await userManager.IsLockedOutAsync(reloaded));
+    }
+
+    [Fact]
+    public async Task RoleThatRequiresVerification_DoesNotCountUntilVerified()
+    {
+        using var database = new SqliteTestDatabase();
+        using var services = IdentityTestServices.Create(database);
+        using var scope = services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
+        var roleVerification = new DapperRoleVerificationRepository(database);
+        await roleManager.CreateAsync(new ApplicationRole("Admin") { RequiresVerification = true, AccessLevel = 100 });
+        var user = new ApplicationUser { UserName = "per@test.no", Email = "per@test.no" };
+        await userManager.CreateAsync(user, Password);
+
+        await userManager.AddToRoleAsync(user, "Admin");
+
+        // The row exists, but the role gives no access yet.
+        Assert.False(await userManager.IsInRoleAsync(user, "Admin"));
+        Assert.Empty(await userManager.GetRolesAsync(user));
+        var pending = Assert.Single(await roleVerification.GetRolesAsync(user.Id));
+        Assert.False(pending.IsActive);
+
+        Assert.True(await roleVerification.VerifyAsync(user.Id, "Admin", verifiedBy: null));
+
+        Assert.True(await userManager.IsInRoleAsync(user, "Admin"));
+        Assert.True(Assert.Single(await roleVerification.GetRolesAsync(user.Id)).IsActive);
     }
 }

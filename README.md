@@ -1,6 +1,8 @@
-# Heimevernet
+<img src="Heimevernet.Web/wwwroot/img/kriseklar.svg" alt="KriseKlar-logo" width="80" align="right" />
 
-ASP.NET Core MVC-applikasjon som kjører i Docker. Brukere logger inn, registrerer posisjoner i et kart og ser beredskapsressurser fra databasen. Innloggede brukere kan legge til ressurser og endre eller slette sine egne. Admin kan endre og slette alle ressurser og styre hvem som har hvilke roller.
+# KriseKlar
+
+KriseKlar er en ASP.NET Core MVC-applikasjon som kjører i Docker. Brukere logger inn, registrerer posisjoner i et kart og ser beredskapsressurser fra databasen. Innloggede brukere kan legge til ressurser og endre eller slette sine egne. Admin kan endre og slette alle ressurser og styre hvem som har hvilke roller.
 
 **Gruppe:** 8 · **Emne:** IS-202 · **Medlemmer:** Darin, Marius, Lars, Mahan, Yasin
 
@@ -131,7 +133,7 @@ Controllerne kjenner bare grensesnittene (`IResourceRepository`, `IPositionRepos
 | ASP.NET Core MVC (.NET 10) | Krav i oppgaven |
 | Docker og Docker Compose | Likt kjøremiljø på alle maskiner, én kommando starter alt |
 | Leaflet 1.9.4 + OpenStreetMap | Fra forelesning. Gratis kart uten API-nøkkel |
-| Bootstrap 5 + eget designsystem (`wwwroot/css/site.css`) | Responsivt design. Farger, komponenter og sideoppsett følger designet «Beredskapskart» |
+| Bootstrap 5 + eget designsystem (`wwwroot/css/site.css`) | Responsivt design. Farger, komponenter og sideoppsett følger designet «Beredskapskart». Navnet og logoen er KriseKlar (`wwwroot/img/kriseklar.svg`) |
 | Atkinson Hyperlegible (Google Fonts) | Skrift laget for god lesbarhet, valgt i designet |
 | MariaDB | Fra forelesning |
 | Dapper + MySqlConnector | Vi skriver SQL-en selv og ser nøyaktig hva som sendes til databasen. Dapper gjør radene om til C#-objekter |

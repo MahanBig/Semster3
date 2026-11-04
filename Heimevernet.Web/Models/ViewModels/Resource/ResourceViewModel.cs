@@ -35,6 +35,14 @@ namespace Heimevernet.Web.Models.ViewModels.Resource
         [Display(Name = "Postnummer")]
         public string? ZipCode { get; set; }
 
+        // Vises på siden, men tas aldri fra skjemaet ([BindNever]): controlleren setter dem selv.
+        // Ellers kunne noen sende inn CreatedBy=en annen bruker og "eie" ressursen (overposting).
+        [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
+        public string? CreatedBy { get; set; }
+
+        [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
+        public bool CanModify { get; set; }
+
         [Phone(ErrorMessage = "Ugyldig telefonnummer.")]
         [StringLength(20, ErrorMessage = "Telefonnummeret kan ha maks {1} tegn.")]
         [Display(Name = "Eiers telefonnummer")]

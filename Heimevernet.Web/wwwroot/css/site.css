@@ -248,6 +248,10 @@ a:hover { color: var(--primary-hover); }
 .btn-pill.btn-pill-outline:hover { background: #EEF2F8; color: var(--primary-hover); }
 .btn-pill.btn-pill-light { background: #FFFFFF; border-color: #FFFFFF; color: var(--navy); }
 .btn-pill.btn-pill-light:hover { background: #E1E8F3; }
+.btn-pill.btn-pill-danger { background: var(--danger); border-color: var(--danger); color: #FFFFFF; }
+.btn-pill.btn-pill-danger:hover { background: #991B1B; border-color: #991B1B; }
+.btn-pill.btn-pill-danger-outline { background: transparent; border-color: var(--danger); color: var(--danger); }
+.btn-pill.btn-pill-danger-outline:hover { background: #FBE4E4; color: #991B1B; }
 .btn-pill.btn-pill-small { min-height: 44px; padding: 0 16px; font-size: 15px; }
 .btn-pill.btn-pill-block { width: 100%; }
 

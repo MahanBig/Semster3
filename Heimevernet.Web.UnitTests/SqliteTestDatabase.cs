@@ -20,7 +20,8 @@ internal sealed class SqliteTestDatabase : IDbConnectionFactory, IDisposable
             Address TEXT NULL,
             City TEXT NULL,
             ZipCode TEXT NULL,
-            OwnerTelephoneNumber TEXT NULL);
+            OwnerTelephoneNumber TEXT NULL,
+            CreatedBy TEXT NULL);
 
         CREATE TABLE Positions (
             Id INTEGER PRIMARY KEY AUTOINCREMENT,

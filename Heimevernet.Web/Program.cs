@@ -79,6 +79,21 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
     app.UseHsts();
 }
+
+// Sikkerhets-headere på alle svar (krav 8). De forteller nettleseren hva den IKKE skal tillate:
+//  - nosniff: ikke gjett filtype (hindrer at en tekstfil blir kjørt som script).
+//  - DENY: siden kan ikke vises inne i en <iframe> på en annen side (hindrer "clickjacking").
+//  - Referrer-Policy: send bare domenet, ikke hele adressen, når man klikker seg videre.
+//  - Permissions-Policy: bare vår egen side får be om posisjon; kamera og mikrofon er av.
+app.Use(async (context, next) =>
+{
+    var headers = context.Response.Headers;
+    headers["X-Content-Type-Options"] = "nosniff";
+    headers["X-Frame-Options"] = "DENY";
+    headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    headers["Permissions-Policy"] = "geolocation=(self), camera=(), microphone=()";
+    await next();
+});
 app.UseRouting(); // Rekkefølgen hver forespørsel går gjennom.
 
 app.UseAuthentication(); // Leser innloggings-cookien og finner ut HVEM brukeren er.

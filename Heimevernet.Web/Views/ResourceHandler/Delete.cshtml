@@ -1,0 +1,29 @@
+@using Heimevernet.Web.Models.ViewModels.Resource
+@model ResourceViewModel
+@{
+    ViewData["Title"] = "Slett " + Model.Name;
+    var category = ResourceCategory.FromType(Model.Type);
+}
+
+<a asp-controller="Resource" asp-action="Index" asp-route-id="@Model.Id" class="back-link">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+    Avbryt
+</a>
+
+<section class="panel d-flex flex-column gap-3" style="max-width: 640px" aria-labelledby="delete-heading">
+    <h1 id="delete-heading" class="m-0">Slette ressursen?</h1>
+    <div class="d-flex align-items-center gap-3">
+        <span class="resource-thumb large" style="background: @category.Tint; color: @category.Color">@Html.Raw(category.IconSvg(28))</span>
+        <div>
+            <strong class="d-block" style="font-size: 20px">@Model.Name</strong>
+            <span class="text-muted">@Model.Type</span>
+        </div>
+    </div>
+    <p class="m-0">Ressursen fjernes for alle brukere. Dette kan ikke angres.</p>
+
+    @* Slettingen skjer med POST og anti-forgery-token, aldri med en vanlig lenke (GET). *@
+    <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-flex flex-wrap gap-2">
+        <button type="submit" class="btn-pill btn-pill-danger">Ja, slett ressursen</button>
+        <a asp-controller="Resource" asp-action="Index" asp-route-id="@Model.Id" class="btn-pill btn-pill-outline">Nei, behold den</a>
+    </form>
+</section>

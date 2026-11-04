@@ -13,8 +13,13 @@ CREATE TABLE IF NOT EXISTS Resources (
     City VARCHAR(100) NULL,
     ZipCode VARCHAR(6) NULL,
     OwnerTelephoneNumber VARCHAR(20) NULL,
+    CreatedBy VARCHAR(256) NULL,         -- Brukernavnet (e-post) til den som la inn ressursen.
     PRIMARY KEY (Id)
 );
+
+-- Kolonnen CreatedBy kom til senere. "CREATE TABLE IF NOT EXISTS" endrer ikke en tabell som finnes fra før,
+-- så databaser som allerede har tabellen får kolonnen her. IF NOT EXISTS gjør at det er trygt å kjøre hver gang.
+ALTER TABLE Resources ADD COLUMN IF NOT EXISTS CreatedBy VARCHAR(256) NULL;
 
 -- Posisjoner som brukerne har registrert på kartet (/Home/CorrectMap).
 CREATE TABLE IF NOT EXISTS Positions (

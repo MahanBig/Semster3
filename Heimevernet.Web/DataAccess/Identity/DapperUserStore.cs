@@ -1,4 +1,5 @@
 using Dapper;
+using Heimevernet.Web.Models.Entities;
 using Microsoft.AspNetCore.Identity;
 
 namespace Heimevernet.Web.DataAccess.Identity;
@@ -12,23 +13,23 @@ namespace Heimevernet.Web.DataAccess.Identity;
 //   IUserLockoutStore       -> låser kontoen etter for mange feil passord
 //   IQueryableUserStore     -> userManager.Users (listen på brukeradmin-siden)
 public class DapperUserStore(IDbConnectionFactory connectionFactory, IdentityErrorDescriber errorDescriber) :
-    IUserPasswordStore<IdentityUser>,
-    IUserEmailStore<IdentityUser>,
-    IUserRoleStore<IdentityUser>,
-    IUserSecurityStampStore<IdentityUser>,
-    IUserLockoutStore<IdentityUser>,
-    IQueryableUserStore<IdentityUser>
+    IUserPasswordStore<ApplicationUser>,
+    IUserEmailStore<ApplicationUser>,
+    IUserRoleStore<ApplicationUser>,
+    IUserSecurityStampStore<ApplicationUser>,
+    IUserLockoutStore<ApplicationUser>,
+    IQueryableUserStore<ApplicationUser>
 {
     private const string SelectUsers = """
         SELECT Id, UserName, NormalizedUserName, Email, NormalizedEmail, EmailConfirmed, PasswordHash,
                SecurityStamp, ConcurrencyStamp, PhoneNumber, PhoneNumberConfirmed, TwoFactorEnabled,
-               LockoutEnd, LockoutEnabled, AccessFailedCount
+               LockoutEnd, LockoutEnabled, AccessFailedCount, Name, Consent, CreatedAt
         FROM AspNetUsers
         """;
 
     // ---------- Lagre, endre og slette ----------
 
-    public async Task<IdentityResult> CreateAsync(IdentityUser user, CancellationToken cancellationToken)
+    public async Task<IdentityResult> CreateAsync(ApplicationUser user, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(user);
 
@@ -37,17 +38,17 @@ public class DapperUserStore(IDbConnectionFactory connectionFactory, IdentityErr
             """
             INSERT INTO AspNetUsers (Id, UserName, NormalizedUserName, Email, NormalizedEmail, EmailConfirmed,
                 PasswordHash, SecurityStamp, ConcurrencyStamp, PhoneNumber, PhoneNumberConfirmed, TwoFactorEnabled,
-                LockoutEnd, LockoutEnabled, AccessFailedCount)
+                LockoutEnd, LockoutEnabled, AccessFailedCount, Name, Consent, CreatedAt)
             VALUES (@Id, @UserName, @NormalizedUserName, @Email, @NormalizedEmail, @EmailConfirmed,
                 @PasswordHash, @SecurityStamp, @ConcurrencyStamp, @PhoneNumber, @PhoneNumberConfirmed, @TwoFactorEnabled,
-                @LockoutEnd, @LockoutEnabled, @AccessFailedCount)
+                @LockoutEnd, @LockoutEnabled, @AccessFailedCount, @Name, @Consent, @CreatedAt)
             """,
             UserRow.FromIdentityUser(user),
             cancellationToken: cancellationToken));
         return IdentityResult.Success;
     }
 
-    public async Task<IdentityResult> UpdateAsync(IdentityUser user, CancellationToken cancellationToken)
+    public async Task<IdentityResult> UpdateAsync(ApplicationUser user, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(user);
 
@@ -68,7 +69,8 @@ public class DapperUserStore(IDbConnectionFactory connectionFactory, IdentityErr
                 PasswordHash = @PasswordHash, SecurityStamp = @SecurityStamp, ConcurrencyStamp = @ConcurrencyStamp,
                 PhoneNumber = @PhoneNumber, PhoneNumberConfirmed = @PhoneNumberConfirmed,
                 TwoFactorEnabled = @TwoFactorEnabled, LockoutEnd = @LockoutEnd,
-                LockoutEnabled = @LockoutEnabled, AccessFailedCount = @AccessFailedCount
+                LockoutEnabled = @LockoutEnabled, AccessFailedCount = @AccessFailedCount,
+                Name = @Name, Consent = @Consent
             WHERE Id = @Id AND ConcurrencyStamp = @OldConcurrencyStamp
             """,
             parameters,
@@ -77,7 +79,7 @@ public class DapperUserStore(IDbConnectionFactory connectionFactory, IdentityErr
         return changedRows == 1 ? IdentityResult.Success : IdentityResult.Failed(errorDescriber.ConcurrencyFailure());
     }
 
-    public async Task<IdentityResult> DeleteAsync(IdentityUser user, CancellationToken cancellationToken)
+    public async Task<IdentityResult> DeleteAsync(ApplicationUser user, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(user);
 
@@ -89,18 +91,18 @@ public class DapperUserStore(IDbConnectionFactory connectionFactory, IdentityErr
 
     // ---------- Finne brukere ----------
 
-    public Task<IdentityUser?> FindByIdAsync(string userId, CancellationToken cancellationToken)
+    public Task<ApplicationUser?> FindByIdAsync(string userId, CancellationToken cancellationToken)
         => FindUserAsync("Id = @Value", userId, cancellationToken);
 
     // UserManager sender inn "normaliserte" verdier (STORE BOKSTAVER), så "Ola@Test.no" og "ola@test.no" er samme bruker.
-    public Task<IdentityUser?> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken)
+    public Task<ApplicationUser?> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken)
         => FindUserAsync("NormalizedUserName = @Value", normalizedUserName, cancellationToken);
 
-    public Task<IdentityUser?> FindByEmailAsync(string normalizedEmail, CancellationToken cancellationToken)
+    public Task<ApplicationUser?> FindByEmailAsync(string normalizedEmail, CancellationToken cancellationToken)
         => FindUserAsync("NormalizedEmail = @Value", normalizedEmail, cancellationToken);
 
     // whereClause kommer alltid fra koden over, aldri fra brukeren. Selve verdien sendes som parameter (@Value).
-    private async Task<IdentityUser?> FindUserAsync(string whereClause, string value, CancellationToken cancellationToken)
+    private async Task<ApplicationUser?> FindUserAsync(string whereClause, string value, CancellationToken cancellationToken)
     {
         using var connection = connectionFactory.CreateConnection();
         var row = await connection.QuerySingleOrDefaultAsync<UserRow>(new CommandDefinition(
@@ -110,7 +112,7 @@ public class DapperUserStore(IDbConnectionFactory connectionFactory, IdentityErr
 
     // userManager.Users. Henter alle brukerne. Greit for en liten app, men med tusenvis av brukere
     // burde vi heller hatt en egen metode med paging (LIMIT/OFFSET).
-    public IQueryable<IdentityUser> Users
+    public IQueryable<ApplicationUser> Users
     {
         get
         {
@@ -125,7 +127,10 @@ public class DapperUserStore(IDbConnectionFactory connectionFactory, IdentityErr
     // ---------- Roller (tabellen AspNetUserRoles) ----------
     // roleName er normalisert (STORE BOKSTAVER), derfor sammenligner vi med NormalizedName.
 
-    public async Task AddToRoleAsync(IdentityUser user, string roleName, CancellationToken cancellationToken)
+    // En rolle som krever godkjenning teller ikke før VerifiedAt er satt. r = AspNetRoles, ur = AspNetUserRoles.
+    private const string VerifiedRole = "(r.RequiresVerification = 0 OR ur.VerifiedAt IS NOT NULL)";
+
+    public async Task AddToRoleAsync(ApplicationUser user, string roleName, CancellationToken cancellationToken)
     {
         using var connection = connectionFactory.CreateConnection();
         var roleId = await connection.QuerySingleOrDefaultAsync<string>(new CommandDefinition(
@@ -140,7 +145,7 @@ public class DapperUserStore(IDbConnectionFactory connectionFactory, IdentityErr
             cancellationToken: cancellationToken));
     }
 
-    public async Task RemoveFromRoleAsync(IdentityUser user, string roleName, CancellationToken cancellationToken)
+    public async Task RemoveFromRoleAsync(ApplicationUser user, string roleName, CancellationToken cancellationToken)
     {
         using var connection = connectionFactory.CreateConnection();
         await connection.ExecuteAsync(new CommandDefinition(
@@ -153,15 +158,16 @@ public class DapperUserStore(IDbConnectionFactory connectionFactory, IdentityErr
             cancellationToken: cancellationToken));
     }
 
-    public async Task<IList<string>> GetRolesAsync(IdentityUser user, CancellationToken cancellationToken)
+    public async Task<IList<string>> GetRolesAsync(ApplicationUser user, CancellationToken cancellationToken)
     {
         using var connection = connectionFactory.CreateConnection();
         var roleNames = await connection.QueryAsync<string>(new CommandDefinition(
-            """
+            $"""
             SELECT r.Name
             FROM AspNetRoles r
             INNER JOIN AspNetUserRoles ur ON ur.RoleId = r.Id
             WHERE ur.UserId = @UserId
+              AND {VerifiedRole}
             ORDER BY r.Name
             """,
             new { UserId = user.Id },
@@ -169,22 +175,23 @@ public class DapperUserStore(IDbConnectionFactory connectionFactory, IdentityErr
         return roleNames.ToList();
     }
 
-    public async Task<bool> IsInRoleAsync(IdentityUser user, string roleName, CancellationToken cancellationToken)
+    public async Task<bool> IsInRoleAsync(ApplicationUser user, string roleName, CancellationToken cancellationToken)
     {
         using var connection = connectionFactory.CreateConnection();
         var count = await connection.ExecuteScalarAsync<int>(new CommandDefinition(
-            """
+            $"""
             SELECT COUNT(*)
             FROM AspNetUserRoles ur
             INNER JOIN AspNetRoles r ON r.Id = ur.RoleId
             WHERE ur.UserId = @UserId AND r.NormalizedName = @NormalizedName
+              AND {VerifiedRole}
             """,
             new { UserId = user.Id, NormalizedName = roleName },
             cancellationToken: cancellationToken));
         return count > 0;
     }
 
-    public async Task<IList<IdentityUser>> GetUsersInRoleAsync(string roleName, CancellationToken cancellationToken)
+    public async Task<IList<ApplicationUser>> GetUsersInRoleAsync(string roleName, CancellationToken cancellationToken)
     {
         using var connection = connectionFactory.CreateConnection();
         var rows = await connection.QueryAsync<UserRow>(new CommandDefinition(
@@ -194,7 +201,8 @@ public class DapperUserStore(IDbConnectionFactory connectionFactory, IdentityErr
                 SELECT ur.UserId
                 FROM AspNetUserRoles ur
                 INNER JOIN AspNetRoles r ON r.Id = ur.RoleId
-                WHERE r.NormalizedName = @NormalizedName)
+                WHERE r.NormalizedName = @NormalizedName
+                  AND {VerifiedRole})
             """,
             new { NormalizedName = roleName },
             cancellationToken: cancellationToken));
@@ -204,103 +212,103 @@ public class DapperUserStore(IDbConnectionFactory connectionFactory, IdentityErr
     // ---------- Get/Set på objektet i minnet ----------
     // Disse rører ikke databasen. UserManager endrer objektet først og kaller så UpdateAsync for å lagre alt.
 
-    public Task<string> GetUserIdAsync(IdentityUser user, CancellationToken cancellationToken)
+    public Task<string> GetUserIdAsync(ApplicationUser user, CancellationToken cancellationToken)
         => Task.FromResult(user.Id);
 
-    public Task<string?> GetUserNameAsync(IdentityUser user, CancellationToken cancellationToken)
+    public Task<string?> GetUserNameAsync(ApplicationUser user, CancellationToken cancellationToken)
         => Task.FromResult(user.UserName);
 
-    public Task SetUserNameAsync(IdentityUser user, string? userName, CancellationToken cancellationToken)
+    public Task SetUserNameAsync(ApplicationUser user, string? userName, CancellationToken cancellationToken)
     {
         user.UserName = userName;
         return Task.CompletedTask;
     }
 
-    public Task<string?> GetNormalizedUserNameAsync(IdentityUser user, CancellationToken cancellationToken)
+    public Task<string?> GetNormalizedUserNameAsync(ApplicationUser user, CancellationToken cancellationToken)
         => Task.FromResult(user.NormalizedUserName);
 
-    public Task SetNormalizedUserNameAsync(IdentityUser user, string? normalizedName, CancellationToken cancellationToken)
+    public Task SetNormalizedUserNameAsync(ApplicationUser user, string? normalizedName, CancellationToken cancellationToken)
     {
         user.NormalizedUserName = normalizedName;
         return Task.CompletedTask;
     }
 
-    public Task SetPasswordHashAsync(IdentityUser user, string? passwordHash, CancellationToken cancellationToken)
+    public Task SetPasswordHashAsync(ApplicationUser user, string? passwordHash, CancellationToken cancellationToken)
     {
         user.PasswordHash = passwordHash;
         return Task.CompletedTask;
     }
 
-    public Task<string?> GetPasswordHashAsync(IdentityUser user, CancellationToken cancellationToken)
+    public Task<string?> GetPasswordHashAsync(ApplicationUser user, CancellationToken cancellationToken)
         => Task.FromResult(user.PasswordHash);
 
-    public Task<bool> HasPasswordAsync(IdentityUser user, CancellationToken cancellationToken)
+    public Task<bool> HasPasswordAsync(ApplicationUser user, CancellationToken cancellationToken)
         => Task.FromResult(user.PasswordHash is not null);
 
-    public Task SetEmailAsync(IdentityUser user, string? email, CancellationToken cancellationToken)
+    public Task SetEmailAsync(ApplicationUser user, string? email, CancellationToken cancellationToken)
     {
         user.Email = email;
         return Task.CompletedTask;
     }
 
-    public Task<string?> GetEmailAsync(IdentityUser user, CancellationToken cancellationToken)
+    public Task<string?> GetEmailAsync(ApplicationUser user, CancellationToken cancellationToken)
         => Task.FromResult(user.Email);
 
-    public Task<bool> GetEmailConfirmedAsync(IdentityUser user, CancellationToken cancellationToken)
+    public Task<bool> GetEmailConfirmedAsync(ApplicationUser user, CancellationToken cancellationToken)
         => Task.FromResult(user.EmailConfirmed);
 
-    public Task SetEmailConfirmedAsync(IdentityUser user, bool confirmed, CancellationToken cancellationToken)
+    public Task SetEmailConfirmedAsync(ApplicationUser user, bool confirmed, CancellationToken cancellationToken)
     {
         user.EmailConfirmed = confirmed;
         return Task.CompletedTask;
     }
 
-    public Task<string?> GetNormalizedEmailAsync(IdentityUser user, CancellationToken cancellationToken)
+    public Task<string?> GetNormalizedEmailAsync(ApplicationUser user, CancellationToken cancellationToken)
         => Task.FromResult(user.NormalizedEmail);
 
-    public Task SetNormalizedEmailAsync(IdentityUser user, string? normalizedEmail, CancellationToken cancellationToken)
+    public Task SetNormalizedEmailAsync(ApplicationUser user, string? normalizedEmail, CancellationToken cancellationToken)
     {
         user.NormalizedEmail = normalizedEmail;
         return Task.CompletedTask;
     }
 
-    public Task SetSecurityStampAsync(IdentityUser user, string stamp, CancellationToken cancellationToken)
+    public Task SetSecurityStampAsync(ApplicationUser user, string stamp, CancellationToken cancellationToken)
     {
         user.SecurityStamp = stamp;
         return Task.CompletedTask;
     }
 
-    public Task<string?> GetSecurityStampAsync(IdentityUser user, CancellationToken cancellationToken)
+    public Task<string?> GetSecurityStampAsync(ApplicationUser user, CancellationToken cancellationToken)
         => Task.FromResult(user.SecurityStamp);
 
-    public Task<DateTimeOffset?> GetLockoutEndDateAsync(IdentityUser user, CancellationToken cancellationToken)
+    public Task<DateTimeOffset?> GetLockoutEndDateAsync(ApplicationUser user, CancellationToken cancellationToken)
         => Task.FromResult(user.LockoutEnd);
 
-    public Task SetLockoutEndDateAsync(IdentityUser user, DateTimeOffset? lockoutEnd, CancellationToken cancellationToken)
+    public Task SetLockoutEndDateAsync(ApplicationUser user, DateTimeOffset? lockoutEnd, CancellationToken cancellationToken)
     {
         user.LockoutEnd = lockoutEnd;
         return Task.CompletedTask;
     }
 
-    public Task<int> IncrementAccessFailedCountAsync(IdentityUser user, CancellationToken cancellationToken)
+    public Task<int> IncrementAccessFailedCountAsync(ApplicationUser user, CancellationToken cancellationToken)
     {
         user.AccessFailedCount++;
         return Task.FromResult(user.AccessFailedCount);
     }
 
-    public Task ResetAccessFailedCountAsync(IdentityUser user, CancellationToken cancellationToken)
+    public Task ResetAccessFailedCountAsync(ApplicationUser user, CancellationToken cancellationToken)
     {
         user.AccessFailedCount = 0;
         return Task.CompletedTask;
     }
 
-    public Task<int> GetAccessFailedCountAsync(IdentityUser user, CancellationToken cancellationToken)
+    public Task<int> GetAccessFailedCountAsync(ApplicationUser user, CancellationToken cancellationToken)
         => Task.FromResult(user.AccessFailedCount);
 
-    public Task<bool> GetLockoutEnabledAsync(IdentityUser user, CancellationToken cancellationToken)
+    public Task<bool> GetLockoutEnabledAsync(ApplicationUser user, CancellationToken cancellationToken)
         => Task.FromResult(user.LockoutEnabled);
 
-    public Task SetLockoutEnabledAsync(IdentityUser user, bool enabled, CancellationToken cancellationToken)
+    public Task SetLockoutEnabledAsync(ApplicationUser user, bool enabled, CancellationToken cancellationToken)
     {
         user.LockoutEnabled = enabled;
         return Task.CompletedTask;

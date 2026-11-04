@@ -1,7 +1,7 @@
 namespace Heimevernet.Web.Models;
 
 // Kategoriene fra designet (Beredskapskart): navn, farge, lys bakgrunnsfarge og ikon.
-// Ressurser har bare en fritekst-"Type" i databasen, så FromType gjetter kategori ut fra ord i typen.
+// Label må være lik Categories.Name i databasen.
 public sealed record ResourceCategory(string Key, string Label, string Color, string Tint, string IconPath, string[] Keywords)
 {
     public static readonly ResourceCategory Food = new("mat", "Mat", "#2F7D4F", "#E3F1E8",
@@ -34,7 +34,7 @@ public sealed record ResourceCategory(string Key, string Label, string Color, st
 
     public static readonly IReadOnlyList<ResourceCategory> All = [Food, Water, Shelter, Health, Tools, Power, Info];
 
-    // Finner kategorien som passer en ressurstype, f.eks. "Utstyr" -> Verktøy. Ukjent type gir Informasjon.
+    // Finner kategorien som passer et kategorinavn. Ukjent gir Informasjon.
     public static ResourceCategory FromType(string? type)
     {
         if (string.IsNullOrWhiteSpace(type))

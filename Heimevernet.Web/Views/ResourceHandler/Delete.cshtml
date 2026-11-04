@@ -2,7 +2,7 @@
 @model ResourceViewModel
 @{
     ViewData["Title"] = "Slett " + Model.Name;
-    var category = ResourceCategory.FromType(Model.Type);
+    var category = ResourceCategory.FromType(Model.Category);
 }
 
 <a asp-controller="Resource" asp-action="Index" asp-route-id="@Model.Id" class="back-link">
@@ -16,10 +16,10 @@
         <span class="resource-thumb large" style="background: @category.Tint; color: @category.Color">@Html.Raw(category.IconSvg(28))</span>
         <div>
             <strong class="d-block" style="font-size: 20px">@Model.Name</strong>
-            <span class="text-muted">@Model.Type</span>
+            <span class="text-muted">@Model.Category</span>
         </div>
     </div>
-    <p class="m-0">Ressursen fjernes for alle brukere. Dette kan ikke angres.</p>
+    <p class="m-0">Ressursen fjernes for alle brukere, og den fjernes fra behov den er tildelt. Dette kan ikke angres.</p>
 
     @* Slettingen skjer med POST og anti-forgery-token, aldri med en vanlig lenke (GET). *@
     <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-flex flex-wrap gap-2">

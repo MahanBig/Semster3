@@ -1,4 +1,5 @@
 using Dapper;
+using Heimevernet.Web.Models.Entities;
 using Microsoft.AspNetCore.Identity;
 
 namespace Heimevernet.Web.DataAccess.Identity;
@@ -6,33 +7,37 @@ namespace Heimevernet.Web.DataAccess.Identity;
 // RoleManager (fra Identity) bruker denne klassen til å lese og lagre roller.
 // Identity bestemmer HVA som skal gjøres. Vi bestemmer HVORDAN, med SQL mot tabellen AspNetRoles.
 public class DapperRoleStore(IDbConnectionFactory connectionFactory, IdentityErrorDescriber errorDescriber)
-    : IQueryableRoleStore<IdentityRole>
+    : IQueryableRoleStore<ApplicationRole>
 {
-    private const string SelectRoles = "SELECT Id, Name, NormalizedName, ConcurrencyStamp FROM AspNetRoles";
+    private const string SelectRoles =
+        "SELECT Id, Name, NormalizedName, ConcurrencyStamp, Description, AccessLevel, RequiresVerification FROM AspNetRoles";
 
     // RoleManager.Roles. Henter alle radene. Det går fint fordi det bare finnes noen få roller.
-    public IQueryable<IdentityRole> Roles
+    public IQueryable<ApplicationRole> Roles
     {
         get
         {
             using var connection = connectionFactory.CreateConnection();
-            return connection.Query<IdentityRole>(SelectRoles).ToList().AsQueryable();
+            return connection.Query<ApplicationRole>(SelectRoles).ToList().AsQueryable();
         }
     }
 
-    public async Task<IdentityResult> CreateAsync(IdentityRole role, CancellationToken cancellationToken)
+    public async Task<IdentityResult> CreateAsync(ApplicationRole role, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(role);
 
         using var connection = connectionFactory.CreateConnection();
         await connection.ExecuteAsync(new CommandDefinition(
-            "INSERT INTO AspNetRoles (Id, Name, NormalizedName, ConcurrencyStamp) VALUES (@Id, @Name, @NormalizedName, @ConcurrencyStamp)",
+            """
+            INSERT INTO AspNetRoles (Id, Name, NormalizedName, ConcurrencyStamp, Description, AccessLevel, RequiresVerification)
+            VALUES (@Id, @Name, @NormalizedName, @ConcurrencyStamp, @Description, @AccessLevel, @RequiresVerification)
+            """,
             role,
             cancellationToken: cancellationToken));
         return IdentityResult.Success;
     }
 
-    public async Task<IdentityResult> UpdateAsync(IdentityRole role, CancellationToken cancellationToken)
+    public async Task<IdentityResult> UpdateAsync(ApplicationRole role, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(role);
 
@@ -44,16 +49,22 @@ public class DapperRoleStore(IDbConnectionFactory connectionFactory, IdentityErr
         var changedRows = await connection.ExecuteAsync(new CommandDefinition(
             """
             UPDATE AspNetRoles
-            SET Name = @Name, NormalizedName = @NormalizedName, ConcurrencyStamp = @ConcurrencyStamp
+            SET Name = @Name, NormalizedName = @NormalizedName, ConcurrencyStamp = @ConcurrencyStamp,
+                Description = @Description, AccessLevel = @AccessLevel, RequiresVerification = @RequiresVerification
             WHERE Id = @Id AND ConcurrencyStamp = @OldConcurrencyStamp
             """,
-            new { role.Id, role.Name, role.NormalizedName, role.ConcurrencyStamp, OldConcurrencyStamp = oldConcurrencyStamp },
+            new
+            {
+                role.Id, role.Name, role.NormalizedName, role.ConcurrencyStamp,
+                role.Description, role.AccessLevel, role.RequiresVerification,
+                OldConcurrencyStamp = oldConcurrencyStamp
+            },
             cancellationToken: cancellationToken));
 
         return changedRows == 1 ? IdentityResult.Success : IdentityResult.Failed(errorDescriber.ConcurrencyFailure());
     }
 
-    public async Task<IdentityResult> DeleteAsync(IdentityRole role, CancellationToken cancellationToken)
+    public async Task<IdentityResult> DeleteAsync(ApplicationRole role, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(role);
 
@@ -63,40 +74,40 @@ public class DapperRoleStore(IDbConnectionFactory connectionFactory, IdentityErr
         return IdentityResult.Success;
     }
 
-    public async Task<IdentityRole?> FindByIdAsync(string roleId, CancellationToken cancellationToken)
+    public async Task<ApplicationRole?> FindByIdAsync(string roleId, CancellationToken cancellationToken)
     {
         using var connection = connectionFactory.CreateConnection();
-        return await connection.QuerySingleOrDefaultAsync<IdentityRole>(new CommandDefinition(
+        return await connection.QuerySingleOrDefaultAsync<ApplicationRole>(new CommandDefinition(
             $"{SelectRoles} WHERE Id = @Id", new { Id = roleId }, cancellationToken: cancellationToken));
     }
 
     // RoleManager sender inn navnet "normalisert" (STORE BOKSTAVER), f.eks. "ADMIN".
-    public async Task<IdentityRole?> FindByNameAsync(string normalizedRoleName, CancellationToken cancellationToken)
+    public async Task<ApplicationRole?> FindByNameAsync(string normalizedRoleName, CancellationToken cancellationToken)
     {
         using var connection = connectionFactory.CreateConnection();
-        return await connection.QuerySingleOrDefaultAsync<IdentityRole>(new CommandDefinition(
+        return await connection.QuerySingleOrDefaultAsync<ApplicationRole>(new CommandDefinition(
             $"{SelectRoles} WHERE NormalizedName = @NormalizedName",
             new { NormalizedName = normalizedRoleName },
             cancellationToken: cancellationToken));
     }
 
     // Get/Set-metodene under endrer bare objektet i minnet. RoleManager kaller UpdateAsync etterpå for å lagre.
-    public Task<string> GetRoleIdAsync(IdentityRole role, CancellationToken cancellationToken)
+    public Task<string> GetRoleIdAsync(ApplicationRole role, CancellationToken cancellationToken)
         => Task.FromResult(role.Id);
 
-    public Task<string?> GetRoleNameAsync(IdentityRole role, CancellationToken cancellationToken)
+    public Task<string?> GetRoleNameAsync(ApplicationRole role, CancellationToken cancellationToken)
         => Task.FromResult(role.Name);
 
-    public Task SetRoleNameAsync(IdentityRole role, string? roleName, CancellationToken cancellationToken)
+    public Task SetRoleNameAsync(ApplicationRole role, string? roleName, CancellationToken cancellationToken)
     {
         role.Name = roleName;
         return Task.CompletedTask;
     }
 
-    public Task<string?> GetNormalizedRoleNameAsync(IdentityRole role, CancellationToken cancellationToken)
+    public Task<string?> GetNormalizedRoleNameAsync(ApplicationRole role, CancellationToken cancellationToken)
         => Task.FromResult(role.NormalizedName);
 
-    public Task SetNormalizedRoleNameAsync(IdentityRole role, string? normalizedName, CancellationToken cancellationToken)
+    public Task SetNormalizedRoleNameAsync(ApplicationRole role, string? normalizedName, CancellationToken cancellationToken)
     {
         role.NormalizedName = normalizedName;
         return Task.CompletedTask;

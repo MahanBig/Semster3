@@ -1,5 +1,7 @@
 using Heimevernet.Web.DataAccess;
+using Heimevernet.Web.DataAccess.Identity;
 using Heimevernet.Web.Models;
+using Heimevernet.Web.Models.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -17,10 +19,10 @@ public class IdentitySeederTests
         using var database = new SqliteTestDatabase();
         using var services = IdentityTestServices.Create(database);
         using var scope = services.CreateScope();
-        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-        await IdentitySeeder.SeedAsync(roleManager, userManager, AdminEmail, AdminPassword, NullLogger.Instance);
+        await IdentitySeeder.SeedAsync(roleManager, userManager, new DapperRoleVerificationRepository(database), AdminEmail, AdminPassword, NullLogger.Instance);
 
         Assert.True(await roleManager.RoleExistsAsync(AppRoles.Admin));
         Assert.True(await roleManager.RoleExistsAsync(AppRoles.User));
@@ -28,6 +30,13 @@ public class IdentitySeederTests
         Assert.NotNull(admin);
         Assert.True(await userManager.IsInRoleAsync(admin, AppRoles.Admin));
         Assert.True(await userManager.CheckPasswordAsync(admin, AdminPassword));
+        Assert.Equal("Administrator", admin.Name);
+        Assert.True(admin.Consent);
+
+        var adminRole = await roleManager.FindByNameAsync(AppRoles.Admin);
+        Assert.NotNull(adminRole);
+        Assert.True(adminRole.RequiresVerification);
+        Assert.Equal(100, adminRole.AccessLevel);
     }
 
     [Fact]
@@ -36,11 +45,11 @@ public class IdentitySeederTests
         using var database = new SqliteTestDatabase();
         using var services = IdentityTestServices.Create(database);
         using var scope = services.CreateScope();
-        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-        await IdentitySeeder.SeedAsync(roleManager, userManager, AdminEmail, AdminPassword, NullLogger.Instance);
-        await IdentitySeeder.SeedAsync(roleManager, userManager, AdminEmail, AdminPassword, NullLogger.Instance);
+        await IdentitySeeder.SeedAsync(roleManager, userManager, new DapperRoleVerificationRepository(database), AdminEmail, AdminPassword, NullLogger.Instance);
+        await IdentitySeeder.SeedAsync(roleManager, userManager, new DapperRoleVerificationRepository(database), AdminEmail, AdminPassword, NullLogger.Instance);
 
         Assert.Equal(AppRoles.All.Count, roleManager.Roles.Count());
         Assert.Single(userManager.Users);
@@ -52,11 +61,11 @@ public class IdentitySeederTests
         using var database = new SqliteTestDatabase();
         using var services = IdentityTestServices.Create(database);
         using var scope = services.CreateScope();
-        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
         // "weakpass" has no capital letter, digit or symbol, so Identity refuses it.
-        await IdentitySeeder.SeedAsync(roleManager, userManager, AdminEmail, "weakpass", NullLogger.Instance);
+        await IdentitySeeder.SeedAsync(roleManager, userManager, new DapperRoleVerificationRepository(database), AdminEmail, "weakpass", NullLogger.Instance);
 
         Assert.Equal(AppRoles.All.Count, roleManager.Roles.Count());
         Assert.Null(await userManager.FindByEmailAsync(AdminEmail));
@@ -68,10 +77,10 @@ public class IdentitySeederTests
         using var database = new SqliteTestDatabase();
         using var services = IdentityTestServices.Create(database);
         using var scope = services.CreateScope();
-        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-        await IdentitySeeder.SeedAsync(roleManager, userManager, null, null, NullLogger.Instance);
+        await IdentitySeeder.SeedAsync(roleManager, userManager, new DapperRoleVerificationRepository(database), null, null, NullLogger.Instance);
 
         Assert.Equal(AppRoles.All.Count, roleManager.Roles.Count());
         Assert.Empty(userManager.Users);

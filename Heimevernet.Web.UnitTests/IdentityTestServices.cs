@@ -1,5 +1,6 @@
 using Heimevernet.Web.DataAccess;
 using Heimevernet.Web.DataAccess.Identity;
+using Heimevernet.Web.Models.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,8 +14,8 @@ internal static class IdentityTestServices
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<IDbConnectionFactory>(database);
-        services.AddIdentityCore<IdentityUser>()
-            .AddRoles<IdentityRole>()
+        services.AddIdentityCore<ApplicationUser>()
+            .AddRoles<ApplicationRole>()
             .AddUserStore<DapperUserStore>()
             .AddRoleStore<DapperRoleStore>();
         return services.BuildServiceProvider();

@@ -65,30 +65,45 @@ docker compose down -v       # stopper og sletter volumer (database og innloggin
 
 Appen bruker ASP.NET Core Identity. Brukere og roller lagres i MariaDB (tabellene `AspNetUsers`, `AspNetRoles`, `AspNetUserRoles`) via egne Dapper-klasser: `DataAccess/Identity/DapperUserStore.cs` og `DapperRoleStore.cs`.
 
+- Brukere og roller er klassene `ApplicationUser` og `ApplicationRole` (`Models/Entities/`). De arver fra Identity og har i tillegg feltene fra ER-diagrammet: navn, samtykke og opprettet på brukeren, og beskrivelse, tilgangsnivå og «krever godkjenning» på rollen.
 - Rollene `Admin` og `Bruker` lages automatisk ved oppstart.
-- Nye brukere registrerer seg på `/Account/Register` og får rollen `Bruker`.
+- Nye brukere registrerer seg på `/Account/Register` med navn, e-post, passord, telefon (valgfritt) og samtykke, og får rollen `Bruker`.
+- `Admin` krever godkjenning: koblingen i `AspNetUserRoles` teller ikke før `VerifiedAt` har en verdi. Når en admin gir rollen på `/UserAdmin`, lagres hvem som godkjente og når. Den første admin-brukeren godkjennes av oppstarten.
 - En admin-bruker lages ved oppstart med e-post og passord fra `.env`. Passordet må ha minst 8 tegn, stor og liten bokstav, et tall og et spesialtegn. Er det for svakt, starter appen uten admin-bruker og skriver en feilmelding i loggen.
 
 | Side | Krever |
 |---|---|
 | Logg inn, Registrer deg, feilsiden | Ingenting |
-| Alle andre sider: forside med kart, Ressurser, ressursdetaljer, Registrerte posisjoner, Korriger kart | Innlogging |
+| Alle andre sider: forside med kart, Ressurser, ressursdetaljer, Behov, Registrerte posisjoner, Korriger kart | Innlogging |
 | Endre og slette ressurs (`/ResourceHandler/Edit/{id}`, `/ResourceHandler/Delete/{id}`) | Innlogging, og at du la inn ressursen selv, eller rollen `Admin` |
+| Endre og slette behov (`/Need/Edit/{id}`, `/Need/Delete/{id}`) | Innlogging, og at du meldte inn behovet selv, eller rollen `Admin` |
+| Tildele en ressurs til et behov (`/Need/Details/{id}`) | At du eier ressursen, eller rollen `Admin` |
 | Brukere (`/UserAdmin`) | Rollen `Admin` |
 
 Den som ikke er logget inn, sendes automatisk til innloggingssiden og kommer tilbake til siden de prøvde å åpne etter innlogging. Dette styres av en `FallbackPolicy` i `Program.cs`: alle sider krever innlogging hvis de ikke har `[AllowAnonymous]`. Da kan vi ikke glemme å beskytte en ny side.
 
-Hvem som har lagt inn en ressurs lagres i kolonnen `Resources.CreatedBy`. Regelen for hvem som får endre og slette står på ett sted, i `Authorization/ResourcePermissions.cs`, og brukes både av controlleren (som stopper forespørselen) og av viewet (som skjuler knappene). Ressursene fra eksempeldataene har ingen eier, så bare admin kan endre dem.
+Hvem som har lagt inn en ressurs eller et behov lagres i kolonnen `UserId` (fremmednøkkel til `AspNetUsers.Id`). Regelen for hvem som får endre og slette står på ett sted, i `Authorization/ResourcePermissions.cs`, og brukes både av controlleren (som stopper forespørselen) og av viewet (som skjuler knappene). Ressursene fra eksempeldataene har ingen eier, så bare admin kan endre dem.
 
 ### Database og tabeller
 
-Tabellene lages av `Heimevernet.Web/DataAccess/Sql/Schema.sql`, som kjøres hver gang appen starter (`CREATE TABLE IF NOT EXISTS`). Skal en tabell endres senere, må det skrives en `ALTER TABLE` i tillegg.
+Tabellene lages av `Heimevernet.Web/DataAccess/Sql/Schema.sql`, som kjøres hver gang appen starter (`CREATE TABLE IF NOT EXISTS`). Skal en tabell endres senere, må det skrives en `ALTER TABLE` i tillegg. Tabellene følger ER-diagrammet, men med Identity sine tabeller for bruker og rolle og engelske tabellnavn.
 
-| Tabell | Innhold |
+Har du en database fra før kategori, lokasjon og behov kom inn, stopper appen ved oppstart med en melding om det. Slett den gamle databasen med `docker compose down -v` og start på nytt.
+
+| Tabell (ER-diagrammet) | Innhold |
 |---|---|
-| `Resources` | Ressurser (navn, beskrivelse, type, adresse, eiers telefon, hvem som la den inn) |
-| `Positions` | Posisjoner fra kartet (koordinater, beskrivelse, hvem og når) |
-| `AspNetUsers`, `AspNetRoles`, `AspNetUserRoles` | Brukere, roller og koblingen mellom dem |
+| `AspNetUsers` (Bruker) | Brukere: e-post, passord-hash, telefon, navn, samtykke, opprettet |
+| `AspNetRoles` (Rolle) | Roller: navn, beskrivelse, tilgangsnivå, om rollen krever godkjenning |
+| `AspNetUserRoles` (BrukerRolle) | Hvem som har hvilken rolle, og hvem som godkjente den og når |
+| `Resources` (Ressurs) | Ressurser: navn, beskrivelse, antall, status, kategori, lokasjon, eier |
+| `Needs` (Behov) | Behov: tittel, beskrivelse, antall, prioritet, status, frist, kategori, lokasjon, organisasjon, hvem som meldte det inn |
+| `Allocations` (Tildeling) | Hvilke ressurser som er gitt til hvilke behov, og hvor mange |
+| `Categories` (Kategori) | De sju kategoriene (Mat, Vann, ...). Legges inn av `Schema.sql` |
+| `Locations` (Lokasjon) og `PostalCodes` (Poststed) | Adressen til en ressurs eller et behov, og postnummer med poststed |
+| `Organizations`, `Competences`, `UserOrganizations`, `UserCompetences`, `ResourceCompetences` | Organisasjoner og kompetanser. Tabellene finnes, men har ingen sider i appen ennå |
+| `Positions` | Posisjoner fra kartet (koordinater, beskrivelse, hvem og når). Ikke i ER-diagrammet |
+
+Statusene oppdateres automatisk når ressurser tildeles (`DataAccess/DapperAllocationRepository.cs`): et behov er `åpen` uten tildelinger, `under_behandling` når noe er tildelt, og `dekket` når summen av tildelt antall når antallet som trengs. En ressurs er `i_bruk` så lenge den er tildelt et behov.
 
 ---
 
@@ -238,7 +253,7 @@ Tiltakene under er testet automatisk i `tests/system/system-og-sikkerhetstest.ps
 | Gjetting av passord (brute force) | Kontoen låses i 5 minutter etter 5 feil passord | `Program.cs` (`Lockout`), `Controllers/AccountController.cs` (`lockoutOnFailure: true`) |
 | Finne ut hvilke e-poster som finnes | Samme feilmelding for ukjent e-post og feil passord | `Controllers/AccountController.cs` |
 | Uautorisert tilgang | Alle sider krever innlogging (`FallbackPolicy`), bortsett fra de som er merket `[AllowAnonymous]` (logg inn, registrer, feilside). `[Authorize]` på sider som krever innlogging og `[Authorize(Roles = Admin)]` på admin-sider. For endring og sletting sjekker controlleren i tillegg at brukeren eier ressursen eller er admin, både på GET og POST, så det hjelper ikke å skrive adressen selv eller sende en POST direkte | `Program.cs`, `Controllers/ResourceHandlerController.cs`, `Authorization/ResourcePermissions.cs`, `Controllers/UserAdminController.cs` |
-| Overposting (sende med felt man ikke skal kunne endre) | `CreatedBy` og `CanModify` har `[BindNever]`, så de kan ikke sendes inn fra et skjema. Eieren settes alltid fra innlogget bruker på serveren, og `UPDATE`-setningen endrer aldri `CreatedBy` | `Models/ViewModels/Resource/ResourceViewModel.cs`, `DataAccess/DapperResourceRepository.cs` |
+| Overposting (sende med felt man ikke skal kunne endre) | Eier, status på behov og `CanModify` har `[BindNever]`, så de kan ikke sendes inn fra et skjema. Eieren (`UserId`) settes alltid fra innlogget bruker på serveren, og `UPDATE`-setningene endrer aldri `UserId`. Kategori og organisasjon fra skjemaet slås opp i databasen før lagring | `Models/ViewModels/Resource/ResourceViewModel.cs`, `DataAccess/DapperResourceRepository.cs` |
 | SQL-injeksjon | All SQL bruker parametere (`@Name`) via Dapper. Brukerens tekst settes aldri rett inn i SQL-strengen | `DataAccess/` |
 | Cross-site scripting (XSS) | Razor HTML-koder alt som skrives ut (`@Model.Name`). JavaScript bruker `textContent`, ikke `innerHTML`, for tekst fra brukere (kartpopuper) | `Views/`, `wwwroot/js/site.js` |
 | Cross-site request forgery (CSRF) | Alle skjema har en anti-forgery-token, og alle POST-actions har `[ValidateAntiForgeryToken]` | `Controllers/` |

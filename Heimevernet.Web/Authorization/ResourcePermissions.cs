@@ -4,17 +4,28 @@ using Heimevernet.Web.Models.Entities;
 
 namespace Heimevernet.Web.Authorization;
 
-// Regelen for hvem som kan endre og slette en ressurs, samlet ett sted:
-//   - Admin kan endre og slette alle ressurser.
-//   - En vanlig bruker kan endre og slette ressurser hen selv har lagt inn (CreatedBy).
+// Regelen for hvem som kan endre og slette en ressurs eller et behov, samlet ett sted:
+//   - Admin kan endre og slette alt.
+//   - En vanlig bruker kan endre og slette det hen selv har lagt inn (UserId).
 //   - Ikke innloggede kan ingenting.
-// Brukes både av controlleren (som stopper forespørselen) og av viewet (som skjuler knappene).
+// Brukes både av controllerne (som stopper forespørselen) og av viewene (som skjuler knappene).
 public static class ResourcePermissions
 {
     public static bool CanModify(ClaimsPrincipal? user, Resource resource)
     {
         ArgumentNullException.ThrowIfNull(resource);
+        return IsOwnerOrAdmin(user, resource.UserId);
+    }
 
+    public static bool CanModify(ClaimsPrincipal? user, Need need)
+    {
+        ArgumentNullException.ThrowIfNull(need);
+        return IsOwnerOrAdmin(user, need.UserId);
+    }
+
+    // Sammenligner bruker-Id (claimet NameIdentifier), ikke e-post, som kan endres.
+    public static bool IsOwnerOrAdmin(ClaimsPrincipal? user, string? ownerUserId)
+    {
         if (user?.Identity?.IsAuthenticated != true)
         {
             return false;
@@ -25,7 +36,7 @@ public static class ResourcePermissions
             return true;
         }
 
-        return resource.CreatedBy is not null
-            && string.Equals(resource.CreatedBy, user.Identity.Name, StringComparison.OrdinalIgnoreCase);
+        return ownerUserId is not null
+            && ownerUserId == user.FindFirstValue(ClaimTypes.NameIdentifier);
     }
 }

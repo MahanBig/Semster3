@@ -1,0 +1,25 @@
+@using Heimevernet.Web.Models.ViewModels.Need
+@model NeedViewModel
+@{
+    ViewData["Title"] = "Nytt behov";
+    ViewData["SubmitText"] = "Lagre behov";
+}
+
+<a asp-action="Index" class="back-link">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+    Avbryt
+</a>
+
+<h1 class="m-0">Meld inn et behov</h1>
+
+<form asp-action="Create" method="post" class="panel-grid">
+    <partial name="_NeedForm" model="Model" />
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Radioknappene er skjult, så valideringen må ikke hoppe over dem.
+        $.validator.setDefaults({ ignore: [] });
+    </script>
+}

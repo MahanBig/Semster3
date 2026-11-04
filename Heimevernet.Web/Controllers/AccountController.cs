@@ -1,4 +1,5 @@
 using Heimevernet.Web.Models;
+using Heimevernet.Web.Models.Entities;
 using Heimevernet.Web.Models.ViewModels.Account;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -9,8 +10,8 @@ namespace Heimevernet.Web.Controllers;
 // Innlogging, registrering og utlogging.
 // SignInManager håndterer cookien (logget inn eller ikke). UserManager håndterer brukerne i databasen.
 public class AccountController(
-    SignInManager<IdentityUser> signInManager,
-    UserManager<IdentityUser> userManager) : Controller
+    SignInManager<ApplicationUser> signInManager,
+    UserManager<ApplicationUser> userManager) : Controller
 {
     [HttpGet, AllowAnonymous] // Må være åpen, ellers kan ingen logge inn.
     public IActionResult Login(string? returnUrl = null)
@@ -54,12 +55,25 @@ public class AccountController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegisterViewModel model)
     {
+        if (!model.Consent)
+        {
+            ModelState.AddModelError(nameof(model.Consent), "Du må samtykke for å lage en bruker.");
+        }
+
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
-        var user = new IdentityUser { UserName = model.Email, Email = model.Email };
+        var user = new ApplicationUser
+        {
+            UserName = model.Email,
+            Email = model.Email,
+            Name = model.Name.Trim(),
+            PhoneNumber = string.IsNullOrWhiteSpace(model.PhoneNumber) ? null : model.PhoneNumber.Trim(),
+            Consent = model.Consent,
+            CreatedAt = DateTime.UtcNow
+        };
 
         // CreateAsync hasher passordet. Selve passordet lagres aldri i databasen.
         var result = await userManager.CreateAsync(user, model.Password);

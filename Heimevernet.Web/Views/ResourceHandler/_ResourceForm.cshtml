@@ -5,24 +5,17 @@
 <div class="panel d-flex flex-column gap-4">
     <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
 
-    @* Kategoriene fra designet som radioknapper. Verdien lagres i Type. *@
     <fieldset>
         <legend class="mb-3">Hva slags ressurs er det?</legend>
         <div class="chip-row">
             @foreach (var category in ResourceCategory.All)
             {
-                var id = $"type-{category.Key}";
-                <input type="radio" class="chip-radio" id="@id" asp-for="Type" value="@category.Label" />
+                var id = $"category-{category.Key}";
+                <input type="radio" class="chip-radio" id="@id" asp-for="Category" value="@category.Label" />
                 <label class="chip" for="@id" style="--chip-color: @category.Color">@Html.Raw(category.IconSvg(18, 2.3))@category.Label</label>
             }
-            @* En eldre ressurs kan ha en type som ikke er en av kategoriene (f.eks. "Type A"). Den vises som eget valg, så den ikke forsvinner ved endring. *@
-            @if (!string.IsNullOrWhiteSpace(Model.Type) && !ResourceCategory.All.Any(c => c.Label == Model.Type))
-            {
-                <input type="radio" class="chip-radio" id="type-existing" asp-for="Type" value="@Model.Type" />
-                <label class="chip" for="type-existing">@Model.Type</label>
-            }
         </div>
-        <span asp-validation-for="Type" class="text-danger"></span>
+        <span asp-validation-for="Category" class="text-danger"></span>
     </fieldset>
 
     <div>
@@ -36,6 +29,23 @@
         <textarea asp-for="Description" class="form-control" rows="5" aria-describedby="desc-hint"></textarea>
         <span asp-validation-for="Description" class="text-danger"></span>
     </div>
+    <div class="row g-3">
+        <div class="col-5">
+            <label asp-for="Quantity" class="form-label"></label>
+            <input asp-for="Quantity" class="form-control" type="number" min="1" inputmode="numeric" />
+            <span asp-validation-for="Quantity" class="text-danger"></span>
+        </div>
+        <div class="col-7">
+            <label asp-for="Status" class="form-label"></label>
+            <select asp-for="Status" class="form-select form-control">
+                @foreach (var status in ResourceStatus.All)
+                {
+                    <option value="@status">@ResourceStatus.Label(status)</option>
+                }
+            </select>
+            <span asp-validation-for="Status" class="text-danger"></span>
+        </div>
+    </div>
 </div>
 
 <div class="panel d-flex flex-column gap-4">
@@ -46,20 +56,16 @@
     </div>
     <div class="row g-3">
         <div class="col-5">
-            <label asp-for="ZipCode" class="form-label">Postnummer</label>
-            <input asp-for="ZipCode" class="form-control" inputmode="numeric" autocomplete="postal-code" />
-            <span asp-validation-for="ZipCode" class="text-danger"></span>
+            <label asp-for="PostalCode" class="form-label"></label>
+            <input asp-for="PostalCode" class="form-control" inputmode="numeric" autocomplete="postal-code" />
+            <span asp-validation-for="PostalCode" class="text-danger"></span>
         </div>
         <div class="col-7">
-            <label asp-for="City" class="form-label">Poststed</label>
-            <input asp-for="City" class="form-control" autocomplete="address-level2" />
-            <span asp-validation-for="City" class="text-danger"></span>
+            <label asp-for="PostalPlace" class="form-label"></label>
+            <input asp-for="PostalPlace" class="form-control" autocomplete="address-level2" />
+            <span asp-validation-for="PostalPlace" class="text-danger"></span>
         </div>
     </div>
-    <div>
-        <label asp-for="OwnerTelephoneNumber" class="form-label">Eiers telefon <span class="optional">(valgfritt)</span></label>
-        <input asp-for="OwnerTelephoneNumber" class="form-control" type="tel" autocomplete="tel" />
-        <span asp-validation-for="OwnerTelephoneNumber" class="text-danger"></span>
-    </div>
+    <p class="form-text m-0">Telefonnummeret ditt fra brukerprofilen vises som kontakt på ressursen.</p>
     <button type="submit" class="btn-pill btn-pill-block">@(ViewData["SubmitText"] ?? "Lagre")</button>
 </div>

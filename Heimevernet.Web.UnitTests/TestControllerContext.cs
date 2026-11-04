@@ -10,7 +10,8 @@ internal static class TestControllerContext
 {
     public static T WithUser<T>(this T controller, string userName = "ola@test.no", params string[] roles) where T : Controller
     {
-        var claims = new List<Claim> { new(ClaimTypes.Name, userName) };
+        // The tests use the e-mail as user Id too.
+        var claims = new List<Claim> { new(ClaimTypes.Name, userName), new(ClaimTypes.NameIdentifier, userName) };
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
         var identity = new ClaimsIdentity(claims, authenticationType: "Test");
         var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };

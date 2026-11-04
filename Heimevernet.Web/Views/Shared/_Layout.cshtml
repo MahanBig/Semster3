@@ -8,7 +8,7 @@
         && (onlyAction is null || string.Equals(action, onlyAction, StringComparison.OrdinalIgnoreCase))
             ? "page" : null;
 
-    // Varselbanneret vises bare når det er satt i konfigurasjonen (appsettings).
+    // Varselbanneret vises bare for admin, og bare når det er satt i konfigurasjonen (appsettings).
     var alertTitle = Configuration["Beredskap:Varsel:Tittel"];
     var alertText = Configuration["Beredskap:Varsel:Tekst"];
     var fullWidth = ViewData["FullWidth"] is true;
@@ -88,7 +88,7 @@
         </aside>
 
         <div class="main">
-            @if (!string.IsNullOrWhiteSpace(alertTitle))
+            @if (User.IsInRole(AppRoles.Admin) && !string.IsNullOrWhiteSpace(alertTitle))
             {
                 <div class="crisis-banner" role="status">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l10 18H2z"></path><path d="M12 10v5M12 18h.01"></path></svg>

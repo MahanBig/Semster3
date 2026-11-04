@@ -16,6 +16,7 @@ param(
     [switch]$SkipRestart  # Hopp over testen som restarter web-containeren.
 )
 $ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.Net.Http # Lastes ikke automatisk i Windows PowerShell.
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
 $results = [System.Collections.Generic.List[object]]::new()
 $group = 'System'
@@ -56,7 +57,7 @@ function Token($response) {
 function Loc($r) { $r.Location }
 function Register($client, [string]$email, [string]$password) {
     $r = Req '/Account/Register' $client
-    Req '/Account/Register' $client 'Post' @{ Email = $email; Password = $password; ConfirmPassword = $password; __RequestVerificationToken = (Token $r) }
+    Req '/Account/Register' $client 'Post' @{ Name = 'Systemtest'; Email = $email; Password = $password; ConfirmPassword = $password; Consent = 'true'; __RequestVerificationToken = (Token $r) }
 }
 function Login($client, [string]$email, [string]$password) {
     $r = Req '/Account/Login' $client
@@ -94,17 +95,17 @@ try {
     $r = Req '/ResourceHandler' $olaC; Check 'Innlogget bruker ser "Ny ressurs"' ($r.Content -match 'href="/ResourceHandler/Create"') ''
     $r = Req '/ResourceHandler/Create' $olaC; Check 'Innlogget bruker kan åpne "Ny ressurs"' ($r.StatusCode -eq 200) "$($r.StatusCode)"
     $token = Token $r
-    $r2 = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = ''; Description = 'x'; Type = 'Utstyr'; __RequestVerificationToken = $token }
+    $r2 = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = ''; Description = 'x'; Category = 'Verktøy'; __RequestVerificationToken = $token }
     Check 'Ressurs uten navn blir avvist med feilmelding' ($r2.StatusCode -eq 200 -and $r2.Content -match 'field-validation-error') "$($r2.StatusCode)"
-    $r2 = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = $name; Description = '5 kW, diesel'; Type = 'Strøm og lading'; Address = 'Storgata 1'; ZipCode = '4790'; City = 'Lillesand'; OwnerTelephoneNumber = '12345678'; __RequestVerificationToken = $token }
+    $r2 = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = $name; Description = '5 kW, diesel'; Category = 'Strøm og lading'; Address = 'Storgata 1'; PostalCode = '4790'; PostalPlace = 'Lillesand'; __RequestVerificationToken = $token }
     Check 'Bruker legger til ressurs' ($r2.StatusCode -eq 302 -and (Loc $r2) -match '/Resource/Index/(\d+)') "$(Loc $r2)"
     $newId = if ((Loc $r2) -match '/Resource/Index/(\d+)') { $Matches[1] } else { 0 }
     $r = Req "/Resource/Index/$newId" $olaC
-    Check 'Ressursen lagres med alle felt og eier' ($r.Content -match [regex]::Escape($name) -and $r.Content -match 'Storgata 1, 4790 Lillesand' -and $r.Content -match ('Lagt inn av ' + [regex]::Escape($ola))) ''
+    Check 'Ressursen lagres med alle felt og eier' ($r.Content -match [regex]::Escape($name) -and $r.Content -match 'Storgata 1, 4790 Lillesand' -and $r.Content -match 'Lagt inn av Systemtest') ''
     Check 'Eier ser Endre og Slett' ($r.Content -match "/ResourceHandler/Edit/$newId" -and $r.Content -match "/ResourceHandler/Delete/$newId") ''
 
     $r = Req "/ResourceHandler/Edit/$newId" $olaC; Check 'Eier kan åpne Endre' ($r.StatusCode -eq 200 -and $r.Content -match [regex]::Escape($name)) "$($r.StatusCode)"
-    $r2 = Req "/ResourceHandler/Edit/$newId" $olaC 'Post' @{ Name = "$name (10 kW)"; Description = '10 kW, diesel'; Type = 'Strøm og lading'; City = 'Grimstad'; ZipCode = '4876'; __RequestVerificationToken = (Token $r) }
+    $r2 = Req "/ResourceHandler/Edit/$newId" $olaC 'Post' @{ Name = "$name (10 kW)"; Description = '10 kW, diesel'; Category = 'Strøm og lading'; PostalPlace = 'Grimstad'; PostalCode = '4876'; __RequestVerificationToken = (Token $r) }
     $r = Req "/Resource/Index/$newId" $olaC
     Check 'Eier endrer ressursen, endringen lagres' ($r2.StatusCode -eq 302 -and $r.Content -match [regex]::Escape("$name (10 kW)") -and $r.Content -match 'Grimstad' -and $r.Content -match 'Endringene ble lagret') ''
 
@@ -113,12 +114,6 @@ try {
     $r = Login $admin $adminEmail $adminPassword; Check 'Admin logger inn' ($r.StatusCode -eq 302) "$($r.StatusCode)"
     $r = Req "/ResourceHandler/Edit/$newId" $admin; Check 'Admin kan åpne Endre på andres ressurs' ($r.StatusCode -eq 200) "$($r.StatusCode)"
     $r = Req '/UserAdmin' $admin; Check 'Admin kan åpne brukeradministrasjon' ($r.StatusCode -eq 200 -and $r.Content -match [regex]::Escape($ola)) "$($r.StatusCode)"
-
-    $r = Req '/Home/CorrectMap' $olaC; Check 'Innlogget bruker kan åpne "Meld inn posisjon"' ($r.StatusCode -eq 200) "$($r.StatusCode)"
-    $pos = "Systemtest posisjon $run"
-    $r2 = Req '/Home/CorrectMap' $olaC 'Post' @{ Latitude = '58.2475'; Longitude = '8.3778'; Description = $pos; __RequestVerificationToken = (Token $r) }
-    $r = Req '/Home/CorrectionOverview' $kariC
-    Check 'Innmeldt posisjon lagres og vises i oversikten' ($r2.StatusCode -eq 302 -and $r.Content -match [regex]::Escape($pos)) ''
 
     # ======================= SIKKERHETSTEST =======================
     $group = 'Sikkerhet'
@@ -132,19 +127,17 @@ try {
     $r = Req '/' $anon; Check 'Utlogget: forsiden sender til innlogging' (NeedsLogin $r) (Loc $r)
     $r = Req '/ResourceHandler' $anon; Check 'Utlogget: ressurslisten sender til innlogging' (NeedsLogin $r) (Loc $r)
     $r = Req "/Resource/Index/$newId" $anon; Check 'Utlogget: ressurssiden sender til innlogging' (NeedsLogin $r) (Loc $r)
-    $r = Req '/Home/CorrectionOverview' $anon; Check 'Utlogget: oversikten over posisjoner sender til innlogging' (NeedsLogin $r) (Loc $r)
     $r = Req '/Account/Login' $anon; Check 'Innloggingssiden er åpen og har ikke "Fortsett uten å logge inn"' ($r.StatusCode -eq 200 -and $r.Content -notmatch 'Fortsett uten') "$($r.StatusCode)"
     $r = Req '/Account/Register' $anon; Check 'Registreringssiden er åpen' ($r.StatusCode -eq 200) "$($r.StatusCode)"
     $r = Req '/img/kriseklar.svg' $anon; Check 'Logo og CSS lastes uten innlogging (innloggingssiden ser riktig ut)' ($r.StatusCode -eq 200 -and (Req '/css/site.css' $anon).StatusCode -eq 200) "$($r.StatusCode)"
     $r = Req '/ResourceHandler/Create' $anon; Check 'Utlogget: "Ny ressurs" krever innlogging' (NeedsLogin $r) (Loc $r)
     $r = Req "/ResourceHandler/Edit/$newId" $anon; Check 'Utlogget: Endre krever innlogging' (NeedsLogin $r) (Loc $r)
-    $r = Req '/Home/CorrectMap' $anon; Check 'Utlogget: "Meld inn posisjon" krever innlogging' (NeedsLogin $r) (Loc $r)
     $r = Req '/UserAdmin' $anon; Check 'Utlogget: brukeradministrasjon krever innlogging' (NeedsLogin $r) (Loc $r)
     $r = Req '/UserAdmin' $kariC; Check 'Vanlig bruker får "Ingen tilgang" på brukeradministrasjon' (Denied $r) (Loc $r)
     $r = Req "/ResourceHandler/Edit/$newId" $kariC; Check 'Annen bruker får "Ingen tilgang" på Endre (GET)' (Denied $r) (Loc $r)
     $r = Req "/ResourceHandler/Delete/$newId" $kariC; Check 'Annen bruker får "Ingen tilgang" på Slett (GET)' (Denied $r) (Loc $r)
     $kariToken = Token (Req '/ResourceHandler/Create' $kariC)
-    $r = Req "/ResourceHandler/Edit/$newId" $kariC 'Post' @{ Name = 'Hacket'; Description = 'x'; Type = 'x'; __RequestVerificationToken = $kariToken }
+    $r = Req "/ResourceHandler/Edit/$newId" $kariC 'Post' @{ Name = 'Hacket'; Description = 'x'; Category = 'Verktøy'; __RequestVerificationToken = $kariToken }
     Check 'Annen bruker kan ikke endre ved å sende POST direkte' (Denied $r) (Loc $r)
     $r = Req "/ResourceHandler/Delete/$newId" $kariC 'Post' @{ __RequestVerificationToken = $kariToken }
     Check 'Annen bruker kan ikke slette ved å sende POST direkte' (Denied $r) (Loc $r)
@@ -152,13 +145,12 @@ try {
 
     # CSRF: POST uten anti-forgery-token skal stoppes
     $r = Req "/ResourceHandler/Delete/$newId" $olaC 'Post' @{}; Check 'CSRF: Slett uten token blir blokkert (400)' ($r.StatusCode -eq 400) "$($r.StatusCode)"
-    $r = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = 'x'; Description = 'x'; Type = 'x' }; Check 'CSRF: Ny ressurs uten token blir blokkert (400)' ($r.StatusCode -eq 400) "$($r.StatusCode)"
-    $r = Req '/Home/CorrectMap' $olaC 'Post' @{ Latitude = '1'; Longitude = '1'; Description = 'x' }; Check 'CSRF: Posisjon uten token blir blokkert (400)' ($r.StatusCode -eq 400) "$($r.StatusCode)"
+    $r = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = 'x'; Description = 'x'; Category = 'Verktøy' }; Check 'CSRF: Ny ressurs uten token blir blokkert (400)' ($r.StatusCode -eq 400) "$($r.StatusCode)"
 
     # XSS: HTML/script i input skal vises som tekst, ikke kjøres
     $xss = "<script>alert('xss$run')</script>"
     $r = Req '/ResourceHandler/Create' $olaC
-    $r2 = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = "XSS-test $run"; Description = $xss; Type = 'Utstyr'; __RequestVerificationToken = (Token $r) }
+    $r2 = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = "XSS-test $run"; Description = $xss; Category = 'Verktøy'; __RequestVerificationToken = (Token $r) }
     $xssId = if ((Loc $r2) -match '/Resource/Index/(\d+)') { $Matches[1] } else { 0 }
     $r = Req "/Resource/Index/$xssId" $kariC
     Check 'XSS: script i beskrivelse blir vist som tekst (HTML-kodet)' ($r.Content -notmatch [regex]::Escape($xss) -and $r.Content -match '&lt;script&gt;') ''
@@ -166,7 +158,7 @@ try {
     # SQL-injeksjon: skal behandles som vanlig tekst
     $sqli = "x'); DROP TABLE Resources; --"
     $r = Req '/ResourceHandler/Create' $olaC
-    $r2 = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = "SQLi-test $run"; Description = $sqli; Type = 'Utstyr'; __RequestVerificationToken = (Token $r) }
+    $r2 = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = "SQLi-test $run"; Description = $sqli; Category = 'Verktøy'; __RequestVerificationToken = (Token $r) }
     $r = Req '/ResourceHandler' $kariC
     Check 'SQL-injeksjon: teksten lagres som tekst, tabellen finnes fortsatt' ($r2.StatusCode -eq 302 -and $r.StatusCode -eq 200 -and $r.Content -match "SQLi-test $run") ''
 
@@ -208,7 +200,8 @@ try {
 
     if (-not $SkipRestart) {
         $countBefore = ([regex]::Matches((Req '/ResourceHandler' $kariC).Content, 'href="/Resource/Index/(\d+)"')).Count
-        Push-Location $repoRoot; docker compose restart heimevernet-web *> $null; Pop-Location
+        # Docker skriver fremdrift til stderr. Med 'Stop' ville Windows PowerShell tolket det som en feil.
+        Push-Location $repoRoot; & { $ErrorActionPreference = 'Continue'; docker compose restart heimevernet-web *> $null }; Pop-Location
         $ready = $false
         for ($i = 0; $i -lt 30 -and -not $ready; $i++) { Start-Sleep 2; try { $ready = (Req '/' $kariC).StatusCode -eq 200 } catch { } }
         $countAfter = ([regex]::Matches((Req '/ResourceHandler' $kariC).Content, 'href="/Resource/Index/(\d+)"')).Count

@@ -2,7 +2,7 @@
 
 # KriseKlar
 
-KriseKlar er en ASP.NET Core MVC-applikasjon som kjører i Docker. Hele appen krever innlogging. Brukere logger inn, registrerer posisjoner i et kart og ser beredskapsressurser fra databasen. Innloggede brukere kan legge til ressurser og endre eller slette sine egne. Admin kan endre og slette alle ressurser og styre hvem som har hvilke roller.
+KriseKlar er en ASP.NET Core MVC-applikasjon som kjører i Docker. Hele appen krever innlogging. Brukere logger inn og ser beredskapsressurser og behov fra databasen. Innloggede brukere kan legge til ressurser og endre eller slette sine egne. Admin kan endre og slette alle ressurser og styre hvem som har hvilke roller.
 
 **Gruppe:** 8 · **Emne:** IS-202 · **Medlemmer:** Darin, Marius, Lars, Mahan, Yasin
 
@@ -74,7 +74,7 @@ Appen bruker ASP.NET Core Identity. Brukere og roller lagres i MariaDB (tabellen
 | Side | Krever |
 |---|---|
 | Logg inn, Registrer deg, feilsiden | Ingenting |
-| Alle andre sider: forside med kart, Ressurser, ressursdetaljer, Behov, Registrerte posisjoner, Korriger kart | Innlogging |
+| Alle andre sider: forside med kart, Ressurser, ressursdetaljer, Behov | Innlogging |
 | Endre og slette ressurs (`/ResourceHandler/Edit/{id}`, `/ResourceHandler/Delete/{id}`) | Innlogging, og at du la inn ressursen selv, eller rollen `Admin` |
 | Endre og slette behov (`/Need/Edit/{id}`, `/Need/Delete/{id}`) | Innlogging, og at du meldte inn behovet selv, eller rollen `Admin` |
 | Tildele en ressurs til et behov (`/Need/Details/{id}`) | At du eier ressursen, eller rollen `Admin` |
@@ -101,7 +101,6 @@ Har du en database fra før kategori, lokasjon og behov kom inn, stopper appen v
 | `Categories` (Kategori) | De sju kategoriene (Mat, Vann, ...). Legges inn av `Schema.sql` |
 | `Locations` (Lokasjon) og `PostalCodes` (Poststed) | Adressen til en ressurs eller et behov, og postnummer med poststed |
 | `Organizations`, `Competences`, `UserOrganizations`, `UserCompetences`, `ResourceCompetences` | Organisasjoner og kompetanser. Tabellene finnes, men har ingen sider i appen ennå |
-| `Positions` | Posisjoner fra kartet (koordinater, beskrivelse, hvem og når). Ikke i ER-diagrammet |
 
 Statusene oppdateres automatisk når ressurser tildeles (`DataAccess/DapperAllocationRepository.cs`): et behov er `åpen` uten tildelinger, `under_behandling` når noe er tildelt, og `dekket` når summen av tildelt antall når antallet som trengs. En ressurs er `i_bruk` så lenge den er tildelt et behov.
 
@@ -119,7 +118,7 @@ flowchart LR
     V -->|HTML, CSS, JS| B
     C --> R[Repository / Identity-stores]
     R -->|Dapper + SQL| D[(MariaDB)]
-    B -->|Kartfliser og adresser| K[OpenStreetMap]
+    B -->|Kartfliser| K[OpenStreetMap]
 ```
 
 ### Lag og ansvar
@@ -133,14 +132,11 @@ flowchart LR
 | View | Razor-sider, responsivt design med Bootstrap | `Views/` |
 | Statiske filer | CSS, JavaScript, Bootstrap, jQuery, Leaflet | `wwwroot/` |
 
-Controllerne kjenner bare grensesnittene (`IResourceRepository`, `IPositionRepository`). De ekte Dapper-klassene registreres i `Program.cs` med dependency injection, og testene bruker falske versjoner.
+Controllerne kjenner bare grensesnittene (`IResourceRepository`, `INeedRepository` osv.). De ekte Dapper-klassene registreres i `Program.cs` med dependency injection, og testene bruker falske versjoner.
 
 ### Dataflyt
 
-1. **Skjema:** `GET /Home/CorrectMap` viser skjemaet og kartet (krever innlogging). Ved innsending sender nettleseren `POST /Home/CorrectMap` med en anti-forgery-token.
-2. **Kart:** Brukeren klikker i Leaflet-kartet. JavaScript skriver koordinatene i to skrivebeskyttede felt i skjemaet, og de sendes med POST. Controlleren sjekker at de er gyldige tall innenfor -90/90 og -180/180.
-3. **Lagring og visning:** Posisjonen lagres i tabellen `Positions`. Deretter redirecter appen (Post/Redirect/Get) til `/Home/CorrectionOverview`, som viser alle posisjoner i en tabell og som markører på kartet.
-4. **Ressurser:** `/ResourceHandler` lister ressursene fra databasen, `/Resource/Index/{id}` viser én ressurs. Innloggede brukere legger til nye på `/ResourceHandler/Create`, og eier eller admin endrer (`Edit`) og sletter (`Delete`, med en bekreftelsesside først). Etter hver lagring sendes brukeren videre med Post/Redirect/Get og en kort bekreftelse.
+**Ressurser:** `/ResourceHandler` lister ressursene fra databasen, `/Resource/Index/{id}` viser én ressurs. Innloggede brukere legger til nye på `/ResourceHandler/Create`, og eier eller admin endrer (`Edit`) og sletter (`Delete`, med en bekreftelsesside først). Etter hver lagring sendes brukeren videre med Post/Redirect/Get og en kort bekreftelse.
 
 ### Teknologivalg
 
@@ -188,7 +184,7 @@ Testscenarioer:
 
 | Område | Hva testes |
 |---|---|
-| Systemtest | Sidene åpnes, ressurser fra databasen vises, registrering og innlogging, legge til / endre / slette ressurs (krav 3), validering av skjema, innmelding av posisjon, data overlever omstart av containeren |
+| Systemtest | Sidene åpnes, ressurser fra databasen vises, registrering og innlogging, legge til / endre / slette ressurs (krav 3), validering av skjema, data overlever omstart av containeren |
 | Tilgangskontroll | Utlogget sendes til innlogging fra alle sider (også forsiden og ressurslisten), mens innloggingssiden, CSS og logo er åpne, vanlig bruker får «Ingen tilgang» på admin-sider, Kari får ikke endre eller slette Olas ressurs, verken via knappene eller ved å sende POST direkte |
 | CSRF | POST uten anti-forgery-token gir 400 Bad Request |
 | XSS | `<script>` i en beskrivelse vises som tekst og kjøres ikke |
@@ -201,7 +197,7 @@ Testscenarioer:
 
 ### Brukervennlighetstest
 
-Malen ligger i [`docs/brukervennlighetstest.md`](docs/brukervennlighetstest.md): åtte oppgaver testpersonene skal løse (finne ressurs, registrere seg, legge til / endre / slette ressurs, melde inn posisjon), en tabell for resultater og tid, SUS-spørreskjemaet og en tabell for funn og tiltak.
+Malen ligger i [`docs/brukervennlighetstest.md`](docs/brukervennlighetstest.md): sju oppgaver testpersonene skal løse (finne ressurs, registrere seg, legge til / endre / slette ressurs), en tabell for resultater og tid, SUS-spørreskjemaet og en tabell for funn og tiltak.
 
 > **TODO (gruppen):** Gjennomfør testen med 3–5 personer, fyll inn malen og skriv en kort oppsummering her: gjennomsnittlig SUS-poeng, hva som var vanskelig og hva dere endret.
 
@@ -214,16 +210,14 @@ Malen ligger i [`docs/brukervennlighetstest.md`](docs/brukervennlighetstest.md):
 | 3 | Klikk på en ressurs | Detaljsiden for ressursen vises | Bestått |
 | 4 | Åpne en hvilken som helst side uten å være logget inn | Sendes til innloggingssiden. Etter innlogging kommer man tilbake til siden | Bestått |
 | 5 | Registrer en ny bruker | Logges inn automatisk med rollen Bruker | Bestått |
-| 6 | Korriger kart: klikk i kartet, skriv beskrivelse og lagre | Oversikten viser posisjonen i tabellen og på kartet | Bestått |
-| 7 | Lagre uten å klikke i kartet | Feilmelding, ingenting lagres | Bestått |
-| 8 | Logg inn som Bruker og åpne /UserAdmin | Siden «Ingen tilgang» vises | Bestått |
-| 9 | Logg inn som admin, åpne Brukere og gi en bruker Admin-rollen | Rollen vises i tabellen og lagres i AspNetUserRoles | Bestått |
-| 10 | Som innlogget bruker: Ressurser → Ny ressurs, fyll ut og lagre | Detaljsiden viser den nye ressursen med «Ressursen ble lagret» og «Lagt inn av …» | Bestått |
-| 11 | Start web-containeren på nytt (`docker compose restart heimevernet-web`) | Ressurser, posisjoner og brukere er der fortsatt, og man er fortsatt logget inn | Bestått |
-| 12 | Åpne din egen ressurs, trykk Endre, bytt beskrivelse og lagre | Detaljsiden viser den nye beskrivelsen og «Endringene ble lagret» | Bestått |
-| 13 | Trykk Slett på din egen ressurs, bekreft | Sendes til listen med «Ressursen … ble slettet», ressursen er borte | Bestått |
-| 14 | Logg inn som en annen bruker og åpne ressursen fra test 12 | Knappene Endre og Slett vises ikke. `/ResourceHandler/Edit/{id}` gir «Ingen tilgang» | Bestått |
-| 15 | Bruk appen på mobil (eller smal nettleser) | Menyen, kartet og skjemaene tilpasser seg skjermen | Bestått |
+| 6 | Logg inn som Bruker og åpne /UserAdmin | Siden «Ingen tilgang» vises | Bestått |
+| 7 | Logg inn som admin, åpne Brukere og gi en bruker Admin-rollen | Rollen vises i tabellen og lagres i AspNetUserRoles | Bestått |
+| 8 | Som innlogget bruker: Ressurser → Ny ressurs, fyll ut og lagre | Detaljsiden viser den nye ressursen med «Ressursen ble lagret» og «Lagt inn av …» | Bestått |
+| 9 | Start web-containeren på nytt (`docker compose restart heimevernet-web`) | Ressurser og brukere er der fortsatt, og man er fortsatt logget inn | Bestått |
+| 10 | Åpne din egen ressurs, trykk Endre, bytt beskrivelse og lagre | Detaljsiden viser den nye beskrivelsen og «Endringene ble lagret» | Bestått |
+| 11 | Trykk Slett på din egen ressurs, bekreft | Sendes til listen med «Ressursen … ble slettet», ressursen er borte | Bestått |
+| 12 | Logg inn som en annen bruker og åpne ressursen fra test 10 | Knappene Endre og Slett vises ikke. `/ResourceHandler/Edit/{id}` gir «Ingen tilgang» | Bestått |
+| 13 | Bruk appen på mobil (eller smal nettleser) | Menyen, kartet og skjemaene tilpasser seg skjermen | Bestått |
 
 ### Testresultater
 
@@ -231,10 +225,10 @@ Kjørt 4. november 2026 mot appen i Docker (`docker compose up --build -d`).
 
 | Test | Antall | Bestått |
 |---|---|---|
-| Enhetstester (`dotnet test`) | 62 | 62 ✅ |
-| Systemtest (`tests/system/system-og-sikkerhetstest.ps1`) | 28 | 28 ✅ |
-| Sikkerhetstest (samme skript) | 33 | 33 ✅ |
-| Manuelle tester (tabellen over) | 15 | 15 ✅ |
+| Enhetstester (`dotnet test`) | 72 | 72 ✅ |
+| Systemtest (`tests/system/system-og-sikkerhetstest.ps1`) | 26 | 26 ✅ |
+| Sikkerhetstest (samme skript) | 30 | 30 ✅ |
+| Manuelle tester (tabellen over) | 13 | 13 ✅ |
 | Brukervennlighetstest | *TODO* | *TODO* |
 
 Hele listen med hver enkelt sjekk står i [`tests/system/resultat.md`](tests/system/resultat.md).
@@ -255,12 +249,12 @@ Tiltakene under er testet automatisk i `tests/system/system-og-sikkerhetstest.ps
 | Uautorisert tilgang | Alle sider krever innlogging (`FallbackPolicy`), bortsett fra de som er merket `[AllowAnonymous]` (logg inn, registrer, feilside). `[Authorize]` på sider som krever innlogging og `[Authorize(Roles = Admin)]` på admin-sider. For endring og sletting sjekker controlleren i tillegg at brukeren eier ressursen eller er admin, både på GET og POST, så det hjelper ikke å skrive adressen selv eller sende en POST direkte | `Program.cs`, `Controllers/ResourceHandlerController.cs`, `Authorization/ResourcePermissions.cs`, `Controllers/UserAdminController.cs` |
 | Overposting (sende med felt man ikke skal kunne endre) | Eier, status på behov og `CanModify` har `[BindNever]`, så de kan ikke sendes inn fra et skjema. Eieren (`UserId`) settes alltid fra innlogget bruker på serveren, og `UPDATE`-setningene endrer aldri `UserId`. Kategori og organisasjon fra skjemaet slås opp i databasen før lagring | `Models/ViewModels/Resource/ResourceViewModel.cs`, `DataAccess/DapperResourceRepository.cs` |
 | SQL-injeksjon | All SQL bruker parametere (`@Name`) via Dapper. Brukerens tekst settes aldri rett inn i SQL-strengen | `DataAccess/` |
-| Cross-site scripting (XSS) | Razor HTML-koder alt som skrives ut (`@Model.Name`). JavaScript bruker `textContent`, ikke `innerHTML`, for tekst fra brukere (kartpopuper) | `Views/`, `wwwroot/js/site.js` |
+| Cross-site scripting (XSS) | Razor HTML-koder alt som skrives ut (`@Model.Name`) | `Views/` |
 | Cross-site request forgery (CSRF) | Alle skjema har en anti-forgery-token, og alle POST-actions har `[ValidateAntiForgeryToken]` | `Controllers/` |
 | Åpen redirect | `ReturnUrl` etter innlogging brukes bare hvis den peker til vår egen side (`Url.IsLocalUrl`) | `Controllers/AccountController.cs` |
 | Stjålet innloggings-cookie | Cookien er `HttpOnly` (JavaScript kan ikke lese den) og krypteres med Data Protection. Nøklene lagres i et eget volum | `Program.cs`, `docker-compose.yml` |
 | Clickjacking og andre nettleserangrep | Sikkerhets-headere på alle svar: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy` | `Program.cs` |
-| Ugyldige data | Validering med attributter (`[Required]`, `[StringLength]`, `[RegularExpression]` for postnummer, `[Phone]`) både i nettleseren og på serveren (`ModelState.IsValid`). Koordinater sjekkes mot -90/90 og -180/180 | `Models/ViewModels/` |
+| Ugyldige data | Validering med attributter (`[Required]`, `[StringLength]`, `[RegularExpression]` for postnummer, `[Phone]`) både i nettleseren og på serveren (`ModelState.IsValid`) | `Models/ViewModels/` |
 | Hemmeligheter i Git | Admin-passordet og root-passordet til databasen ligger i `.env`, som er i `.gitignore` | `.env.example`, `.gitignore` |
 | Container blir tatt over | Web-containeren kjører som en vanlig bruker, ikke root (`USER $APP_UID`). Runtime-imaget har ikke SDK-en | `Heimevernet.Web/Dockerfile` |
 | Feilmeldinger som avslører kode | I produksjon vises en generell feilside (`UseExceptionHandler`), ikke stack trace | `Program.cs` |
@@ -276,7 +270,7 @@ Tiltakene under er testet automatisk i `tests/system/system-og-sikkerhetstest.ps
 
 ## 5. Dokumentasjon i koden
 
-- Koden er kommentert på norsk der det skjer noe som ikke er åpenbart: hvorfor vi bruker parametere i SQL (SQL injection), anti-forgery-tokens (CSRF), Post/Redirect/Get, optimistisk låsing med `ConcurrencyStamp` og hvorfor innloggingsnøklene lagres i et volum.
+- Koden er kommentert på norsk der det skjer noe som ikke er åpenbart: hvorfor vi bruker parametere i SQL (SQL injection), anti-forgery-tokens (CSRF), optimistisk låsing med `ConcurrencyStamp` og hvorfor innloggingsnøklene lagres i et volum.
 - `Schema.sql` beskriver hver tabell og de viktigste kolonnene.
 - `Program.cs` forklarer rekkefølgen på oppstart (tabeller → eksempeldata → roller og admin) og på middleware (`UseAuthentication` før `UseAuthorization`).
 - `docker-compose.yml` og `Dockerfile` forklarer hvert steg.

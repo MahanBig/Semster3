@@ -23,7 +23,6 @@ if (string.IsNullOrWhiteSpace(connectionString))
 // Repository og Identity-stores ber den om en ny tilkobling hver gang de skal kjøre SQL.
 builder.Services.AddSingleton<IDbConnectionFactory>(new MySqlConnectionFactory(connectionString));
 builder.Services.AddScoped<IResourceRepository, DapperResourceRepository>();
-builder.Services.AddScoped<IPositionRepository, DapperPositionRepository>();
 builder.Services.AddScoped<ICategoryRepository, DapperCategoryRepository>();
 builder.Services.AddScoped<INeedRepository, DapperNeedRepository>();
 builder.Services.AddScoped<IAllocationRepository, DapperAllocationRepository>();
@@ -101,14 +100,14 @@ if (!app.Environment.IsDevelopment())
 //  - nosniff: ikke gjett filtype (hindrer at en tekstfil blir kjørt som script).
 //  - DENY: siden kan ikke vises inne i en <iframe> på en annen side (hindrer "clickjacking").
 //  - Referrer-Policy: send bare domenet, ikke hele adressen, når man klikker seg videre.
-//  - Permissions-Policy: bare vår egen side får be om posisjon; kamera og mikrofon er av.
+//  - Permissions-Policy: posisjon, kamera og mikrofon er av.
 app.Use(async (context, next) =>
 {
     var headers = context.Response.Headers;
     headers["X-Content-Type-Options"] = "nosniff";
     headers["X-Frame-Options"] = "DENY";
     headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-    headers["Permissions-Policy"] = "geolocation=(self), camera=(), microphone=()";
+    headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()";
     await next();
 });
 app.UseRouting(); // Rekkefølgen hver forespørsel går gjennom.

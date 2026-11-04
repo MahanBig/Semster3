@@ -158,16 +158,6 @@ CREATE TABLE IF NOT EXISTS Allocations (
     CONSTRAINT FK_Allocations_Resources FOREIGN KEY (ResourceId) REFERENCES Resources (Id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS Positions (
-    Id INT NOT NULL AUTO_INCREMENT,
-    Latitude DOUBLE NOT NULL,
-    Longitude DOUBLE NOT NULL,
-    Description VARCHAR(1000) NOT NULL,
-    CreatedBy VARCHAR(256) NULL,
-    CreatedAtUtc DATETIME(6) NOT NULL,
-    PRIMARY KEY (Id)
-);
-
 -- Name må være lik Label i ResourceCategory.cs.
 INSERT IGNORE INTO Categories (Name, Description) VALUES
     ('Mat', 'Mat og matutdeling'),

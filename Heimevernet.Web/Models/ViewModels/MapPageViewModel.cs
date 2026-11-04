@@ -1,11 +1,9 @@
-using Heimevernet.Web.Models.Entities;
 using Heimevernet.Web.Models.ViewModels.Resource;
 
 namespace Heimevernet.Web.Models.ViewModels;
 
-// Alt forsiden (kartet) trenger: ressursene til listen og posisjonene til kartet.
+// Ressursene til listen på forsiden.
 public class MapPageViewModel
 {
     public IReadOnlyList<ResourceViewModel> Resources { get; init; } = [];
-    public IReadOnlyCollection<Position> Positions { get; init; } = [];
 }

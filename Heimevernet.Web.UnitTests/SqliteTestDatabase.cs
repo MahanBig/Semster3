@@ -102,14 +102,6 @@ internal sealed class SqliteTestDatabase : IDbConnectionFactory, IDisposable
             AllocatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (NeedId, ResourceId));
 
-        CREATE TABLE Positions (
-            Id INTEGER PRIMARY KEY AUTOINCREMENT,
-            Latitude REAL NOT NULL,
-            Longitude REAL NOT NULL,
-            Description TEXT NOT NULL,
-            CreatedBy TEXT NULL,
-            CreatedAtUtc TEXT NOT NULL);
-
         -- Same categories and order as Schema.sql, so Id 1 = Mat, 2 = Vann ... 7 = Informasjon.
         INSERT INTO Categories (Name, Description) VALUES
             ('Mat', NULL), ('Vann', NULL), ('Ly og varme', NULL), ('Helse', NULL),

@@ -46,6 +46,16 @@ if (!string.IsNullOrWhiteSpace(keysPath))
         .SetApplicationName("Heimevernet");
 }
 
+// Hele appen krever innlogging. "FallbackPolicy" gjelder alle sider som ikke har en egen regel,
+// så vi slipper å huske [Authorize] på hver controller. Den som ikke er logget inn, sendes til LoginPath.
+// Sidene som MÅ være åpne (logg inn, registrer, feilside) har [AllowAnonymous].
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
 // Innloggingen huskes i en cookie. Her sier vi hvor brukeren sendes når det trengs.
 builder.Services.ConfigureApplicationCookie(options =>
 {
@@ -79,12 +89,27 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
     app.UseHsts();
 }
+
+// Sikkerhets-headere på alle svar (krav 8). De forteller nettleseren hva den IKKE skal tillate:
+//  - nosniff: ikke gjett filtype (hindrer at en tekstfil blir kjørt som script).
+//  - DENY: siden kan ikke vises inne i en <iframe> på en annen side (hindrer "clickjacking").
+//  - Referrer-Policy: send bare domenet, ikke hele adressen, når man klikker seg videre.
+//  - Permissions-Policy: bare vår egen side får be om posisjon; kamera og mikrofon er av.
+app.Use(async (context, next) =>
+{
+    var headers = context.Response.Headers;
+    headers["X-Content-Type-Options"] = "nosniff";
+    headers["X-Frame-Options"] = "DENY";
+    headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    headers["Permissions-Policy"] = "geolocation=(self), camera=(), microphone=()";
+    await next();
+});
 app.UseRouting(); // Rekkefølgen hver forespørsel går gjennom.
 
 app.UseAuthentication(); // Leser innloggings-cookien og finner ut HVEM brukeren er.
 app.UseAuthorization();  // Sjekker om brukeren har LOV til å se siden ([Authorize]).
 
-app.MapStaticAssets();
+app.MapStaticAssets().AllowAnonymous(); // CSS, JS og logo må lastes på innloggingssiden også.
 
 app.MapControllerRoute(
     name: "default",

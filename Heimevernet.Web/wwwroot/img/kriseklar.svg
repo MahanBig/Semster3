@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 380" width="100%" height="100%" fill="none">
+  <defs>
+    <!-- Gradient for det sammenhengende rød-oransje båndet -->
+    <linearGradient id="redOrangeRibbon" x1="25" y1="55" x2="225" y2="275" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#D01C1B" />
+      <stop offset="48%" stop-color="#DF431D" />
+      <stop offset="100%" stop-color="#E6681B" />
+    </linearGradient>
+
+    <!-- Gradient for den blå spissen (under) og høyre ytterbue -->
+    <linearGradient id="blueOuterPin" x1="149.5" y1="365" x2="265" y2="85" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#164C78" />
+      <stop offset="42%" stop-color="#205A82" />
+      <stop offset="76%" stop-color="#6B5C65" />
+      <stop offset="100%" stop-color="#9A5C4E" />
+    </linearGradient>
+
+    <!-- Skrå utskjæringsmaske rundt hakens lange arm -->
+    <mask id="checkmarkCutout">
+      <rect x="0" y="0" width="300" height="380" fill="#FFFFFF" />
+      <path d="M 148 181 L 278 40" stroke="#000000" stroke-width="52" stroke-linecap="butt" />
+    </mask>
+
+    <!-- Skygge der det rød-oransje båndet krysser over den blå delen -->
+    <filter id="overlapShadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="5" stdDeviation="3.5" flood-color="#000000" flood-opacity="0.4" />
+    </filter>
+  </defs>
+
+  <!-- LAG 1 (UNDERST): Blå bunnspiss + høyre ytterbue -->
+  <g mask="url(#checkmarkCutout)">
+    <path d="M 80.57 274.28 
+             L 145.20 350.30 
+             Q 149.50 355.37 153.80 350.30 
+             L 247.64 239.92 
+             A 128.8 128.8 0 0 0 248.20 73.70" stroke="url(#blueOuterPin)" stroke-width="24.5" stroke-linecap="butt" stroke-linejoin="round" />
+  </g>
+
+  <!-- LAG 2 (ØVERST): Sammenhengende rød-oransje bånd med eksakt tangent-fillet i bunnen -->
+  <g mask="url(#checkmarkCutout)" filter="url(#overlapShadow)">
+    <path d="M 114.50 244.50 
+             L 88.16 208.64 
+             A 80.5 80.5 0 1 1 210.84 208.64 
+             L 155.04 274.28 
+             A 48.864 48.864 0 0 1 80.57 274.28 
+             L 51.36 239.92 
+             A 128.8 128.8 0 1 1 245.50 70.50" stroke="url(#redOrangeRibbon)" stroke-width="24.5" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+
+  <!-- LAG 3: Hvit hake (Checkmark) -->
+  <path d="M 104 153 
+           L 144 192 
+           L 258 80" stroke="#FFFFFF" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

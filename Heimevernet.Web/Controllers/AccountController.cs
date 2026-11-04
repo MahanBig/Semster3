@@ -1,5 +1,6 @@
 using Heimevernet.Web.Models;
 using Heimevernet.Web.Models.ViewModels.Account;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,13 +12,13 @@ public class AccountController(
     SignInManager<IdentityUser> signInManager,
     UserManager<IdentityUser> userManager) : Controller
 {
-    [HttpGet]
+    [HttpGet, AllowAnonymous] // Må være åpen, ellers kan ingen logge inn.
     public IActionResult Login(string? returnUrl = null)
     {
         return View(new LoginViewModel { ReturnUrl = returnUrl });
     }
 
-    [HttpPost]
+    [HttpPost, AllowAnonymous]
     [ValidateAntiForgeryToken] // Stopper at en annen nettside sender inn skjemaet på vegne av brukeren (CSRF).
     public async Task<IActionResult> Login(LoginViewModel model)
     {
@@ -43,12 +44,13 @@ public class AccountController(
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public IActionResult Register()
     {
         return View(new RegisterViewModel());
     }
 
-    [HttpPost]
+    [HttpPost, AllowAnonymous]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegisterViewModel model)
     {
@@ -86,6 +88,7 @@ public class AccountController(
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public IActionResult AccessDenied()
     {
         return View();

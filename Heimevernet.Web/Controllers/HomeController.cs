@@ -36,6 +36,7 @@ public class HomeController(IPositionRepository positionRepository, IResourceRep
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    [AllowAnonymous] // Feilsiden må kunne vises for alle.
     public IActionResult Error()
     {
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });

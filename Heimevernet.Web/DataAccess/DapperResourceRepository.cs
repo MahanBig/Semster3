@@ -8,7 +8,7 @@ namespace Heimevernet.Web.DataAccess;
 public class DapperResourceRepository(IDbConnectionFactory connectionFactory) : IResourceRepository
 {
     private const string SelectResources =
-        "SELECT Id, Name, Description, Type, Address, City, ZipCode, OwnerTelephoneNumber FROM Resources";
+        "SELECT Id, Name, Description, Type, Address, City, ZipCode, OwnerTelephoneNumber, CreatedBy FROM Resources";
 
     public IReadOnlyCollection<Resource> GetAll()
     {
@@ -34,10 +34,34 @@ public class DapperResourceRepository(IDbConnectionFactory connectionFactory) : 
         // Id står ikke med: MariaDB lager den (AUTO_INCREMENT), og RETURNING Id gir oss den tilbake.
         return connection.ExecuteScalar<int>(
             """
-            INSERT INTO Resources (Name, Description, Type, Address, City, ZipCode, OwnerTelephoneNumber)
-            VALUES (@Name, @Description, @Type, @Address, @City, @ZipCode, @OwnerTelephoneNumber)
+            INSERT INTO Resources (Name, Description, Type, Address, City, ZipCode, OwnerTelephoneNumber, CreatedBy)
+            VALUES (@Name, @Description, @Type, @Address, @City, @ZipCode, @OwnerTelephoneNumber, @CreatedBy)
             RETURNING Id
             """,
             resource);
+    }
+
+    public bool Update(Resource resource)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        using var connection = connectionFactory.CreateConnection();
+
+        // CreatedBy endres ikke: den som la inn ressursen er fortsatt eier etter en endring.
+        var changedRows = connection.Execute(
+            """
+            UPDATE Resources
+            SET Name = @Name, Description = @Description, Type = @Type, Address = @Address,
+                City = @City, ZipCode = @ZipCode, OwnerTelephoneNumber = @OwnerTelephoneNumber
+            WHERE Id = @Id
+            """,
+            resource);
+        return changedRows == 1;
+    }
+
+    public bool Delete(int id)
+    {
+        using var connection = connectionFactory.CreateConnection();
+        return connection.Execute("DELETE FROM Resources WHERE Id = @Id", new { Id = id }) == 1;
     }
 }

@@ -10,4 +10,5 @@ public class Resource
     public string? City { get; set; }
     public string? ZipCode { get; set; }
     public string? OwnerTelephoneNumber { get; set; }
+    public string? CreatedBy { get; set; } // Brukernavnet til den som la inn ressursen. Null for eksempeldata.
 }

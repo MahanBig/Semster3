@@ -1,6 +1,8 @@
-# Heimevernet
+<img src="Heimevernet.Web/wwwroot/img/kriseklar.svg" alt="KriseKlar-logo" width="80" align="right" />
 
-ASP.NET Core MVC-applikasjon som kjører i Docker. Brukere logger inn, registrerer posisjoner i et kart og ser ressurser fra databasen. Admin kan legge til ressurser og styre hvem som har hvilke roller.
+# KriseKlar
+
+KriseKlar er en ASP.NET Core MVC-applikasjon som kjører i Docker. Hele appen krever innlogging. Brukere logger inn, registrerer posisjoner i et kart og ser beredskapsressurser fra databasen. Innloggede brukere kan legge til ressurser og endre eller slette sine egne. Admin kan endre og slette alle ressurser og styre hvem som har hvilke roller.
 
 **Gruppe:** 8 · **Emne:** IS-202 · **Medlemmer:** Darin, Marius, Lars, Mahan, Yasin
 
@@ -11,8 +13,9 @@ ASP.NET Core MVC-applikasjon som kjører i Docker. Brukere logger inn, registrer
 1. [Drift](#1-drift)
 2. [Systemarkitektur](#2-systemarkitektur)
 3. [Testing](#3-testing)
-4. [Dokumentasjon i koden](#4-dokumentasjon-i-koden)
-5. [Bruk av KI](#5-bruk-av-ki)
+4. [Sikkerhet](#4-sikkerhet)
+5. [Dokumentasjon i koden](#5-dokumentasjon-i-koden)
+6. [Bruk av KI](#6-bruk-av-ki)
 
 ---
 
@@ -68,10 +71,14 @@ Appen bruker ASP.NET Core Identity. Brukere og roller lagres i MariaDB (tabellen
 
 | Side | Krever |
 |---|---|
-| Forside, Ressurser, ressursdetaljer, Registrerte posisjoner | Ingenting |
-| Korriger kart (registrere posisjon) | Innlogging |
-| Ny ressurs (`/ResourceHandler/Create`) | Rollen `Admin` |
+| Logg inn, Registrer deg, feilsiden | Ingenting |
+| Alle andre sider: forside med kart, Ressurser, ressursdetaljer, Registrerte posisjoner, Korriger kart | Innlogging |
+| Endre og slette ressurs (`/ResourceHandler/Edit/{id}`, `/ResourceHandler/Delete/{id}`) | Innlogging, og at du la inn ressursen selv, eller rollen `Admin` |
 | Brukere (`/UserAdmin`) | Rollen `Admin` |
+
+Den som ikke er logget inn, sendes automatisk til innloggingssiden og kommer tilbake til siden de prøvde å åpne etter innlogging. Dette styres av en `FallbackPolicy` i `Program.cs`: alle sider krever innlogging hvis de ikke har `[AllowAnonymous]`. Da kan vi ikke glemme å beskytte en ny side.
+
+Hvem som har lagt inn en ressurs lagres i kolonnen `Resources.CreatedBy`. Regelen for hvem som får endre og slette står på ett sted, i `Authorization/ResourcePermissions.cs`, og brukes både av controlleren (som stopper forespørselen) og av viewet (som skjuler knappene). Ressursene fra eksempeldataene har ingen eier, så bare admin kan endre dem.
 
 ### Database og tabeller
 
@@ -79,7 +86,7 @@ Tabellene lages av `Heimevernet.Web/DataAccess/Sql/Schema.sql`, som kjøres hver
 
 | Tabell | Innhold |
 |---|---|
-| `Resources` | Ressurser (navn, beskrivelse, type, adresse, eiers telefon) |
+| `Resources` | Ressurser (navn, beskrivelse, type, adresse, eiers telefon, hvem som la den inn) |
 | `Positions` | Posisjoner fra kartet (koordinater, beskrivelse, hvem og når) |
 | `AspNetUsers`, `AspNetRoles`, `AspNetUserRoles` | Brukere, roller og koblingen mellom dem |
 
@@ -118,7 +125,7 @@ Controllerne kjenner bare grensesnittene (`IResourceRepository`, `IPositionRepos
 1. **Skjema:** `GET /Home/CorrectMap` viser skjemaet og kartet (krever innlogging). Ved innsending sender nettleseren `POST /Home/CorrectMap` med en anti-forgery-token.
 2. **Kart:** Brukeren klikker i Leaflet-kartet. JavaScript skriver koordinatene i to skrivebeskyttede felt i skjemaet, og de sendes med POST. Controlleren sjekker at de er gyldige tall innenfor -90/90 og -180/180.
 3. **Lagring og visning:** Posisjonen lagres i tabellen `Positions`. Deretter redirecter appen (Post/Redirect/Get) til `/Home/CorrectionOverview`, som viser alle posisjoner i en tabell og som markører på kartet.
-4. **Ressurser:** `/ResourceHandler` lister ressursene fra databasen, `/Resource/Index/{id}` viser én ressurs, og admin legger til nye på `/ResourceHandler/Create`.
+4. **Ressurser:** `/ResourceHandler` lister ressursene fra databasen, `/Resource/Index/{id}` viser én ressurs. Innloggede brukere legger til nye på `/ResourceHandler/Create`, og eier eller admin endrer (`Edit`) og sletter (`Delete`, med en bekreftelsesside først). Etter hver lagring sendes brukeren videre med Post/Redirect/Get og en kort bekreftelse.
 
 ### Teknologivalg
 
@@ -127,7 +134,7 @@ Controllerne kjenner bare grensesnittene (`IResourceRepository`, `IPositionRepos
 | ASP.NET Core MVC (.NET 10) | Krav i oppgaven |
 | Docker og Docker Compose | Likt kjøremiljø på alle maskiner, én kommando starter alt |
 | Leaflet 1.9.4 + OpenStreetMap | Fra forelesning. Gratis kart uten API-nøkkel |
-| Bootstrap 5 + eget designsystem (`wwwroot/css/site.css`) | Responsivt design. Farger, komponenter og sideoppsett følger designet «Beredskapskart» |
+| Bootstrap 5 + eget designsystem (`wwwroot/css/site.css`) | Responsivt design. Farger, komponenter og sideoppsett følger designet «Beredskapskart». Navnet og logoen er KriseKlar (`wwwroot/img/kriseklar.svg`) |
 | Atkinson Hyperlegible (Google Fonts) | Skrift laget for god lesbarhet, valgt i designet |
 | MariaDB | Fra forelesning |
 | Dapper + MySqlConnector | Vi skriver SQL-en selv og ser nøyaktig hva som sendes til databasen. Dapper gjør radene om til C#-objekter |
@@ -147,31 +154,112 @@ Controllerne kjenner bare grensesnittene (`IResourceRepository`, `IPositionRepos
 
 ### Automatiske tester
 
-`Heimevernet.Web.UnitTests` har tester for controllerne, Dapper-repositoriene, seederne og Identity-stores. Databasetestene kjører den samme SQL-en mot en midlertidig SQLite-database i minnet (`SqliteTestDatabase.cs`), så det trengs ingen MariaDB-server. GitHub Actions kjører testene og bygger Docker-imaget ved hver push og pull request til `main`.
+`Heimevernet.Web.UnitTests` har tester for controllerne, Dapper-repositoriene, seederne, Identity-stores og tilgangsregelen for ressurser (`ResourcePermissionsTests`, `ResourceEditDeleteTests`). Databasetestene kjører den samme SQL-en mot en midlertidig SQLite-database i minnet (`SqliteTestDatabase.cs`), så det trengs ingen MariaDB-server. GitHub Actions kjører testene og bygger Docker-imaget ved hver push og pull request til `main`.
 
 ```bash
 dotnet test --project .\Heimevernet.Web.UnitTests\Heimevernet.Web.UnitTests.csproj
 ```
+
+### System- og sikkerhetstest
+
+`tests/system/system-og-sikkerhetstest.ps1` tester hele løsningen slik den kjører i Docker: nettleser → web-container → MariaDB. Skriptet later som det er fire nettlesere samtidig (utlogget, admin og to vanlige brukere, Ola og Kari) og sjekker både at funksjonene virker og at sikkerhetstiltakene i [kapittel 4](#4-sikkerhet) faktisk stopper angrep. Resultatet skrives til skjermen og til `tests/system/resultat.md`.
+
+```powershell
+docker compose up --build -d
+pwsh -File tests/system/system-og-sikkerhetstest.ps1
+```
+
+Testscenarioer:
+
+| Område | Hva testes |
+|---|---|
+| Systemtest | Sidene åpnes, ressurser fra databasen vises, registrering og innlogging, legge til / endre / slette ressurs (krav 3), validering av skjema, innmelding av posisjon, data overlever omstart av containeren |
+| Tilgangskontroll | Utlogget sendes til innlogging fra alle sider (også forsiden og ressurslisten), mens innloggingssiden, CSS og logo er åpne, vanlig bruker får «Ingen tilgang» på admin-sider, Kari får ikke endre eller slette Olas ressurs, verken via knappene eller ved å sende POST direkte |
+| CSRF | POST uten anti-forgery-token gir 400 Bad Request |
+| XSS | `<script>` i en beskrivelse vises som tekst og kjøres ikke |
+| SQL-injeksjon | `'); DROP TABLE Resources; --` lagres som vanlig tekst, tabellen finnes fortsatt |
+| Åpen redirect | `ReturnUrl=https://evil.example.com` ved innlogging blir ignorert |
+| Passord og konto | Svakt passord avvises, samme e-post kan ikke brukes to ganger, samme feilmelding for ukjent e-post og feil passord, kontoen låses etter 5 feil passord |
+| Headere og cookie | Sikkerhets-headerne er med på alle svar, og innloggings-cookien er `HttpOnly` |
+
+**Resultat:** se [Testresultater](#testresultater) under.
+
+### Brukervennlighetstest
+
+Malen ligger i [`docs/brukervennlighetstest.md`](docs/brukervennlighetstest.md): åtte oppgaver testpersonene skal løse (finne ressurs, registrere seg, legge til / endre / slette ressurs, melde inn posisjon), en tabell for resultater og tid, SUS-spørreskjemaet og en tabell for funn og tiltak.
+
+> **TODO (gruppen):** Gjennomfør testen med 3–5 personer, fyll inn malen og skriv en kort oppsummering her: gjennomsnittlig SUS-poeng, hva som var vanskelig og hva dere endret.
 
 ### Manuelle tester
 
 | # | Test | Forventet resultat | Resultat |
 | --- | --- | --- | --- |
 | 1 | Kjør `docker compose up --build` og sjekk Docker Desktop | Containerne heimevernet-web og mariadb kjører | Bestått |
-| 2 | Åpne Ressurser | En liste med ressurser fra databasen vises | Bestått |
+| 2 | Logg inn og åpne Ressurser | En liste med ressurser fra databasen vises | Bestått |
 | 3 | Klikk på en ressurs | Detaljsiden for ressursen vises | Bestått |
-| 4 | Åpne Korriger kart uten å være logget inn | Sendes til innloggingssiden | Bestått |
+| 4 | Åpne en hvilken som helst side uten å være logget inn | Sendes til innloggingssiden. Etter innlogging kommer man tilbake til siden | Bestått |
 | 5 | Registrer en ny bruker | Logges inn automatisk med rollen Bruker | Bestått |
 | 6 | Korriger kart: klikk i kartet, skriv beskrivelse og lagre | Oversikten viser posisjonen i tabellen og på kartet | Bestått |
 | 7 | Lagre uten å klikke i kartet | Feilmelding, ingenting lagres | Bestått |
 | 8 | Logg inn som Bruker og åpne /UserAdmin | Siden «Ingen tilgang» vises | Bestått |
 | 9 | Logg inn som admin, åpne Brukere og gi en bruker Admin-rollen | Rollen vises i tabellen og lagres i AspNetUserRoles | Bestått |
-| 10 | Som admin: Ressurser → Ny ressurs, fyll ut og lagre | Detaljsiden viser den nye ressursen med «Ressursen ble lagret» | Bestått |
+| 10 | Som innlogget bruker: Ressurser → Ny ressurs, fyll ut og lagre | Detaljsiden viser den nye ressursen med «Ressursen ble lagret» og «Lagt inn av …» | Bestått |
 | 11 | Start web-containeren på nytt (`docker compose restart heimevernet-web`) | Ressurser, posisjoner og brukere er der fortsatt, og man er fortsatt logget inn | Bestått |
+| 12 | Åpne din egen ressurs, trykk Endre, bytt beskrivelse og lagre | Detaljsiden viser den nye beskrivelsen og «Endringene ble lagret» | Bestått |
+| 13 | Trykk Slett på din egen ressurs, bekreft | Sendes til listen med «Ressursen … ble slettet», ressursen er borte | Bestått |
+| 14 | Logg inn som en annen bruker og åpne ressursen fra test 12 | Knappene Endre og Slett vises ikke. `/ResourceHandler/Edit/{id}` gir «Ingen tilgang» | Bestått |
+| 15 | Bruk appen på mobil (eller smal nettleser) | Menyen, kartet og skjemaene tilpasser seg skjermen | Bestått |
+
+### Testresultater
+
+Kjørt 4. november 2026 mot appen i Docker (`docker compose up --build -d`).
+
+| Test | Antall | Bestått |
+|---|---|---|
+| Enhetstester (`dotnet test`) | 62 | 62 ✅ |
+| Systemtest (`tests/system/system-og-sikkerhetstest.ps1`) | 28 | 28 ✅ |
+| Sikkerhetstest (samme skript) | 33 | 33 ✅ |
+| Manuelle tester (tabellen over) | 15 | 15 ✅ |
+| Brukervennlighetstest | *TODO* | *TODO* |
+
+Hele listen med hver enkelt sjekk står i [`tests/system/resultat.md`](tests/system/resultat.md).
+
+**Funn underveis:** Første kjøring (3. november) ga 54 av 55. Sjekken for låsing av konto feilet, men databasen viste at kontoen faktisk ble låst (`LockoutEnd` var satt). Feilen var i testen: Razor HTML-koder «å» i feilmeldingen som `&#xE5;`, så teksten «låst» ble ikke funnet. Testen ble rettet til å se etter «Kontoen er midlertidig».
 
 ---
 
-## 4. Dokumentasjon i koden
+## 4. Sikkerhet
+
+Tiltakene under er testet automatisk i `tests/system/system-og-sikkerhetstest.ps1` og i enhetstestene (se [kapittel 3](#3-testing)).
+
+| Trussel | Tiltak | Hvor i koden |
+|---|---|---|
+| Passord på avveie | Passord lagres aldri i klartekst. Identity lagrer en saltet hash (PBKDF2). Krav: minst 8 tegn, stor og liten bokstav, tall og spesialtegn | `Program.cs` (`AddIdentity`), `DataAccess/Identity/DapperUserStore.cs` |
+| Gjetting av passord (brute force) | Kontoen låses i 5 minutter etter 5 feil passord | `Program.cs` (`Lockout`), `Controllers/AccountController.cs` (`lockoutOnFailure: true`) |
+| Finne ut hvilke e-poster som finnes | Samme feilmelding for ukjent e-post og feil passord | `Controllers/AccountController.cs` |
+| Uautorisert tilgang | Alle sider krever innlogging (`FallbackPolicy`), bortsett fra de som er merket `[AllowAnonymous]` (logg inn, registrer, feilside). `[Authorize]` på sider som krever innlogging og `[Authorize(Roles = Admin)]` på admin-sider. For endring og sletting sjekker controlleren i tillegg at brukeren eier ressursen eller er admin, både på GET og POST, så det hjelper ikke å skrive adressen selv eller sende en POST direkte | `Program.cs`, `Controllers/ResourceHandlerController.cs`, `Authorization/ResourcePermissions.cs`, `Controllers/UserAdminController.cs` |
+| Overposting (sende med felt man ikke skal kunne endre) | `CreatedBy` og `CanModify` har `[BindNever]`, så de kan ikke sendes inn fra et skjema. Eieren settes alltid fra innlogget bruker på serveren, og `UPDATE`-setningen endrer aldri `CreatedBy` | `Models/ViewModels/Resource/ResourceViewModel.cs`, `DataAccess/DapperResourceRepository.cs` |
+| SQL-injeksjon | All SQL bruker parametere (`@Name`) via Dapper. Brukerens tekst settes aldri rett inn i SQL-strengen | `DataAccess/` |
+| Cross-site scripting (XSS) | Razor HTML-koder alt som skrives ut (`@Model.Name`). JavaScript bruker `textContent`, ikke `innerHTML`, for tekst fra brukere (kartpopuper) | `Views/`, `wwwroot/js/site.js` |
+| Cross-site request forgery (CSRF) | Alle skjema har en anti-forgery-token, og alle POST-actions har `[ValidateAntiForgeryToken]` | `Controllers/` |
+| Åpen redirect | `ReturnUrl` etter innlogging brukes bare hvis den peker til vår egen side (`Url.IsLocalUrl`) | `Controllers/AccountController.cs` |
+| Stjålet innloggings-cookie | Cookien er `HttpOnly` (JavaScript kan ikke lese den) og krypteres med Data Protection. Nøklene lagres i et eget volum | `Program.cs`, `docker-compose.yml` |
+| Clickjacking og andre nettleserangrep | Sikkerhets-headere på alle svar: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy` | `Program.cs` |
+| Ugyldige data | Validering med attributter (`[Required]`, `[StringLength]`, `[RegularExpression]` for postnummer, `[Phone]`) både i nettleseren og på serveren (`ModelState.IsValid`). Koordinater sjekkes mot -90/90 og -180/180 | `Models/ViewModels/` |
+| Hemmeligheter i Git | Admin-passordet og root-passordet til databasen ligger i `.env`, som er i `.gitignore` | `.env.example`, `.gitignore` |
+| Container blir tatt over | Web-containeren kjører som en vanlig bruker, ikke root (`USER $APP_UID`). Runtime-imaget har ikke SDK-en | `Heimevernet.Web/Dockerfile` |
+| Feilmeldinger som avslører kode | I produksjon vises en generell feilside (`UseExceptionHandler`), ikke stack trace | `Program.cs` |
+
+### Kjente begrensninger
+
+- Lokalt i Docker kjører appen på HTTP. I produksjon (`ASPNETCORE_ENVIRONMENT=Production`) slås HTTPS-omdirigering og HSTS på, men da trengs et sertifikat eller en proxy foran (f.eks. nginx).
+- Vi har ikke Content-Security-Policy, fordi noen views har små `<script>`-blokker og vi bruker Google Fonts og OpenStreetMap. Neste steg er å flytte scriptene til `site.js` og legge til en CSP.
+- MariaDB-porten 3307 er åpen mot maskinen for utvikling i Visual Studio. Den bør fjernes i produksjon.
+- Det er ingen e-postbekreftelse ved registrering, så hvem som helst kan lage en bruker og legge inn ressurser.
+
+---
+
+## 5. Dokumentasjon i koden
 
 - Koden er kommentert på norsk der det skjer noe som ikke er åpenbart: hvorfor vi bruker parametere i SQL (SQL injection), anti-forgery-tokens (CSRF), Post/Redirect/Get, optimistisk låsing med `ConcurrencyStamp` og hvorfor innloggingsnøklene lagres i et volum.
 - `Schema.sql` beskriver hver tabell og de viktigste kolonnene.
@@ -180,25 +268,42 @@ dotnet test --project .\Heimevernet.Web.UnitTests\Heimevernet.Web.UnitTests.cspr
 
 ---
 
-## 5. Bruk av KI
+## 6. Bruk av KI
 
+### Verktøy
 
-### Oversikt
+| Verktøy | Hvem brukte det | Hva vi brukte det til |
+|---|---|---|
+| Claude (claude.ai, med tilgang til prosjektmappen) | Mahan | Forklaring av prosjektet, Identity og roller, overgang fra EF til Dapper, Docker Compose, feilsøking, frontend fra designet, krav 3, sikkerhetstester |
+| Claude Design | Mahan | Designet «Beredskapskart» (farger, skrift, sideoppsett) |
+| *TODO: andre verktøy (ChatGPT, Copilot …)* | *TODO* | *TODO* |
 
-- Vi brukte Claude til å strukturere oppgaven og hjelpe oss videre når det oppsto problemer
-- Vi brukte Claude til å hjelpe oss med å få opp README mappen og strukturere den siden vi var ikke sikre på hvordan den skulle se ut
-- Vi fikk Claude til å se gjennom koden for å feilsøke og hjelpe med eventuelle endringer
-- Frontenden er laget etter et design fra Claude Design («Beredskapskart»). Claude gjorde designet om til Razor-sider og CSS
-- Claude skrev overgangen fra Entity Framework til Dapper (repositoriene, Identity-stores og `Schema.sql`), Docker Compose-oppsettet, lagring av kartposisjoner og siden for nye ressurser. Vi kjørte testene og gikk gjennom koden etterpå
+### Bruk i hver fase
 
-## Eksempel på prompt
-Verktøy: Claude
-Formål: Finne ut hvor mye av oppgaven som var ferdig.
-Resultat: Claude gikk gjennom det vi hadde og den viste at README var litt tynn og måtte jobbes videre med, så vi fikk en god struktur på hvordan vi kunne gjøre det
+| Fase | Hva KI gjorde | Hva vi gjorde selv |
+|---|---|---|
+| Idé og planlegging | Gikk gjennom kravene i oppgaven og laget en liste over hva som manglet (krav 3, 8, 9 og 12) | Valgte hva vi skulle prioritere |
+| Design | Claude Design laget designet «Beredskapskart». Claude gjorde det om til Razor-sider og CSS | Valgte design og sjekket det på PC og mobil |
+| Koding | Skrev overgangen fra Entity Framework til Dapper (repositoriene, Identity-stores og `Schema.sql`), Docker Compose-oppsettet, lagring av kartposisjoner, og legge til / endre / slette ressurser med eierskap | Kjørte koden, gikk gjennom den og forklarte den med egne ord før den ble lagt inn |
+| Testing | Skrev enhetstester og system- og sikkerhetstesten, og malen for brukervennlighetstesten | Kjørte testene og gjennomførte brukervennlighetstesten |
+| Feilsøking | Fant årsaken til feil, f.eks. at containeren krasjet med kode 139 (for svakt admin-passord), at Visual Studio og terminalen brukte hver sin database (ulikt prosjektnavn i Compose) og at kartet ble smalt (Leaflet måtte få beskjed om ny størrelse) | Beskrev problemet og testet løsningen |
+| Dokumentasjon | Hjalp med struktur og innhold i README | Skrev om og fylte inn det som gjelder gruppen |
 
+### Eksempler på prompts
+
+| Prompt (forkortet) | Formål | Resultat |
+|---|---|---|
+| «Kan du hjelpe meg med å forklare meg alt i denne mappen og teknologier og hvordan ting er satt sammen» | Forstå prosjektet | Gjennomgang av lagene (controller, viewmodel, repository, database) og Docker |
+| «Kan du med identity framework legge til login, brukere og roller og lagre dette i mariadb» | Innlogging og roller | Identity med rollene Admin og Bruker, lagret i MariaDB |
+| «Kan vi bytte til dapper istedenfor EF» | Skrive SQL-en selv | Repositorier og Identity-stores med Dapper og `Schema.sql` |
+| «Container exited unexpectedly with exit code 139» | Feilsøking | Fant at admin-passordet manglet spesialtegn. Appen logger nå en feilmelding i stedet for å krasje |
+| «Is it possible to fully switch to a docker compose instead of aspire?» | Enklere drift | Aspire byttet ut med `docker-compose.yml` |
+| «Kan du sjekke gjennom disse kravene» (lenke til oppgaven) | Se hva som manglet | Liste over krav som var oppfylt, delvis oppfylt og manglet |
+| *TODO: legg til prompts fra de andre i gruppen* | | |
 
 ### Refleksjon
 - Hva fungerte godt med KI: Når vi satt fast med problemer var det et bra verktøy for å forstå problemet og å hjelpe oss med problemet
-- Hva fungerte dårlig eller måtte rettes: Når et problem oppsto så var vi litt kjappe til å bare få hjelp av Claude
-- Hvordan vi kontrollerte at KI-generert kode var riktig: Vi testet koden og gikk gjennom den
+- Hva fungerte dårlig eller måtte rettes: Når et problem oppsto så var vi litt kjappe til å bare få hjelp av Claude. Testene som KI skrev fant også feil i testene selv (f.eks. at Razor gjør «å» om til `&#xE5;`), så resultatet måtte alltid sjekkes
+- Hvordan vi kontrollerte at KI-generert kode var riktig: Vi kjørte enhetstestene og system- og sikkerhetstesten, testet manuelt i nettleseren og gikk gjennom koden
 - Hva vi ville gjort annerledes: Vi ble generelt ganske fornøyd med vår prossess med oppgaven
+- *TODO (gruppen): Hva lærte vi selv, og hva ville vi ikke klart uten KI?*

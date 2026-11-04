@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
+using Heimevernet.Web.Authorization;
 using Heimevernet.Web.DataAccess;
 using Heimevernet.Web.Models.ViewModels.Resource;
 
@@ -37,7 +38,9 @@ namespace Heimevernet.Web.Controllers
                 Address = resource.Address,
                 City = resource.City,
                 ZipCode = resource.ZipCode,
-                OwnerTelephoneNumber = resource.OwnerTelephoneNumber
+                OwnerTelephoneNumber = resource.OwnerTelephoneNumber,
+                CreatedBy = resource.CreatedBy,
+                CanModify = ResourcePermissions.CanModify(User, resource) // Viser Endre/Slett bare for eier og admin.
             };
 
             return View(viewModel);

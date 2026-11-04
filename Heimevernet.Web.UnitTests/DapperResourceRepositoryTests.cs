@@ -48,6 +48,33 @@ public class DapperResourceRepositoryTests
     }
 
     [Fact]
+    public void UpdateAndDelete_ChangeTheRowButKeepTheOwner()
+    {
+        using var database = new SqliteTestDatabase();
+        var repository = new DapperResourceRepository(database);
+        var id = repository.Add(new Resource { Name = "Vannpost", Description = "Tankbil", Type = "Vann", CreatedBy = "ola@test.no" });
+
+        var updated = repository.Update(new Resource
+        {
+            Id = id, Name = "Vannpost Kampen", Description = "Tankbil, ta med kanner", Type = "Vann", City = "Oslo",
+            CreatedBy = "someone-else@test.no" // Must be ignored: Update never changes the owner.
+        });
+        var afterUpdate = repository.GetById(id);
+        var deleted = repository.Delete(id);
+        var deletedAgain = repository.Delete(id);
+
+        Assert.True(updated);
+        Assert.NotNull(afterUpdate);
+        Assert.Equal("Vannpost Kampen", afterUpdate.Name);
+        Assert.Equal("Oslo", afterUpdate.City);
+        Assert.Equal("ola@test.no", afterUpdate.CreatedBy);
+        Assert.True(deleted);
+        Assert.False(deletedAgain);
+        Assert.Null(repository.GetById(id));
+        Assert.False(repository.Update(new Resource { Id = 999, Name = "x", Description = "x", Type = "x" }));
+    }
+
+    [Fact]
     public void Add_SavesAllFieldsAndReturnsNewId()
     {
         using var database = new SqliteTestDatabase();
@@ -56,7 +83,8 @@ public class DapperResourceRepositoryTests
         var id = repository.Add(new Resource
         {
             Name = "Aggregat", Description = "Strømaggregat 5 kW", Type = "Utstyr",
-            Address = "Storgata 1", City = "Lillesand", ZipCode = "4790", OwnerTelephoneNumber = "12345678"
+            Address = "Storgata 1", City = "Lillesand", ZipCode = "4790", OwnerTelephoneNumber = "12345678",
+            CreatedBy = "ola@test.no"
         });
 
         var saved = repository.GetById(id);
@@ -66,5 +94,6 @@ public class DapperResourceRepositoryTests
         Assert.Equal("Lillesand", saved.City);
         Assert.Equal("4790", saved.ZipCode);
         Assert.Equal("12345678", saved.OwnerTelephoneNumber);
+        Assert.Equal("ola@test.no", saved.CreatedBy);
     }
 }

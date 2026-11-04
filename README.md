@@ -2,7 +2,7 @@
 
 # KriseKlar
 
-KriseKlar er en ASP.NET Core MVC-applikasjon som kjører i Docker. Brukere logger inn, registrerer posisjoner i et kart og ser beredskapsressurser fra databasen. Innloggede brukere kan legge til ressurser og endre eller slette sine egne. Admin kan endre og slette alle ressurser og styre hvem som har hvilke roller.
+KriseKlar er en ASP.NET Core MVC-applikasjon som kjører i Docker. Hele appen krever innlogging. Brukere logger inn, registrerer posisjoner i et kart og ser beredskapsressurser fra databasen. Innloggede brukere kan legge til ressurser og endre eller slette sine egne. Admin kan endre og slette alle ressurser og styre hvem som har hvilke roller.
 
 **Gruppe:** 8 · **Emne:** IS-202 · **Medlemmer:** Darin, Marius, Lars, Mahan, Yasin
 
@@ -71,11 +71,12 @@ Appen bruker ASP.NET Core Identity. Brukere og roller lagres i MariaDB (tabellen
 
 | Side | Krever |
 |---|---|
-| Forside, Ressurser, ressursdetaljer, Registrerte posisjoner | Ingenting |
-| Korriger kart (registrere posisjon) | Innlogging |
-| Ny ressurs (`/ResourceHandler/Create`) | Innlogging |
+| Logg inn, Registrer deg, feilsiden | Ingenting |
+| Alle andre sider: forside med kart, Ressurser, ressursdetaljer, Registrerte posisjoner, Korriger kart | Innlogging |
 | Endre og slette ressurs (`/ResourceHandler/Edit/{id}`, `/ResourceHandler/Delete/{id}`) | Innlogging, og at du la inn ressursen selv, eller rollen `Admin` |
 | Brukere (`/UserAdmin`) | Rollen `Admin` |
+
+Den som ikke er logget inn, sendes automatisk til innloggingssiden og kommer tilbake til siden de prøvde å åpne etter innlogging. Dette styres av en `FallbackPolicy` i `Program.cs`: alle sider krever innlogging hvis de ikke har `[AllowAnonymous]`. Da kan vi ikke glemme å beskytte en ny side.
 
 Hvem som har lagt inn en ressurs lagres i kolonnen `Resources.CreatedBy`. Regelen for hvem som får endre og slette står på ett sted, i `Authorization/ResourcePermissions.cs`, og brukes både av controlleren (som stopper forespørselen) og av viewet (som skjuler knappene). Ressursene fra eksempeldataene har ingen eier, så bare admin kan endre dem.
 
@@ -173,7 +174,7 @@ Testscenarioer:
 | Område | Hva testes |
 |---|---|
 | Systemtest | Sidene åpnes, ressurser fra databasen vises, registrering og innlogging, legge til / endre / slette ressurs (krav 3), validering av skjema, innmelding av posisjon, data overlever omstart av containeren |
-| Tilgangskontroll | Utlogget sendes til innlogging, vanlig bruker får «Ingen tilgang» på admin-sider, Kari får ikke endre eller slette Olas ressurs, verken via knappene eller ved å sende POST direkte |
+| Tilgangskontroll | Utlogget sendes til innlogging fra alle sider (også forsiden og ressurslisten), mens innloggingssiden, CSS og logo er åpne, vanlig bruker får «Ingen tilgang» på admin-sider, Kari får ikke endre eller slette Olas ressurs, verken via knappene eller ved å sende POST direkte |
 | CSRF | POST uten anti-forgery-token gir 400 Bad Request |
 | XSS | `<script>` i en beskrivelse vises som tekst og kjøres ikke |
 | SQL-injeksjon | `'); DROP TABLE Resources; --` lagres som vanlig tekst, tabellen finnes fortsatt |
@@ -194,9 +195,9 @@ Malen ligger i [`docs/brukervennlighetstest.md`](docs/brukervennlighetstest.md):
 | # | Test | Forventet resultat | Resultat |
 | --- | --- | --- | --- |
 | 1 | Kjør `docker compose up --build` og sjekk Docker Desktop | Containerne heimevernet-web og mariadb kjører | Bestått |
-| 2 | Åpne Ressurser | En liste med ressurser fra databasen vises | Bestått |
+| 2 | Logg inn og åpne Ressurser | En liste med ressurser fra databasen vises | Bestått |
 | 3 | Klikk på en ressurs | Detaljsiden for ressursen vises | Bestått |
-| 4 | Åpne Korriger kart uten å være logget inn | Sendes til innloggingssiden | Bestått |
+| 4 | Åpne en hvilken som helst side uten å være logget inn | Sendes til innloggingssiden. Etter innlogging kommer man tilbake til siden | Bestått |
 | 5 | Registrer en ny bruker | Logges inn automatisk med rollen Bruker | Bestått |
 | 6 | Korriger kart: klikk i kartet, skriv beskrivelse og lagre | Oversikten viser posisjonen i tabellen og på kartet | Bestått |
 | 7 | Lagre uten å klikke i kartet | Feilmelding, ingenting lagres | Bestått |
@@ -211,19 +212,19 @@ Malen ligger i [`docs/brukervennlighetstest.md`](docs/brukervennlighetstest.md):
 
 ### Testresultater
 
-Kjørt 3. november 2026 mot appen i Docker (`docker compose up --build -d`).
+Kjørt 4. november 2026 mot appen i Docker (`docker compose up --build -d`).
 
 | Test | Antall | Bestått |
 |---|---|---|
-| Enhetstester (`dotnet test`) | 61 | 61 ✅ |
-| Systemtest (`tests/system/system-og-sikkerhetstest.ps1`) | 29 | 29 ✅ |
-| Sikkerhetstest (samme skript) | 26 | 26 ✅ |
+| Enhetstester (`dotnet test`) | 62 | 62 ✅ |
+| Systemtest (`tests/system/system-og-sikkerhetstest.ps1`) | 28 | 28 ✅ |
+| Sikkerhetstest (samme skript) | 33 | 33 ✅ |
 | Manuelle tester (tabellen over) | 15 | 15 ✅ |
 | Brukervennlighetstest | *TODO* | *TODO* |
 
 Hele listen med hver enkelt sjekk står i [`tests/system/resultat.md`](tests/system/resultat.md).
 
-**Funn underveis:** Første kjøring ga 54 av 55. Sjekken for låsing av konto feilet, men databasen viste at kontoen faktisk ble låst (`LockoutEnd` var satt). Feilen var i testen: Razor HTML-koder «å» i feilmeldingen som `&#xE5;`, så teksten «låst» ble ikke funnet. Testen ble rettet til å se etter «Kontoen er midlertidig».
+**Funn underveis:** Første kjøring (3. november) ga 54 av 55. Sjekken for låsing av konto feilet, men databasen viste at kontoen faktisk ble låst (`LockoutEnd` var satt). Feilen var i testen: Razor HTML-koder «å» i feilmeldingen som `&#xE5;`, så teksten «låst» ble ikke funnet. Testen ble rettet til å se etter «Kontoen er midlertidig».
 
 ---
 
@@ -236,7 +237,7 @@ Tiltakene under er testet automatisk i `tests/system/system-og-sikkerhetstest.ps
 | Passord på avveie | Passord lagres aldri i klartekst. Identity lagrer en saltet hash (PBKDF2). Krav: minst 8 tegn, stor og liten bokstav, tall og spesialtegn | `Program.cs` (`AddIdentity`), `DataAccess/Identity/DapperUserStore.cs` |
 | Gjetting av passord (brute force) | Kontoen låses i 5 minutter etter 5 feil passord | `Program.cs` (`Lockout`), `Controllers/AccountController.cs` (`lockoutOnFailure: true`) |
 | Finne ut hvilke e-poster som finnes | Samme feilmelding for ukjent e-post og feil passord | `Controllers/AccountController.cs` |
-| Uautorisert tilgang | `[Authorize]` på sider som krever innlogging og `[Authorize(Roles = Admin)]` på admin-sider. For endring og sletting sjekker controlleren i tillegg at brukeren eier ressursen eller er admin, både på GET og POST, så det hjelper ikke å skrive adressen selv eller sende en POST direkte | `Controllers/ResourceHandlerController.cs`, `Authorization/ResourcePermissions.cs`, `Controllers/UserAdminController.cs` |
+| Uautorisert tilgang | Alle sider krever innlogging (`FallbackPolicy`), bortsett fra de som er merket `[AllowAnonymous]` (logg inn, registrer, feilside). `[Authorize]` på sider som krever innlogging og `[Authorize(Roles = Admin)]` på admin-sider. For endring og sletting sjekker controlleren i tillegg at brukeren eier ressursen eller er admin, både på GET og POST, så det hjelper ikke å skrive adressen selv eller sende en POST direkte | `Program.cs`, `Controllers/ResourceHandlerController.cs`, `Authorization/ResourcePermissions.cs`, `Controllers/UserAdminController.cs` |
 | Overposting (sende med felt man ikke skal kunne endre) | `CreatedBy` og `CanModify` har `[BindNever]`, så de kan ikke sendes inn fra et skjema. Eieren settes alltid fra innlogget bruker på serveren, og `UPDATE`-setningen endrer aldri `CreatedBy` | `Models/ViewModels/Resource/ResourceViewModel.cs`, `DataAccess/DapperResourceRepository.cs` |
 | SQL-injeksjon | All SQL bruker parametere (`@Name`) via Dapper. Brukerens tekst settes aldri rett inn i SQL-strengen | `DataAccess/` |
 | Cross-site scripting (XSS) | Razor HTML-koder alt som skrives ut (`@Model.Name`). JavaScript bruker `textContent`, ikke `innerHTML`, for tekst fra brukere (kartpopuper) | `Views/`, `wwwroot/js/site.js` |

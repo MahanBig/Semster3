@@ -77,18 +77,17 @@ $anon = New-Client; $admin = New-Client; $olaC = New-Client; $kariC = New-Client
 try {
     # ======================= SYSTEMTEST =======================
     $group = 'System'
-    $r = Req '/' $anon; Check 'Forsiden (kart) åpnes' ($r.StatusCode -eq 200 -and $r.Content -match 'id="map"') "$($r.StatusCode)"
-    $r = Req '/ResourceHandler' $anon
-    $ids = [regex]::Matches($r.Content, 'href="/Resource/Index/(\d+)"') | ForEach-Object { $_.Groups[1].Value }
-    Check 'Ressurslisten viser ressurser fra databasen' ($r.StatusCode -eq 200 -and $ids.Count -ge 3) "$($ids.Count) ressurser"
-    Check 'Utlogget ser "Logg inn for å legge til" i stedet for "Ny ressurs"' ($r.Content -match 'Logg inn for å legge til') ''
-    $r = Req "/Resource/Index/$($ids[0])" $anon; Check 'Ressurssiden åpnes' ($r.StatusCode -eq 200) "$($r.StatusCode)"
-    Check 'Utlogget ser ikke Endre/Slett' ($r.Content -notmatch '/ResourceHandler/Edit/') ''
-    $r = Req '/Resource/Index/999999' $anon; Check 'Ukjent ressurs gir 404' ($r.StatusCode -eq 404) "$($r.StatusCode)"
-
     $r = Register $olaC $ola $password; Check 'Ny bruker kan registrere seg' ($r.StatusCode -eq 302) "$($r.StatusCode)"
     $r = Req '/' $olaC; Check 'Ny bruker er logget inn etter registrering' ($r.Content -match ('Logget inn som (</span>)?' + [regex]::Escape($ola))) ''
     $r = Register $kariC $kari $password; Check 'Bruker nr. 2 kan registrere seg' ($r.StatusCode -eq 302) "$($r.StatusCode)"
+    $r = Req '/' $olaC; Check 'Forsiden (kart) åpnes for innlogget bruker' ($r.StatusCode -eq 200 -and $r.Content -match 'id="map"') "$($r.StatusCode)"
+    $r = Req '/ResourceHandler' $olaC
+    $ids = [regex]::Matches($r.Content, 'href="/Resource/Index/(\d+)"') | ForEach-Object { $_.Groups[1].Value }
+    Check 'Ressurslisten viser ressurser fra databasen' ($r.StatusCode -eq 200 -and $ids.Count -ge 3) "$($ids.Count) ressurser"
+    $r = Req "/Resource/Index/$($ids[0])" $olaC; Check 'Ressurssiden åpnes' ($r.StatusCode -eq 200) "$($r.StatusCode)"
+    Check 'Ressurs uten eier: vanlig bruker ser ikke Endre/Slett' ($r.Content -notmatch '/ResourceHandler/Edit/') ''
+    $r = Req '/Resource/Index/999999' $olaC; Check 'Ukjent ressurs gir 404' ($r.StatusCode -eq 404) "$($r.StatusCode)"
+
 
     # Krav 3: legge til, endre, slette
     $name = "Systemtest aggregat $run"
@@ -118,18 +117,25 @@ try {
     $r = Req '/Home/CorrectMap' $olaC; Check 'Innlogget bruker kan åpne "Meld inn posisjon"' ($r.StatusCode -eq 200) "$($r.StatusCode)"
     $pos = "Systemtest posisjon $run"
     $r2 = Req '/Home/CorrectMap' $olaC 'Post' @{ Latitude = '58.2475'; Longitude = '8.3778'; Description = $pos; __RequestVerificationToken = (Token $r) }
-    $r = Req '/Home/CorrectionOverview' $anon
+    $r = Req '/Home/CorrectionOverview' $kariC
     Check 'Innmeldt posisjon lagres og vises i oversikten' ($r2.StatusCode -eq 302 -and $r.Content -match [regex]::Escape($pos)) ''
 
     # ======================= SIKKERHETSTEST =======================
     $group = 'Sikkerhet'
-    $r = Req '/' $anon
+    $r = Req '/Account/Login' $anon
     Check 'Header X-Content-Type-Options: nosniff' ($r.Headers['X-Content-Type-Options'] -eq 'nosniff') "$($r.Headers['X-Content-Type-Options'])"
     Check 'Header X-Frame-Options: DENY (clickjacking)' ($r.Headers['X-Frame-Options'] -eq 'DENY') "$($r.Headers['X-Frame-Options'])"
     Check 'Header Referrer-Policy' ($r.Headers['Referrer-Policy'] -eq 'strict-origin-when-cross-origin') "$($r.Headers['Referrer-Policy'])"
     Check 'Header Permissions-Policy' ($r.Headers['Permissions-Policy'] -match 'camera=\(\)') "$($r.Headers['Permissions-Policy'])"
 
     # Tilgangskontroll
+    $r = Req '/' $anon; Check 'Utlogget: forsiden sender til innlogging' (NeedsLogin $r) (Loc $r)
+    $r = Req '/ResourceHandler' $anon; Check 'Utlogget: ressurslisten sender til innlogging' (NeedsLogin $r) (Loc $r)
+    $r = Req "/Resource/Index/$newId" $anon; Check 'Utlogget: ressurssiden sender til innlogging' (NeedsLogin $r) (Loc $r)
+    $r = Req '/Home/CorrectionOverview' $anon; Check 'Utlogget: oversikten over posisjoner sender til innlogging' (NeedsLogin $r) (Loc $r)
+    $r = Req '/Account/Login' $anon; Check 'Innloggingssiden er åpen og har ikke "Fortsett uten å logge inn"' ($r.StatusCode -eq 200 -and $r.Content -notmatch 'Fortsett uten') "$($r.StatusCode)"
+    $r = Req '/Account/Register' $anon; Check 'Registreringssiden er åpen' ($r.StatusCode -eq 200) "$($r.StatusCode)"
+    $r = Req '/img/kriseklar.svg' $anon; Check 'Logo og CSS lastes uten innlogging (innloggingssiden ser riktig ut)' ($r.StatusCode -eq 200 -and (Req '/css/site.css' $anon).StatusCode -eq 200) "$($r.StatusCode)"
     $r = Req '/ResourceHandler/Create' $anon; Check 'Utlogget: "Ny ressurs" krever innlogging' (NeedsLogin $r) (Loc $r)
     $r = Req "/ResourceHandler/Edit/$newId" $anon; Check 'Utlogget: Endre krever innlogging' (NeedsLogin $r) (Loc $r)
     $r = Req '/Home/CorrectMap' $anon; Check 'Utlogget: "Meld inn posisjon" krever innlogging' (NeedsLogin $r) (Loc $r)
@@ -142,7 +148,7 @@ try {
     Check 'Annen bruker kan ikke endre ved å sende POST direkte' (Denied $r) (Loc $r)
     $r = Req "/ResourceHandler/Delete/$newId" $kariC 'Post' @{ __RequestVerificationToken = $kariToken }
     Check 'Annen bruker kan ikke slette ved å sende POST direkte' (Denied $r) (Loc $r)
-    $r = Req "/Resource/Index/$newId" $anon; Check 'Ressursen er uendret etter angrepene' ($r.StatusCode -eq 200 -and $r.Content -notmatch 'Hacket') ''
+    $r = Req "/Resource/Index/$newId" $kariC; Check 'Ressursen er uendret etter angrepene' ($r.StatusCode -eq 200 -and $r.Content -notmatch 'Hacket') ''
 
     # CSRF: POST uten anti-forgery-token skal stoppes
     $r = Req "/ResourceHandler/Delete/$newId" $olaC 'Post' @{}; Check 'CSRF: Slett uten token blir blokkert (400)' ($r.StatusCode -eq 400) "$($r.StatusCode)"
@@ -154,14 +160,14 @@ try {
     $r = Req '/ResourceHandler/Create' $olaC
     $r2 = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = "XSS-test $run"; Description = $xss; Type = 'Utstyr'; __RequestVerificationToken = (Token $r) }
     $xssId = if ((Loc $r2) -match '/Resource/Index/(\d+)') { $Matches[1] } else { 0 }
-    $r = Req "/Resource/Index/$xssId" $anon
+    $r = Req "/Resource/Index/$xssId" $kariC
     Check 'XSS: script i beskrivelse blir vist som tekst (HTML-kodet)' ($r.Content -notmatch [regex]::Escape($xss) -and $r.Content -match '&lt;script&gt;') ''
 
     # SQL-injeksjon: skal behandles som vanlig tekst
     $sqli = "x'); DROP TABLE Resources; --"
     $r = Req '/ResourceHandler/Create' $olaC
     $r2 = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = "SQLi-test $run"; Description = $sqli; Type = 'Utstyr'; __RequestVerificationToken = (Token $r) }
-    $r = Req '/ResourceHandler' $anon
+    $r = Req '/ResourceHandler' $kariC
     Check 'SQL-injeksjon: teksten lagres som tekst, tabellen finnes fortsatt' ($r2.StatusCode -eq 302 -and $r.StatusCode -eq 200 -and $r.Content -match "SQLi-test $run") ''
 
     # Åpen redirect: ReturnUrl til et annet nettsted skal ignoreres
@@ -188,24 +194,24 @@ try {
     $group = 'System'
     $r = Req "/ResourceHandler/Delete/$newId" $olaC; Check 'Eier får bekreftelsesside før sletting' ($r.StatusCode -eq 200 -and $r.Content -match 'Slette ressursen') "$($r.StatusCode)"
     $r2 = Req "/ResourceHandler/Delete/$newId" $olaC 'Post' @{ __RequestVerificationToken = (Token $r) }
-    $r = Req "/Resource/Index/$newId" $anon
+    $r = Req "/Resource/Index/$newId" $kariC
     Check 'Eier sletter ressursen, den er borte' ($r2.StatusCode -eq 302 -and $r.StatusCode -eq 404) "$($r2.StatusCode), deretter $($r.StatusCode)"
     foreach ($id in @($xssId)) {
         $r = Req "/ResourceHandler/Delete/$id" $admin
         Req "/ResourceHandler/Delete/$id" $admin 'Post' @{ __RequestVerificationToken = (Token $r) } | Out-Null
     }
-    $r = Req "/Resource/Index/$xssId" $anon; Check 'Admin kan slette andres ressurs' ($r.StatusCode -eq 404) "$($r.StatusCode)"
+    $r = Req "/Resource/Index/$xssId" $kariC; Check 'Admin kan slette andres ressurs' ($r.StatusCode -eq 404) "$($r.StatusCode)"
 
     $r = Req '/' $olaC
     $r = Req '/Account/Logout' $olaC 'Post' @{ __RequestVerificationToken = (Token $r) }
     $r = Req '/ResourceHandler/Create' $olaC; Check 'Etter utlogging kreves innlogging igjen' (NeedsLogin $r) (Loc $r)
 
     if (-not $SkipRestart) {
-        $countBefore = ([regex]::Matches((Req '/ResourceHandler' $anon).Content, 'href="/Resource/Index/(\d+)"')).Count
+        $countBefore = ([regex]::Matches((Req '/ResourceHandler' $kariC).Content, 'href="/Resource/Index/(\d+)"')).Count
         Push-Location $repoRoot; docker compose restart heimevernet-web *> $null; Pop-Location
         $ready = $false
-        for ($i = 0; $i -lt 30 -and -not $ready; $i++) { Start-Sleep 2; try { $ready = (Req '/' $anon).StatusCode -eq 200 } catch { } }
-        $countAfter = ([regex]::Matches((Req '/ResourceHandler' $anon).Content, 'href="/Resource/Index/(\d+)"')).Count
+        for ($i = 0; $i -lt 30 -and -not $ready; $i++) { Start-Sleep 2; try { $ready = (Req '/' $kariC).StatusCode -eq 200 } catch { } }
+        $countAfter = ([regex]::Matches((Req '/ResourceHandler' $kariC).Content, 'href="/Resource/Index/(\d+)"')).Count
         Check 'Etter omstart: data er beholdt og ikke duplisert' ($ready -and $countAfter -eq $countBefore) "$countBefore før, $countAfter etter"
         $r = Req '/UserAdmin' $admin; Check 'Etter omstart: admin er fortsatt logget inn' ($r.StatusCode -eq 200) "$($r.StatusCode)"
     }

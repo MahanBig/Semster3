@@ -46,6 +46,16 @@ if (!string.IsNullOrWhiteSpace(keysPath))
         .SetApplicationName("Heimevernet");
 }
 
+// Hele appen krever innlogging. "FallbackPolicy" gjelder alle sider som ikke har en egen regel,
+// så vi slipper å huske [Authorize] på hver controller. Den som ikke er logget inn, sendes til LoginPath.
+// Sidene som MÅ være åpne (logg inn, registrer, feilside) har [AllowAnonymous].
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
 // Innloggingen huskes i en cookie. Her sier vi hvor brukeren sendes når det trengs.
 builder.Services.ConfigureApplicationCookie(options =>
 {
@@ -99,7 +109,7 @@ app.UseRouting(); // Rekkefølgen hver forespørsel går gjennom.
 app.UseAuthentication(); // Leser innloggings-cookien og finner ut HVEM brukeren er.
 app.UseAuthorization();  // Sjekker om brukeren har LOV til å se siden ([Authorize]).
 
-app.MapStaticAssets();
+app.MapStaticAssets().AllowAnonymous(); // CSS, JS og logo må lastes på innloggingssiden også.
 
 app.MapControllerRoute(
     name: "default",

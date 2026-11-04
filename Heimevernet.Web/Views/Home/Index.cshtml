@@ -6,7 +6,7 @@
 
 <div class="map-page" data-resource-filter>
     <div class="map-area">
-        <div id="map" class="map-canvas" role="application" aria-label="Kart med posisjoner meldt inn av brukere"></div>
+        <div id="map" class="map-canvas" role="application" aria-label="Kart over Norge"></div>
         <div class="map-overlay">
             <label class="search-pill">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
@@ -38,48 +38,15 @@
         }
 
         <a asp-controller="ResourceHandler" asp-action="Index" class="fw-bold">Vis alle ressurser</a>
-        <p class="map-note">
-            Kartet viser posisjoner som brukere har meldt inn (@Model.Positions.Count stk).
-            <a asp-action="CorrectMap">Meld inn en posisjon</a>
-        </p>
     </aside>
 </div>
 
 @section Scripts {
     <script>
         (function () {
-            var map = L.map('map', { zoomControl: false });
+            var map = L.map('map', { zoomControl: false }).setView([64.5, 12], 5); // Norge
             L.control.zoom({ position: 'bottomright' }).addTo(map);
             beredskapTiles(map);
-
-            // Json.Serialize gjør C#-listen om til JavaScript (egenskaper med liten forbokstav).
-            var positions = @Json.Serialize(Model.Positions);
-            var bounds = [];
-
-            positions.forEach(function (position) {
-                var marker = L.marker([position.latitude, position.longitude], {
-                    icon: beredskapMarker(),
-                    title: position.description, // Leses opp av skjermlesere og vises ved hover.
-                    keyboard: true
-                }).addTo(map);
-
-                // textContent hindrer at tekst fra brukere tolkes som HTML (XSS).
-                var popup = document.createElement('div');
-                var title = document.createElement('strong');
-                title.textContent = position.description;
-                var meta = document.createElement('div');
-                meta.textContent = 'Meldt inn av ' + (position.createdBy || 'ukjent');
-                popup.appendChild(title);
-                popup.appendChild(meta);
-                marker.bindPopup(popup);
-                bounds.push([position.latitude, position.longitude]);
-            });
-
-            if (bounds.length > 0) {
-                map.fitBounds(bounds, { maxZoom: 13, padding: [60, 60] });
-            } else {
-                map.setView([64.5, 12], 5); // Norge
-            }
         })();
     </script>
 }

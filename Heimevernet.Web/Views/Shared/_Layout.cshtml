@@ -57,18 +57,6 @@
                             Behov
                         </a>
                     </li>
-                    <li>
-                        <a asp-controller="Home" asp-action="CorrectMap" aria-current="@Current(["Home"], "CorrectMap")">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"></path><path d="M12 7v6M9 10h6"></path></svg>
-                            Meld inn posisjon
-                        </a>
-                    </li>
-                    <li>
-                        <a asp-controller="Home" asp-action="CorrectionOverview" aria-current="@Current(["Home"], "CorrectionOverview")">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg>
-                            Posisjoner
-                        </a>
-                    </li>
                     @if (User.IsInRole(AppRoles.Admin))
                     {
                         <li>

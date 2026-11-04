@@ -46,16 +46,7 @@
 
     document.querySelectorAll('[data-resource-filter]').forEach(initResourceFilter);
 
-    // Rund kartmarkør i designets stil. extraClass kan være f.eks. 'picked' (oransje).
-    window.beredskapMarker = function (extraClass) {
-        return L.divIcon({
-            className: 'map-marker' + (extraClass ? ' ' + extraClass : ''),
-            html: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>',
-            iconSize: [40, 40]
-        });
-    };
-
-    // Kartbakgrunn fra OpenStreetMap, brukt av alle kartene.
+    // Kartbakgrunn fra OpenStreetMap.
     // ResizeObserver ber Leaflet måle kartet på nytt når boksen endrer størrelse
     // (f.eks. når layouten er ferdig, skriften er lastet eller vinduet blir smalere).
     // Uten dette tegnes kartet bare i en del av boksen.

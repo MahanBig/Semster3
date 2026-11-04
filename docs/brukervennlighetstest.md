@@ -17,14 +17,13 @@ Si dette før dere starter: *"Det er løsningen vi tester, ikke deg. Du kan ikke
 
 | # | Oppgave (les opp for testpersonen) | Lykkes hvis … |
 |---|---|---|
-| 1 | Finn ut hvor nærmeste vannpost er på kartet. | Finner en ressurs av typen vann på kartet eller i listen. |
+| 1 | Finn ut hvor nærmeste vannpost er. | Finner en ressurs av typen vann i listen. |
 | 2 | Finn telefonnummeret til den som eier et aggregat. | Åpner ressurssiden og leser nummeret. |
 | 3 | Lag en ny bruker. | Er logget inn etter registrering. |
 | 4 | Legg inn en ny ressurs: "Vedovn til utlån" i ditt postnummer. | Ressursen vises i listen. |
 | 5 | Du oppdaget en skrivefeil – endre beskrivelsen på ressursen du la inn. | Endringen er lagret. |
 | 6 | Ressursen er ikke lenger tilgjengelig – fjern den. | Ressursen er borte fra listen. |
-| 7 | Meld inn en posisjon på kartet der det mangler noe. | Posisjonen vises i oversikten. |
-| 8 | Logg ut. | Er logget ut. |
+| 7 | Logg ut. | Er logget ut. |
 
 ## Resultater per oppgave
 
@@ -39,8 +38,7 @@ Skriv ✅ (klarte det uten hjelp), ⚠️ (klarte det med nøling/omveier) eller
 | 4 Legg inn ressurs | | | | | |
 | 5 Endre ressurs | | | | | |
 | 6 Slett ressurs | | | | | |
-| 7 Meld inn posisjon | | | | | |
-| 8 Logg ut | | | | | |
+| 7 Logg ut | | | | | |
 
 ## Spørreskjema (System Usability Scale, SUS)
 

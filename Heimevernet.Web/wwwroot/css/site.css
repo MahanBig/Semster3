@@ -368,7 +368,7 @@ fieldset legend { font-size: 18px; font-weight: 700; }
 .facts dt { font-weight: 400; font-size: 15px; color: var(--muted); }
 .facts dd { margin: 0; font-size: 15px; font-weight: 700; text-align: right; }
 
-/* Tabeller (brukere, posisjoner) */
+/* Tabeller */
 .table { --bs-table-bg: transparent; margin-bottom: 0; }
 .table caption { caption-side: top; color: var(--muted); }
 
@@ -391,30 +391,7 @@ fieldset legend { font-size: 18px; font-weight: 700; }
 .map-list h1 { font-size: 22px; margin: 0; }
 .list-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .list-head span { font-size: 15px; color: var(--muted); }
-.map-note { margin: 0; font-size: 14px; color: var(--muted); }
-
-.map-box {
-  position: relative; height: 320px; border-radius: 16px; overflow: hidden;
-  border: 1px solid var(--border-strong); background: var(--map-bg);
-}
-.map-box .map-hint {
-  position: absolute; right: 10px; top: 10px; z-index: 500;
-  padding: 4px 10px; border-radius: 10px; background: rgba(255, 255, 255, 0.92);
-  font-size: 14px; color: var(--text-2); pointer-events: none;
-}
-
-/* Markører på kartet (Leaflet divIcon) */
-.map-marker {
-  width: 40px !important; height: 40px !important;
-  margin-left: -20px !important; margin-top: -20px !important;
-  border-radius: 50%; border: 3px solid #FFFFFF; box-sizing: border-box;
-  background: var(--primary); color: #FFFFFF;
-  box-shadow: 0 2px 6px rgba(15, 27, 45, 0.35);
-  display: flex; align-items: center; justify-content: center;
-}
-.map-marker.picked { background: var(--alert); }
 .leaflet-container { font-family: var(--bs-body-font-family); }
-.leaflet-popup-content { font-size: 15px; }
 
 /* ---------- Innlogging (delt skjerm) ---------- */
 

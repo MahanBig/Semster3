@@ -7,7 +7,7 @@
 @* data-resource-filter: søket, kategoriknappene, listen og markørene på kartet henger sammen (site.js). *@
 <div class="map-page" data-resource-filter>
     <div class="map-area">
-        <div id="map" class="map-canvas" role="application" aria-label="Kart med ressurser. Klikk i kartet for å legge til en ressurs der."
+        <div id="map" class="map-canvas" role="application" aria-label="Kart med ressurser"
              data-create-url="@Url.Action("Create", "ResourceHandler")"></div>
         <div class="map-overlay">
             <label class="search-pill">
@@ -16,14 +16,14 @@
             </label>
             <partial name="_CategoryChips" />
         </div>
-        <p class="map-hint" id="map-hint">Trykk + eller klikk i kartet for å legge til en ressurs.</p>
+        <p class="map-hint" id="map-hint">Trykk + for å legge til en ressurs på kartet.</p>
 
-        @* Pluss-knappen: setter en pinne på kartet som brukeren drar dit ressursen er, og går så til skjemaet. *@
+        @* Pluss-knappen slår på "Legg til"-modus. Bare da setter et klikk i kartet en pinne. *@
         <button type="button" class="map-add-button" id="add-pin" aria-label="Legg til ressurs på kartet">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
         </button>
         <div class="place-bar" id="place-bar" role="status" hidden>
-            <span>Dra pinnen, eller klikk i kartet der ressursen er.</span>
+            <span id="place-text">Legg til-modus: klikk i kartet der ressursen er.</span>
             <div class="d-flex flex-wrap gap-2">
                 <a class="btn-pill btn-pill-small" id="place-confirm" href="#">Registrer ressurs her</a>
                 <button type="button" class="btn-pill btn-pill-outline btn-pill-small" id="place-cancel">Avbryt</button>
@@ -70,34 +70,45 @@
             beredskapTiles(map);
             kriseklarResourceMap(map, document.querySelector('[data-resource-filter]'));
 
-            // ---------- Pluss-knappen: legg en pinne på kartet ----------
+            // ---------- "Legg til"-modus ----------
+            // Et klikk i kartet gjør ingenting før brukeren har trykket +. Da unngår vi at noen
+            // legger til en ressurs ved et uhell, eller på feil sted fordi de egentlig ville flytte kartet.
+            // I modusen setter første klikk pinnen. Den kan dras eller flyttes med et nytt klikk.
             var addButton = document.getElementById('add-pin');
             var placeBar = document.getElementById('place-bar');
+            var placeText = document.getElementById('place-text');
             var confirm = document.getElementById('place-confirm');
             var hint = document.getElementById('map-hint');
+            var placing = false;
             var pin = null;
 
-            // Lenken til skjemaet får alltid punktet der pinnen står nå.
             function updateLink() {
                 var point = pin.getLatLng();
                 confirm.href = mapElement.dataset.createUrl + '?lat=' + point.lat.toFixed(6) + '&lng=' + point.lng.toFixed(6);
+                confirm.classList.remove('is-disabled');
+                confirm.removeAttribute('aria-disabled');
+                confirm.removeAttribute('tabindex');
+                placeText.textContent = 'Står pinnen riktig? Dra den, eller klikk et annet sted for å flytte den.';
             }
 
             function startPlacing() {
+                placing = true;
                 map.closePopup();
-                pin = L.marker(map.getCenter(), {
-                    icon: kriseklarMarkerIcon('#C2410C'), draggable: true, keyboard: true, title: 'Ny ressurs'
-                }).addTo(map);
-                pin.on('drag dragend', updateLink);
-                updateLink();
+                placeText.textContent = 'Legg til-modus: klikk i kartet der ressursen er.';
+                // Lenken kan ikke brukes før pinnen er satt.
+                confirm.removeAttribute('href');
+                confirm.classList.add('is-disabled');
+                confirm.setAttribute('aria-disabled', 'true');
+                confirm.setAttribute('tabindex', '-1');
                 placeBar.hidden = false;
                 addButton.hidden = true;
                 hint.hidden = true;
                 mapElement.classList.add('is-placing');
-                confirm.focus();
+                document.getElementById('place-cancel').focus();
             }
 
             function stopPlacing() {
+                placing = false;
                 if (pin) { map.removeLayer(pin); pin = null; }
                 placeBar.hidden = true;
                 addButton.hidden = false;
@@ -109,27 +120,20 @@
             addButton.addEventListener('click', startPlacing);
             document.getElementById('place-cancel').addEventListener('click', stopPlacing);
             document.addEventListener('keydown', function (event) {
-                if (event.key === 'Escape' && pin) { stopPlacing(); }
+                if (event.key === 'Escape' && placing) { stopPlacing(); }
             });
 
-            // Klikk i kartet: flytt pinnen hvis den er satt ut. Ellers: tilby å legge til en ressurs akkurat der.
             map.on('click', function (event) {
-                if (pin) {
+                if (!placing) { return; } // Utenfor modusen: et klikk i kartet legger ikke til noe.
+                if (!pin) {
+                    pin = L.marker(event.latlng, {
+                        icon: kriseklarMarkerIcon('#C2410C'), draggable: true, keyboard: true, title: 'Ny ressurs'
+                    }).addTo(map);
+                    pin.on('drag dragend', updateLink);
+                } else {
                     pin.setLatLng(event.latlng);
-                    updateLink();
-                    return;
                 }
-                var lat = event.latlng.lat.toFixed(6);
-                var lng = event.latlng.lng.toFixed(6);
-                var popup = document.createElement('div');
-                popup.className = 'kk-popup';
-                var title = document.createElement('strong');
-                title.textContent = 'Vet du om noe her?';
-                var link = document.createElement('a');
-                link.href = mapElement.dataset.createUrl + '?lat=' + lat + '&lng=' + lng;
-                link.textContent = 'Legg til ressurs her';
-                popup.append(title, link);
-                L.popup().setLatLng(event.latlng).setContent(popup).openOn(map);
+                updateLink();
             });
         })();
     </script>

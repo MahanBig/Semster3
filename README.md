@@ -140,8 +140,8 @@ Controllerne kjenner bare grensesnittene (`IResourceRepository`, `INeedRepositor
 
 **Kart, avstand og filtre:**
 - Hver ressurs kan ha et punkt på kartet. Det lagres i `Locations.Latitude` og `Locations.Longitude` sammen med adressen (`DataAccess/LocationWriter.cs`).
-- Punktet velges i et lite kart i skjemaet (klikk, dra markøren eller «Bruk min posisjon»). Klikker man i kartet på forsiden, kommer man til «Ny ressurs» med punktet ferdig valgt (`/ResourceHandler/Create?lat=…&lng=…`).
-- Forsiden viser ressursene som markører i kategorifargen og listen «Nærmest deg», sortert etter avstand.
+- Punktet velges i et lite kart i skjemaet (klikk, dra markøren eller «Bruk min posisjon»). På forsiden slår +-knappen på «Legg til»-modus. Bare da setter et klikk i kartet en pinne, så ingen legger til en ressurs på feil sted ved et uhell. «Registrer ressurs her» går til «Ny ressurs» med punktet ferdig valgt (`/ResourceHandler/Create?lat=…&lng=…`). «Avbryt» eller Escape avslutter modusen.
+- Forsiden viser ressursene som markører i kategorifargen og listen «Nærmest deg», sortert etter avstand. Kartene starter i Kristiansand, flyttes dit brukeren er hvis posisjonen deles, og holder seg innenfor Norge.
 - `/ResourceHandler` følger designet «Ressurser nær deg»: rutenett eller kart, søk, og filtre for avstand (1–25 km), kategori (med antall), sted, «Tilgjengelige nå» og sortering.
 - Avstanden regnes ut i nettleseren (`wwwroot/js/site.js`) fra posisjonen nettleseren gir. Posisjonen sendes aldri til serveren og lagres bare i fanen (`sessionStorage`). Sier brukeren nei, virker alt unntatt avstand.
 - Appen bruker fast kultur (`UseRequestLocalization` i `Program.cs`), så koordinater alltid skrives og leses med punktum, også på en norsk Windows-maskin.
@@ -234,7 +234,7 @@ Kjørt 5. november 2026 mot appen i Docker (`docker compose up --build -d`).
 | Test | Antall | Bestått |
 |---|---|---|
 | Enhetstester (`dotnet test`) | 79 | 79 ✅ |
-| Systemtest (`tests/system/system-og-sikkerhetstest.ps1`) | 30 | 30 ✅ |
+| Systemtest (`tests/system/system-og-sikkerhetstest.ps1`) | 31 | 31 ✅ |
 | Sikkerhetstest (samme skript) | 30 | 30 ✅ |
 | Manuelle tester (tabellen over) | 13 | 13 ✅ |
 | Brukervennlighetstest | *TODO* | *TODO* |

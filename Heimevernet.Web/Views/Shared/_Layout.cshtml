@@ -31,11 +31,19 @@
     <a href="#main" class="visually-hidden-focusable">Hopp til innholdet</a>
 
     <div class="app">
-        <aside class="sidebar">
+        <aside class="sidebar" data-sidebar>
             <a class="brand" asp-controller="Home" asp-action="Index">
                 <img class="brand-mark" src="~/img/kriseklar.svg" alt="" />
                 KriseKlar
             </a>
+
+            @* Bare på mobil: knappen med tre streker øverst til høyre åpner sidemenyen (og blir til en X). *@
+            <button type="button" class="menu-toggle" data-menu-toggle aria-expanded="false" aria-controls="sidebar-panel" aria-label="Åpne meny">
+                <span></span><span></span><span></span>
+            </button>
+
+            @* På PC er denne bare en del av sidemenyen (display: contents). På mobil er den sidemenyen som glir inn fra høyre. *@
+            <div class="sidebar-panel" id="sidebar-panel" data-sidebar-panel>
 
             <nav aria-label="Hovedmeny">
                 <ul class="nav-list">
@@ -91,6 +99,8 @@
             <p class="sidebar-footer">
                 <a asp-controller="Home" asp-action="Privacy">Personvern</a>
             </p>
+            </div>
+            <div class="menu-backdrop" data-menu-close hidden></div>
         </aside>
 
         <div class="main">

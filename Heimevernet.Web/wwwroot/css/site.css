@@ -568,6 +568,30 @@ fieldset legend { font-size: 18px; font-weight: 700; }
 a.user-chip { text-decoration: none; }
 a.user-chip:hover { background: rgba(255, 255, 255, 0.1); color: #FFFFFF; }
 
+/* ---------- Menyknappen (tre streker som blir til en X) ---------- */
+/* Vises bare på mobil. På PC er .sidebar-panel bare en vanlig del av sidemenyen (display: contents). */
+.sidebar-panel { display: contents; }
+.menu-backdrop { display: none; }
+.menu-toggle {
+  display: none; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  width: 48px; height: 48px; padding: 0; border: 0; border-radius: 12px;
+  background: transparent; color: #FFFFFF; cursor: pointer;
+}
+.menu-toggle:hover { background: rgba(255, 255, 255, 0.1); }
+.menu-toggle span {
+  display: block; width: 26px; height: 3px; border-radius: 2px; background: currentColor;
+  transition: transform 0.25s ease, opacity 0.2s ease;
+}
+/* Åpen: øverste og nederste strek flyttes til midten og vris 45 grader hver sin vei, midterste forsvinner. */
+.menu-toggle[aria-expanded="true"] span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+.menu-toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.menu-toggle[aria-expanded="true"] span:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+@media (prefers-reduced-motion: reduce) {
+  .menu-toggle span, .sidebar-panel { transition: none !important; }
+}
+
+.auth-mobile-brand { display: none; }
+
 /* ---------- Innlogging (delt skjerm) ---------- */
 
 .auth { display: flex; flex-wrap: wrap; min-height: 100vh; }
@@ -604,26 +628,31 @@ a.user-chip:hover { background: rgba(255, 255, 255, 0.1); color: #FFFFFF; }
 
 @media (max-width: 900px) {
   .app { flex-direction: column; }
+  /* Toppen på mobil: bare logoen og knappen med tre streker. Resten ligger i sidemenyen. */
   .sidebar {
-    position: static; width: auto; height: auto; overflow: visible;
-    flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12px;
-    padding: 12px 16px;
+    position: sticky; top: 0; z-index: 1100; width: auto; height: auto; overflow: visible;
+    flex-direction: row; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px 12px 10px 16px;
   }
-  .brand { font-size: 18px; padding: 0; }
-  .sidebar nav { order: 3; width: 100%; }
-  .nav-list { flex-direction: row; overflow-x: auto; gap: 6px; scrollbar-width: none; }
-  .nav-list::-webkit-scrollbar { display: none; }
-  .nav-list a { min-height: 44px; padding: 0 14px; font-size: 15px; white-space: nowrap; }
-  .sidebar-spacer, .sidebar-footer { display: none; }
-  .emergency { display: none; }
-  .sidebar-user { margin-left: auto; flex-direction: row; align-items: center; }
-  /* Bare initialen vises i toppen; navnet er fortsatt der for skjermlesere. */
-  .user-chip-text {
-    position: absolute; width: 1px; height: 1px; overflow: hidden;
-    clip: rect(0 0 0 0); white-space: nowrap;
+  .brand { font-size: 19px; padding: 0; }
+  .brand-mark { width: 30px; height: 38px; }
+  .menu-toggle { display: flex; position: relative; z-index: 2; }
+
+  /* Sidemenyen glir inn fra høyre. Den har det samme som sidemenyen på PC: valgene, nødnumrene,
+     profilen og Logg ut. visibility: hidden gjør at den ikke kan få fokus når den er lukket. */
+  .sidebar-panel {
+    display: flex; flex-direction: column; gap: 22px;
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 1;
+    width: min(320px, 86vw); box-sizing: border-box;
+    padding: 76px 16px 24px; overflow-y: auto;
+    background: var(--navy); box-shadow: -8px 0 24px rgba(0, 0, 0, 0.25);
+    transform: translateX(100%); visibility: hidden;
+    transition: transform 0.25s ease, visibility 0s linear 0.25s;
   }
-  .user-chip { padding: 0; }
-  .sidebar-user .btn-pill { min-height: 40px; padding: 0 14px; font-size: 15px; white-space: nowrap; }
+  .sidebar.is-open .sidebar-panel { transform: none; visibility: visible; transition: transform 0.25s ease; }
+  .menu-backdrop { display: block; position: fixed; inset: 0; z-index: 0; background: rgba(15, 27, 45, 0.5); }
+  .menu-backdrop[hidden] { display: none; }
+  body.menu-open { overflow: hidden; } /* Siden bak ruller ikke mens menyen er åpen. */
   .page { padding: 16px; }
   .page.page--full { padding: 0; }
   /* Kategoriknappene på én rad som rulles sidelengs, som i mobildesignet */
@@ -668,7 +697,14 @@ a.user-chip:hover { background: rgba(255, 255, 255, 0.1); color: #FFFFFF; }
   .auth-hero h1 { font-size: 28px; }
   .auth-hero-body { gap: 0; }
   .check-list { display: none; } /* Skjemaet skal synes uten mye scrolling på mobil */
-  .auth-main { padding: 24px 16px; }
+  .auth-main { padding: 20px 16px 24px; order: -1; flex-direction: column; align-items: stretch; justify-content: flex-start; } /* Innloggingen øverst, den blå delen med nødnumrene under. */
+  .auth-hero .brand { display: none; } /* Logoen står over skjemaet i stedet. */
+  .auth-mobile-brand {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
+    color: var(--navy); font-size: 22px; font-weight: 700; text-decoration: none;
+  }
+  /* Logoen har en hvit hake, så den trenger mørk bakgrunn på den lyse siden. */
+  .auth-mobile-brand img { box-sizing: content-box; padding: 5px 7px; border-radius: 10px; background: var(--navy); }
   .auth-card { padding: 24px; }
 }
 

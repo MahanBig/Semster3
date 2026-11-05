@@ -543,9 +543,49 @@
         if (error) { error.textContent = message; error.className = message ? 'text-danger field-validation-error' : 'text-danger field-validation-valid'; }
     }
 
+    // ---------- Sidemenyen på mobil ----------
+    // På smale skjermer er menyvalgene skjult bak knappen med tre streker. Knappen åpner menyen fra høyre
+    // og blir til en X (CSS-animasjon). Menyen lukkes med X-en, Escape, et klikk utenfor eller når man går til en side.
+    // Når menyen er lukket på mobil, er den "inert": den kan ikke få fokus med Tab og leses ikke av skjermlesere.
+    function initMobileMenu(sidebar) {
+        var toggle = sidebar.querySelector('[data-menu-toggle]');
+        var panel = sidebar.querySelector('[data-sidebar-panel]');
+        var backdrop = sidebar.querySelector('[data-menu-close]');
+        if (!toggle || !panel) { return; }
+        var mobile = window.matchMedia('(max-width: 900px)');
+
+        function setOpen(open, moveFocus) {
+            sidebar.classList.toggle('is-open', open);
+            document.body.classList.toggle('menu-open', open);
+            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            toggle.setAttribute('aria-label', open ? 'Lukk meny' : 'Åpne meny');
+            if (backdrop) { backdrop.hidden = !open; }
+            panel.inert = mobile.matches && !open;
+            if (moveFocus) {
+                var target = open ? panel.querySelector('a, button') : toggle;
+                if (target) { target.focus(); }
+            }
+        }
+
+        toggle.addEventListener('click', function () {
+            setOpen(!sidebar.classList.contains('is-open'), true);
+        });
+        if (backdrop) { backdrop.addEventListener('click', function () { setOpen(false, true); }); }
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && sidebar.classList.contains('is-open')) { setOpen(false, true); }
+        });
+        panel.addEventListener('click', function (event) {
+            if (event.target.closest('a')) { setOpen(false, false); }
+        });
+        // Bytter man mellom smal og bred skjerm (f.eks. snur telefonen), lukkes menyen og PC-oppsettet virker som før.
+        mobile.addEventListener('change', function () { setOpen(false, false); });
+        setOpen(false, false);
+    }
+
     // ---------- Start ----------
 
     document.querySelectorAll('[data-resource-filter]').forEach(initResourceFilter);
+    document.querySelectorAll('[data-sidebar]').forEach(initMobileMenu);
     document.querySelectorAll('[data-point-picker]').forEach(initPointPicker);
     document.querySelectorAll('[data-image-input]').forEach(initImagePreview);
 })();

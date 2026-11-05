@@ -38,6 +38,11 @@
         </section>
 
         <main class="auth-main" id="main">
+            @* Bare på mobil: logoen over skjemaet, siden den blå delen (med nødnumrene) kommer under. *@
+            <a class="auth-mobile-brand" asp-controller="Home" asp-action="Index">
+                <img src="~/img/kriseklar.svg" alt="" width="32" height="40" />
+                KriseKlar
+            </a>
             @RenderBody()
         </main>
     </div>

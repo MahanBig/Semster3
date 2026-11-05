@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Heimevernet.Web.UnitTests;
 
+// Tester ressurslisten og skjemaet for ny ressurs i ResourceHandlerController.
 public class ResourceHandlerControllerTests
 {
     [Fact]
@@ -74,7 +75,7 @@ public class ResourceHandlerControllerTests
             Quantity = 2,
             PostalPlace = "Kristiansand",
             PostalCode = "4630",
-            Address = "   " // Blank optional field is saved as null.
+            Address = "   " // Et tomt valgfritt felt lagres som null.
         };
 
         var result = controller.Create(model);
@@ -85,7 +86,7 @@ public class ResourceHandlerControllerTests
         Assert.Equal(8, redirect.RouteValues!["id"]);
         var saved = Assert.Single(repository.Added);
         Assert.Equal("Lastebil", saved.Name);
-        Assert.Equal(5, saved.CategoryId); // "Verktøy" has Id 5 in FakeCategoryRepository.
+        Assert.Equal(5, saved.CategoryId); // "Verktøy" har Id 5 i FakeCategoryRepository.
         Assert.Equal(2, saved.Quantity);
         Assert.Equal("Kristiansand", saved.PostalPlace);
         Assert.Equal("4630", saved.PostalCode);

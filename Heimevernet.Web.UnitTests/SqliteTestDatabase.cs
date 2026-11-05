@@ -5,10 +5,11 @@ using Microsoft.Data.Sqlite;
 
 namespace Heimevernet.Web.UnitTests;
 
-// A temporary SQLite database in memory that lives as long as this object.
-// The app uses MariaDB, but the SQL in the repository and the Identity stores is plain enough
-// to run on SQLite too, so the tests can check the queries without a database server.
-// The tables mirror DataAccess/Sql/Schema.sql, written in SQLite syntax.
+// En midlertidig SQLite-database i minnet som lever like lenge som dette objektet.
+// Appen bruker MariaDB, men SQL-en i repositoryene og Identity-stores er enkel nok til å kjøre
+// på SQLite også. Da kan testene sjekke spørringene uten en databaseserver.
+// Tabellene er de samme som i DataAccess/Sql/Schema.sql, skrevet med SQLite-syntaks.
+// Endrer du Schema.sql, må du endre her også.
 internal sealed class SqliteTestDatabase : IDbConnectionFactory, IDisposable
 {
     private const string Schema = """
@@ -108,15 +109,15 @@ internal sealed class SqliteTestDatabase : IDbConnectionFactory, IDisposable
             ('Verktøy', NULL), ('Strøm og lading', NULL), ('Informasjon', NULL);
         """;
 
-    // A unique name per test, so tests never share data. "Cache=Shared" lets several connections see it.
-    // "Foreign Keys=True": SQLite does not check foreign keys unless asked to.
+    // Et unikt navn per test, så testene aldri deler data. "Cache=Shared" lar flere tilkoblinger se samme database.
+    // "Foreign Keys=True": SQLite sjekker ikke fremmednøkler med mindre vi ber om det.
     private readonly string _connectionString =
         $"Data Source=heimevernet-test-{Guid.NewGuid():N};Mode=Memory;Cache=Shared;Foreign Keys=True";
     private readonly SqliteConnection _keepAliveConnection;
 
     public SqliteTestDatabase()
     {
-        // An in-memory database is deleted when its last connection closes, so this one stays open.
+        // En database i minnet slettes når den siste tilkoblingen lukkes, så denne holdes åpen.
         _keepAliveConnection = new SqliteConnection(_connectionString);
         _keepAliveConnection.Open();
         _keepAliveConnection.Execute(Schema);

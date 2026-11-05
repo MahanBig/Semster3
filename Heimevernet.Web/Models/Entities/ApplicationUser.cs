@@ -6,6 +6,6 @@ namespace Heimevernet.Web.Models.Entities;
 public class ApplicationUser : IdentityUser
 {
     public string? Name { get; set; }
-    public bool Consent { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool Consent { get; set; } // Samtykke til at navn, e-post og telefon vises for andre brukere.
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow; // UTC
 }

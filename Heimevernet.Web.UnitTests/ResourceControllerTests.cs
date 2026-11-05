@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Heimevernet.Web.UnitTests;
 
+// Tester detaljsiden for én ressurs: kjent Id, manglende Id og ukjent Id.
 public class ResourceControllerTests
 {
     [Fact]

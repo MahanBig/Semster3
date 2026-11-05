@@ -5,6 +5,7 @@ using Heimevernet.Web.Models.Entities;
 
 namespace Heimevernet.Web.UnitTests;
 
+// Tester regelen i ResourcePermissions: eier og admin kan endre, alle andre kan ikke.
 public class ResourcePermissionsTests
 {
     private static readonly Resource OwnedByOla = new() { Id = 1, Name = "Aggregat", UserId = "ola-id" };
@@ -25,7 +26,7 @@ public class ResourcePermissionsTests
     [Fact]
     public void Owner_IsComparedById_NotByName()
     {
-        // Same e-mail in the Name claim, but another Id: not the owner.
+        // Samme e-post i Name-claimet, men en annen Id: er ikke eieren.
         var claims = new List<Claim> { new(ClaimTypes.Name, "ola-id@test.no"), new(ClaimTypes.NameIdentifier, "other-id") };
         var user = new ClaimsPrincipal(new ClaimsIdentity(claims, "Test"));
         Assert.False(ResourcePermissions.CanModify(user, OwnedByOla));

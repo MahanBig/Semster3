@@ -3,6 +3,8 @@ using Heimevernet.Web.Models;
 
 namespace Heimevernet.Web.DataAccess;
 
+// Legger inn noen eksempelressurser første gang appen starter, så listen og kartet ikke er tomme.
+// Kalles fra Program.cs etter at DatabaseInitializer har laget tabellene.
 public static class ResourceDbSeeder
 {
     public static void Seed(IDbConnectionFactory connectionFactory)
@@ -11,7 +13,8 @@ public static class ResourceDbSeeder
 
         using var connection = connectionFactory.CreateConnection();
 
-        // Preserve existing records and edits when the application restarts.
+        // Finnes det allerede ressurser, gjør vi ingenting. Da beholdes det brukerne har lagt inn
+        // og endret når appen starter på nytt.
         if (connection.ExecuteScalar<int>("SELECT COUNT(*) FROM Resources") > 0)
         {
             return;
@@ -27,6 +30,7 @@ public static class ResourceDbSeeder
 
         // Når Dapper får en liste, kjøres INSERT én gang per element.
         // Id står ikke med: MariaDB lager den selv (AUTO_INCREMENT).
+        // INSERT ... SELECT slår opp kategori-Id-en fra kategorinavnet i samme spørring.
         connection.Execute(
             """
             INSERT INTO Resources (Name, Description, Quantity, Status, RegisteredAt, CategoryId)

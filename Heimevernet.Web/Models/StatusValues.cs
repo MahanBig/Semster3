@@ -1,6 +1,8 @@
 namespace Heimevernet.Web.Models;
 
 // Verdiene i ENUM-kolonnene i Schema.sql. Må være helt like verdiene i databasen.
+// Med konstanter gir en skrivefeil kompileringsfeil i stedet for en feil i databasen.
+// Label gir teksten som vises til brukeren. En ukjent verdi vises som den er.
 
 public static class ResourceStatus
 {
@@ -54,6 +56,7 @@ public static class NeedPriority
         _ => priority ?? string.Empty
     };
 
+    // Tekstfarge og lys bakgrunnsfarge til prioritetsmerket. Kritisk er rød, så det er det som synes best.
     public static (string Color, string Tint) Colors(string? priority) => priority switch
     {
         Critical => ("#B91C1C", "#FBE4E4"),

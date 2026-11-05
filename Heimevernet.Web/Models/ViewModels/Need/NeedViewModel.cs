@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace Heimevernet.Web.Models.ViewModels.Need;
 
+// Brukes både til å vise behov og i skjemaet for nytt/endret behov.
+// Lengdene matcher kolonnene i Needs, Locations og PostalCodes (Schema.sql).
 public class NeedViewModel : IValidatableObject
 {
     public int? Id { get; set; }
@@ -17,6 +19,7 @@ public class NeedViewModel : IValidatableObject
     [Display(Name = "Beskrivelse")]
     public string Description { get; set; } = string.Empty;
 
+    // Kategorinavnet. Controlleren slår opp Id-en (NeedController.FindCategory).
     [Required(ErrorMessage = "Velg en kategori.")]
     [Display(Name = "Kategori")]
     public string Category { get; set; } = string.Empty;
@@ -71,6 +74,8 @@ public class NeedViewModel : IValidatableObject
     [BindNever]
     public bool CanModify { get; set; }
 
+    // Regler attributtene ikke kan uttrykke, f.eks. regler som gjelder to felt sammen.
+    // IValidatableObject gjør at ASP.NET kjører denne på serveren etter at attributtene er sjekket.
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (!NeedPriority.All.Contains(Priority))
@@ -85,6 +90,7 @@ public class NeedViewModel : IValidatableObject
         }
     }
 
+    // Fra entitet (databasen) til view model. Har eieren ikke lagt inn navn, vises e-posten.
     public static NeedViewModel FromEntity(Entities.Need need) => new()
     {
         Id = need.Id,

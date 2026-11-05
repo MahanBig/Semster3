@@ -10,6 +10,7 @@ public static class AppRoles
 
     public static readonly IReadOnlyList<string> All = [Admin, User];
 
+    // Lager rolleobjektet med beskrivelse og tilgangsnivå. Brukes av IdentitySeeder ved oppstart.
     public static ApplicationRole Create(string roleName) => roleName switch
     {
         Admin => new ApplicationRole(Admin)

@@ -5,12 +5,12 @@ using Microsoft.AspNetCore.Mvc.ViewFeatures;
 
 namespace Heimevernet.Web.UnitTests;
 
-// Gives a controller what it would get from a real request: a logged-in user and TempData.
+// Gir en controller det den ville fått fra en ekte forespørsel: en innlogget bruker og TempData.
 internal static class TestControllerContext
 {
     public static T WithUser<T>(this T controller, string userName = "ola@test.no", params string[] roles) where T : Controller
     {
-        // The tests use the e-mail as user Id too.
+        // Testene bruker e-posten som bruker-Id også.
         var claims = new List<Claim> { new(ClaimTypes.Name, userName), new(ClaimTypes.NameIdentifier, userName) };
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
         var identity = new ClaimsIdentity(claims, authenticationType: "Test");

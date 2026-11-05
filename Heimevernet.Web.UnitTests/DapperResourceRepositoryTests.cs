@@ -5,9 +5,10 @@ using Heimevernet.Web.Models.Entities;
 
 namespace Heimevernet.Web.UnitTests;
 
+// Tester SQL-en i DapperResourceRepository mot en SQLite-database: lagring, endring, sletting og adresser.
 public class DapperResourceRepositoryTests
 {
-    // Category ids in SqliteTestDatabase: 1 = Mat, 2 = Vann ... 5 = Verktøy, 6 = Strøm og lading.
+    // Kategori-Id-ene i SqliteTestDatabase: 1 = Mat, 2 = Vann ... 5 = Verktøy, 6 = Strøm og lading.
     private const int Water = 2;
     private const int Tools = 5;
     private const int Power = 6;
@@ -125,7 +126,7 @@ public class DapperResourceRepositoryTests
         {
             Id = id, Name = "Vannpost Kampen", Description = "Tankbil, ta med kanner", CategoryId = Tools,
             Status = ResourceStatus.Unavailable, Quantity = 3, PostalCode = "0150", PostalPlace = "Oslo",
-            UserId = "someone-else" // Must be ignored: Update never changes the owner.
+            UserId = "someone-else" // Skal ignoreres: Update endrer aldri eieren.
         });
         var afterUpdate = repository.GetById(id);
         var deleted = repository.Delete(id);
@@ -144,7 +145,7 @@ public class DapperResourceRepositoryTests
         Assert.Null(repository.GetById(id));
         Assert.False(repository.Update(new Resource { Id = 999, Name = "x", Description = "x", CategoryId = Water }));
 
-        // Deleting the resource also removed its location.
+        // Da ressursen ble slettet, ble adressen også slettet.
         using var connection = database.CreateConnection();
         Assert.Equal(0, connection.ExecuteScalar<int>("SELECT COUNT(*) FROM Locations"));
     }

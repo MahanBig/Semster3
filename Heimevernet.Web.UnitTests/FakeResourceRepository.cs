@@ -3,7 +3,8 @@ using Heimevernet.Web.Models.Entities;
 
 namespace Heimevernet.Web.UnitTests;
 
-// Controller tests supply known records without needing a running database.
+// Falsk ressursrepository i minnet. Controller-testene får kjente data uten å trenge en database.
+// Added, Updated og Deleted husker hva controlleren gjorde, så testene kan sjekke det.
 internal sealed class FakeResourceRepository(params Resource[] resources) : IResourceRepository
 {
     private readonly List<Resource> _resources = [.. resources];

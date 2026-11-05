@@ -4,6 +4,7 @@ using Heimevernet.Web.Models.Entities;
 
 namespace Heimevernet.Web.UnitTests;
 
+// Tester at eksempeldataene bare legges inn i en tom database, og at endringer ikke overskrives ved omstart.
 public class ResourceDbSeederTests
 {
     [Fact]

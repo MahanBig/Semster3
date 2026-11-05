@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Heimevernet.Web.UnitTests;
 
-// Builds the same Identity services as Program.cs (with our Dapper stores), but against SQLite.
+// Setter opp de samme Identity-tjenestene som Program.cs (med våre Dapper-stores), men mot SQLite.
 internal static class IdentityTestServices
 {
     public static ServiceProvider Create(SqliteTestDatabase database)

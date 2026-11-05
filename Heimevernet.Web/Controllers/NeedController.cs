@@ -9,7 +9,9 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Heimevernet.Web.Controllers;
 
-// Krever innlogging via FallbackPolicy i Program.cs.
+// Behov: opprette, vise, endre og slette, og tildele ressurser til et behov.
+// Krever innlogging via FallbackPolicy i Program.cs. Hvem som får endre og slette, avgjør ResourcePermissions.
+// Repositoryene kommer inn via dependency injection. De er registrert i Program.cs.
 public class NeedController(
     INeedRepository needRepository,
     IResourceRepository resourceRepository,
@@ -17,6 +19,7 @@ public class NeedController(
     ICategoryRepository categoryRepository,
     IOrganizationRepository organizationRepository) : Controller
 {
+    // GET /Need: listen over alle behov. Rekkefølgen bestemmes i DapperNeedRepository.GetAll.
     [HttpGet]
     public IActionResult Index()
     {
@@ -24,6 +27,7 @@ public class NeedController(
         return View(model);
     }
 
+    // GET /Need/Details/5: ett behov, tildelingene det har fått, og ressursene brukeren kan tildele.
     [HttpGet]
     public IActionResult Details(int id)
     {
@@ -51,6 +55,7 @@ public class NeedController(
         return View(new NeedDetailsViewModel
         {
             Need = viewModel,
+            // En tildeling kan fjernes av eieren av behovet, eieren av ressursen eller admin.
             Allocations = allocations
                 .Select(allocation => new AllocationRow
                 {
@@ -63,6 +68,7 @@ public class NeedController(
         });
     }
 
+    // GET /Need/Create: tomt skjema. Nedtrekkslisten med organisasjoner må fylles før viewet vises.
     [HttpGet]
     public IActionResult Create()
     {
@@ -78,20 +84,25 @@ public class NeedController(
         ValidateOrganization(model);
         if (!ModelState.IsValid || category is null)
         {
+            // Viser skjemaet igjen med feilmeldingene. ViewData overlever ikke til neste forespørsel,
+            // så nedtrekkslisten må fylles på nytt.
             SetOrganizationList(model.OrganizationId);
             return View(model);
         }
 
         var need = ToEntity(model, id: 0, category.Id);
-        need.UserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        // Eier, tidspunkt og status settes her på serveren, aldri fra skjemaet.
+        need.UserId = User.FindFirstValue(ClaimTypes.NameIdentifier); // Den innloggede brukeren blir eier.
         need.RegisteredAt = DateTime.UtcNow;
         need.Status = NeedStatus.Open;
         var id = needRepository.Add(need);
 
+        // TempData overlever én redirect, så detaljsiden kan vise en bekreftelse.
         TempData["Message"] = "Behovet ble lagret.";
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    // GET /Need/Edit/5: skjemaet med dagens verdier. Bare eier og admin slipper inn.
     [HttpGet]
     public IActionResult Edit(int id)
     {
@@ -102,7 +113,7 @@ public class NeedController(
         }
         if (!ResourcePermissions.CanModify(User, need))
         {
-            return Forbid();
+            return Forbid(); // Logget inn, men ikke eier eller admin: sendes til "Ingen tilgang".
         }
 
         SetOrganizationList(need.OrganizationId);
@@ -113,7 +124,8 @@ public class NeedController(
     [ValidateAntiForgeryToken]
     public IActionResult Edit(int id, NeedViewModel model)
     {
-        // Sjekker tilgang på POST også, ikke bare på GET.
+        // Sjekker tilgang på POST også, ikke bare på GET. Det holder ikke å skjule knappen:
+        // noen kan sende POST-forespørselen direkte.
         var existing = needRepository.GetById(id);
         if (existing is null)
         {
@@ -139,6 +151,7 @@ public class NeedController(
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    // GET /Need/Delete/5: en side der brukeren må bekrefte slettingen.
     [HttpGet]
     public IActionResult Delete(int id)
     {
@@ -155,6 +168,8 @@ public class NeedController(
         return View(NeedViewModel.FromEntity(need));
     }
 
+    // POST /Need/Delete/5. Eget metodenavn fordi GET og POST har samme parametere.
+    // [ActionName] gjør at adressen fortsatt er /Need/Delete.
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
     public IActionResult DeleteConfirmed(int id)
@@ -169,13 +184,15 @@ public class NeedController(
             return Forbid();
         }
 
-        needRepository.Delete(id);
+        needRepository.Delete(id); // Tildelte ressurser blir ledige igjen (se DapperNeedRepository.Delete).
 
         TempData["Message"] = $"Behovet «{need.Title}» ble slettet.";
         return RedirectToAction(nameof(Index));
     }
 
-    // Bare eieren av ressursen (eller admin) kan tildele den.
+    // POST /Need/Allocate/5: tildeler en ressurs til behovet.
+    // Bare eieren av ressursen (eller admin) kan tildele den. Hvem som eier behovet, spiller ingen rolle.
+    // Svaret er alltid en redirect tilbake til detaljsiden, med en melding i TempData om hvordan det gikk.
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Allocate(int id, int resourceId, int quantity)
@@ -191,6 +208,7 @@ public class NeedController(
             return Forbid();
         }
 
+        // Sjekkes på serveren selv om skjemaet også begrenser antallet: noen kan sende forespørselen direkte.
         if (resource.Status != ResourceStatus.Available)
         {
             TempData["Error"] = $"«{resource.Name}» er ikke tilgjengelig.";
@@ -211,6 +229,8 @@ public class NeedController(
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    // POST /Need/RemoveAllocation/5: fjerner en tildeling.
+    // Både eieren av behovet og eieren av ressursen (og admin) kan fjerne den.
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult RemoveAllocation(int id, int resourceId)
@@ -232,6 +252,10 @@ public class NeedController(
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    // ---------- Hjelpemetoder ----------
+
+    // Skjemaet sender kategorinavnet. Databasen trenger Id-en.
+    // Et ukjent navn gir en feilmelding ved kategorifeltet i stedet for en databasefeil.
     private Category? FindCategory(NeedViewModel model)
     {
         var category = string.IsNullOrWhiteSpace(model.Category) ? null : categoryRepository.GetByName(model.Category.Trim());
@@ -252,11 +276,13 @@ public class NeedController(
         }
     }
 
+    // Fyller nedtrekkslisten med organisasjoner. selectedId er den som skal være valgt.
     private void SetOrganizationList(int? selectedId)
     {
         ViewData["Organizations"] = new SelectList(organizationRepository.GetAll(), "Id", "Name", selectedId);
     }
 
+    // Gjør skjemadataene om til en entitet som kan lagres. Teksten trimmes, og tomme adressefelt blir null.
     private static Need ToEntity(NeedViewModel model, int id, int categoryId) => new()
     {
         Id = id,

@@ -3,6 +3,7 @@ using Heimevernet.Web.Models.Entities;
 
 namespace Heimevernet.Web.DataAccess;
 
+// Leser kategoriene fra tabellen Categories.
 public class DapperCategoryRepository(IDbConnectionFactory connectionFactory) : ICategoryRepository
 {
     public IReadOnlyList<Category> GetAll()

@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Heimevernet.Web.Models.ViewModels.Account;
 
+// Data fra registreringsskjemaet. Valideringen virker på samme måte som i LoginViewModel.
 public class RegisterViewModel
 {
     [Required(ErrorMessage = "Skriv inn navnet ditt.")]
@@ -21,6 +22,7 @@ public class RegisterViewModel
     public string Password { get; set; } = string.Empty;
 
     [DataType(DataType.Password)]
+    // [Compare] sjekker at feltet er likt Password.
     [Compare(nameof(Password), ErrorMessage = "Passordene er ikke like.")]
     [Display(Name = "Gjenta passord")]
     public string ConfirmPassword { get; set; } = string.Empty;

@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Heimevernet.Web.UnitTests;
 
-// Tests the SQL in DapperUserStore through UserManager, the same way the app uses it.
+// Tester SQL-en i DapperUserStore gjennom UserManager, slik appen bruker den.
 public class DapperUserStoreTests
 {
     private const string Password = "Test1234!";
@@ -45,7 +45,7 @@ public class DapperUserStoreTests
         var user = new ApplicationUser { UserName = "kari@test.no", Email = "kari@test.no" };
         await userManager.CreateAsync(user, Password);
 
-        // Two separate copies of the same row, like two browser tabs editing the same user.
+        // To separate kopier av samme rad, som to nettleserfaner som endrer den samme brukeren.
         var firstCopy = await userManager.FindByIdAsync(user.Id);
         var secondCopy = await userManager.FindByIdAsync(user.Id);
         firstCopy!.PhoneNumber = "11111111";
@@ -75,7 +75,7 @@ public class DapperUserStoreTests
         await userManager.AddToRoleAsync(user, "Admin");
         await userManager.AddToRoleAsync(user, "Bruker");
 
-        Assert.True(await userManager.IsInRoleAsync(user, "admin")); // Role names ignore case.
+        Assert.True(await userManager.IsInRoleAsync(user, "admin")); // Rollenavn skiller ikke mellom store og små bokstaver.
         Assert.Equal("Admin, Bruker", string.Join(", ", await userManager.GetRolesAsync(user)));
         Assert.Single(await userManager.GetUsersInRoleAsync("Admin"));
 
@@ -100,7 +100,7 @@ public class DapperUserStoreTests
             await userManager.AccessFailedAsync(user);
         }
 
-        // Read the user again, so the lockout time must have been saved to and read from the database.
+        // Leser brukeren på nytt, så låsetiden må ha blitt lagret i og lest fra databasen.
         var reloaded = await userManager.FindByIdAsync(user.Id);
         Assert.NotNull(reloaded);
         Assert.True(await userManager.IsLockedOutAsync(reloaded));
@@ -121,7 +121,7 @@ public class DapperUserStoreTests
 
         await userManager.AddToRoleAsync(user, "Admin");
 
-        // The row exists, but the role gives no access yet.
+        // Raden finnes, men rollen gir ingen tilgang ennå.
         Assert.False(await userManager.IsInRoleAsync(user, "Admin"));
         Assert.Empty(await userManager.GetRolesAsync(user));
         var pending = Assert.Single(await roleVerification.GetRolesAsync(user.Id));

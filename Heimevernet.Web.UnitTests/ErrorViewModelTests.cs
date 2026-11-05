@@ -2,6 +2,7 @@ using Heimevernet.Web.Models;
 
 namespace Heimevernet.Web.UnitTests;
 
+// Tester at feilsiden bare viser RequestId når den har en verdi.
 public class ErrorViewModelTests
 {
     [Fact]

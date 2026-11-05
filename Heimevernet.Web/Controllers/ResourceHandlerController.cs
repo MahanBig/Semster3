@@ -132,7 +132,7 @@ namespace Heimevernet.Web.Controllers
             return View(ResourceViewModel.FromEntity(resource)); // Viser en side der brukeren må bekrefte slettingen.
         }
 
-        // POST /ResourceHandler/Delete/5. Egen metodenavn fordi GET og POST har samme parametere.
+        // POST /ResourceHandler/Delete/5. Eget metodenavn fordi GET og POST har samme parametere.
         [HttpPost, ActionName("Delete")]
         [Authorize]
         [ValidateAntiForgeryToken]

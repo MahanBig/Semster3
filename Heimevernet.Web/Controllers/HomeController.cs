@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Heimevernet.Web.Controllers;
 
+// Forsiden, personvernsiden og feilsiden.
 public class HomeController(IResourceRepository resourceRepository) : Controller
 {
     // Forsiden: kart og liste over ressurser.

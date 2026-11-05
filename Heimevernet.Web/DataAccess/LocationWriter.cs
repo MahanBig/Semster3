@@ -4,8 +4,10 @@ using Dapper;
 namespace Heimevernet.Web.DataAccess;
 
 // Lagrer adressen til en ressurs eller et behov. Hver ressurs og hvert behov har sin egen rad i Locations.
+// Kalles bare inne i en transaksjon fra repositoryene, derfor tar metodene inn tilkobling og transaksjon.
 internal static class LocationWriter
 {
+    // Lager eller oppdaterer adressen og returnerer Id-en til raden i Locations.
     // Returnerer null hvis adressefeltene er tomme.
     public static int? Save(
         DbConnection connection,
@@ -48,6 +50,7 @@ internal static class LocationWriter
             transaction);
     }
 
+    // Sletter adressen, men bare hvis ingen ressurs eller behov peker på den lenger.
     public static void DeleteIfUnused(DbConnection connection, DbTransaction transaction, int? locationId)
     {
         if (locationId is null)

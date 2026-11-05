@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Heimevernet.Web.UnitTests;
 
+// Tester at oppstarten lager rollene og admin-brukeren, og at det går fint å kjøre den flere ganger.
 public class IdentitySeederTests
 {
     private const string AdminEmail = "admin@test.local";
@@ -64,7 +65,7 @@ public class IdentitySeederTests
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-        // "weakpass" has no capital letter, digit or symbol, so Identity refuses it.
+        // "weakpass" har ingen stor bokstav, tall eller tegn, så Identity godtar det ikke.
         await IdentitySeeder.SeedAsync(roleManager, userManager, new DapperRoleVerificationRepository(database), AdminEmail, "weakpass", NullLogger.Instance);
 
         Assert.Equal(AppRoles.All.Count, roleManager.Roles.Count());

@@ -2,6 +2,7 @@ using Heimevernet.Web.Models;
 
 namespace Heimevernet.Web.UnitTests;
 
+// Tester at riktig kategori (farge og ikon) velges ut fra kategorinavnet.
 public class ResourceCategoryTests
 {
     [Theory]
@@ -13,7 +14,7 @@ public class ResourceCategoryTests
     [InlineData("Kjøretøy", "verktoy")]
     [InlineData("Strøm og lading", "strom")]
     [InlineData("  STRØMAGGREGAT ", "strom")]
-    [InlineData("Type A", "info")]   // Unknown type falls back to Informasjon.
+    [InlineData("Type A", "info")]   // En ukjent type blir Informasjon.
     [InlineData("", "info")]
     [InlineData(null, "info")]
     public void FromType_PicksCategoryFromKeywords(string? type, string expectedKey)

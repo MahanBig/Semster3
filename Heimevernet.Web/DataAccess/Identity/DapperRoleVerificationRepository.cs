@@ -2,8 +2,11 @@ using Dapper;
 
 namespace Heimevernet.Web.DataAccess.Identity;
 
+// Leser og setter godkjenning av roller (VerifiedBy og VerifiedAt i AspNetUserRoles). Se IRoleVerificationRepository.
 public class DapperRoleVerificationRepository(IDbConnectionFactory connectionFactory) : IRoleVerificationRepository
 {
+    // LEFT JOIN mot godkjenneren, fordi VerifiedBy er null når rollen ikke er godkjent ennå,
+    // eller når oppstarten godkjente den.
     public async Task<IReadOnlyList<UserRoleStatus>> GetRolesAsync(string userId)
     {
         using var connection = connectionFactory.CreateConnection();
@@ -21,6 +24,8 @@ public class DapperRoleVerificationRepository(IDbConnectionFactory connectionFac
         return rows.ToList();
     }
 
+    // Tabellen lagrer rolle-Id, men vi har bare navnet, derfor RoleId IN (SELECT ...).
+    // Returnerer false hvis brukeren ikke har rollen.
     public async Task<bool> VerifyAsync(string userId, string roleName, string? verifiedBy)
     {
         using var connection = connectionFactory.CreateConnection();

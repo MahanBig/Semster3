@@ -1,4 +1,6 @@
 -- Kjøres ved oppstart. IF NOT EXISTS endrer ikke tabeller som finnes, så kjør docker compose down -v etter endringer.
+-- Tabellene som starter med AspNet, er tabellene til Identity (brukere og roller). Resten kommer fra ER-diagrammet.
+-- Testene har en kopi av tabellene i SQLite-syntaks (SqliteTestDatabase.cs). Endrer du her, må du endre der også.
 
 CREATE TABLE IF NOT EXISTS AspNetUsers (
     Id VARCHAR(255) NOT NULL,
@@ -54,6 +56,7 @@ CREATE TABLE IF NOT EXISTS PostalCodes (
     PRIMARY KEY (PostalCode)
 );
 
+-- Latitude, Longitude og Description brukes ikke i koden ennå.
 CREATE TABLE IF NOT EXISTS Locations (
     Id INT NOT NULL AUTO_INCREMENT,
     Address VARCHAR(150) NULL,
@@ -80,6 +83,8 @@ CREATE TABLE IF NOT EXISTS Organizations (
     PRIMARY KEY (Id)
 );
 
+-- Kompetanser og koblingstabellene UserOrganizations, UserCompetences og ResourceCompetences
+-- er med fra ER-diagrammet, men brukes ikke i koden ennå.
 CREATE TABLE IF NOT EXISTS Competences (
     Id INT NOT NULL AUTO_INCREMENT,
     Name VARCHAR(100) NOT NULL,
@@ -88,6 +93,8 @@ CREATE TABLE IF NOT EXISTS Competences (
     PRIMARY KEY (Id)
 );
 
+-- ENUM-verdiene i Resources og Needs må være helt like konstantene i Models/StatusValues.cs.
+-- ON DELETE SET NULL: slettes en bruker, blir ressursene og behovene hen la inn stående uten eier.
 CREATE TABLE IF NOT EXISTS Resources (
     Id INT NOT NULL AUTO_INCREMENT,
     Name VARCHAR(100) NOT NULL,
@@ -148,6 +155,8 @@ CREATE TABLE IF NOT EXISTS ResourceCompetences (
     CONSTRAINT FK_ResourceCompetences_Competences FOREIGN KEY (CompetenceId) REFERENCES Competences (Id) ON DELETE CASCADE
 );
 
+-- Koblingstabell mellom behov og ressurser. Primærnøkkelen (NeedId, ResourceId) gjør at samme ressurs
+-- bare kan tildeles et behov én gang. ON DELETE CASCADE sletter tildelingene når behovet eller ressursen slettes.
 CREATE TABLE IF NOT EXISTS Allocations (
     NeedId INT NOT NULL,
     ResourceId INT NOT NULL,
@@ -159,6 +168,7 @@ CREATE TABLE IF NOT EXISTS Allocations (
 );
 
 -- Name må være lik Label i ResourceCategory.cs.
+-- INSERT IGNORE hopper over kategorier som finnes fra før, så skriptet tåler å kjøres ved hver oppstart.
 INSERT IGNORE INTO Categories (Name, Description) VALUES
     ('Mat', 'Mat og matutdeling'),
     ('Vann', 'Drikkevann'),

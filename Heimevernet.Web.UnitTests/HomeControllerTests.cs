@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Heimevernet.Web.UnitTests;
 
+// Tester at forsiden får ressursene fra repositoryet.
 public class HomeControllerTests
 {
     [Fact]

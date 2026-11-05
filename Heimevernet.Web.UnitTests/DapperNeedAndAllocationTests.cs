@@ -5,9 +5,11 @@ using Heimevernet.Web.Models.Entities;
 
 namespace Heimevernet.Web.UnitTests;
 
+// Tester SQL-en i DapperNeedRepository og DapperAllocationRepository mot en SQLite-database,
+// særlig at statusene på behov og ressurser blir riktige når ressurser tildeles og fjernes.
 public class DapperNeedAndAllocationTests
 {
-    private const int Water = 2; // Category id in SqliteTestDatabase.
+    private const int Water = 2; // Kategori-Id-en til Vann i SqliteTestDatabase.
 
     private static (DapperNeedRepository Needs, DapperResourceRepository Resources, DapperAllocationRepository Allocations) Repositories(
         SqliteTestDatabase database) =>

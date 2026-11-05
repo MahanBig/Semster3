@@ -4,7 +4,7 @@ using Heimevernet.Web.Models.Entities;
 
 namespace Heimevernet.Web.UnitTests;
 
-// Same categories and ids as SqliteTestDatabase.
+// Falsk kategorirepository for controller-testene. Samme kategorier og Id-er som i SqliteTestDatabase.
 internal sealed class FakeCategoryRepository : ICategoryRepository
 {
     private readonly List<Category> _categories = ResourceCategory.All

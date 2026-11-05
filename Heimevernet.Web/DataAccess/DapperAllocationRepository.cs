@@ -5,9 +5,12 @@ using Heimevernet.Web.Models.Entities;
 
 namespace Heimevernet.Web.DataAccess;
 
-// Statusene på behov og ressurs oppdateres her, i samme transaksjon som tildelingen.
+// Tildelinger: hvilke ressurser som er gitt til hvilke behov (tabellen Allocations).
+// Statusene på behov og ressurs oppdateres her, i samme transaksjon som tildelingen,
+// så de aldri blir stående i utakt med tildelingene.
 public class DapperAllocationRepository(IDbConnectionFactory connectionFactory) : IAllocationRepository
 {
+    // Tildelingene til ett behov, med navnet på ressursen og eieren (til listen på detaljsiden).
     public IReadOnlyList<Allocation> GetForNeed(int needId)
     {
         using var connection = connectionFactory.CreateConnection();
@@ -29,6 +32,7 @@ public class DapperAllocationRepository(IDbConnectionFactory connectionFactory) 
     {
         using var connection = connectionFactory.CreateConnection();
         connection.Open();
+        // Ingenting lagres før Commit til slutt. Går noe galt før det, ruller "using" tilbake alt.
         using var transaction = connection.BeginTransaction();
 
         // Sjekker først, så et duplikat ikke gir databasefeil (primærnøkkelen er NeedId + ResourceId).
@@ -74,6 +78,11 @@ public class DapperAllocationRepository(IDbConnectionFactory connectionFactory) 
         return deleted;
     }
 
+    // Regner ut statusen til behovet fra tildelingene:
+    //   dekket           = tildelt antall er minst det som trengs
+    //   under_behandling = noe er tildelt, men ikke nok
+    //   åpen             = ingenting er tildelt
+    // internal fordi DapperNeedRepository også bruker den når et behov endres.
     internal static void UpdateNeedStatus(DbConnection connection, DbTransaction transaction, int needId)
     {
         connection.Execute(
@@ -90,7 +99,8 @@ public class DapperAllocationRepository(IDbConnectionFactory connectionFactory) 
             transaction);
     }
 
-    // En ressurs som er satt til "utilgjengelig" endres ikke.
+    // i_bruk hvis ressursen er tildelt minst ett behov, ellers tilgjengelig.
+    // En ressurs som eieren har satt til "utilgjengelig", endres ikke.
     internal static void UpdateResourceStatus(DbConnection connection, DbTransaction transaction, int resourceId)
     {
         connection.Execute(

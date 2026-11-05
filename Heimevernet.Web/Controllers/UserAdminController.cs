@@ -15,6 +15,7 @@ public class UserAdminController(
     UserManager<ApplicationUser> userManager,
     IRoleVerificationRepository roleVerification) : Controller
 {
+    // GET /UserAdmin: alle brukerne med rollene sine.
     [HttpGet]
     public async Task<IActionResult> Index()
     {
@@ -22,6 +23,8 @@ public class UserAdminController(
         var users = userManager.Users.OrderBy(user => user.Email).ToList();
 
         var model = new List<UserWithRolesViewModel>();
+        // Én spørring per bruker for å hente rollene. Greit med få brukere, men med mange brukere
+        // burde vi hentet alle rollene i én spørring.
         foreach (var user in users)
         {
             model.Add(new UserWithRolesViewModel
@@ -38,7 +41,8 @@ public class UserAdminController(
         return View(model);
     }
 
-    // En rolle admin gir, er godkjent med en gang.
+    // POST: gir en bruker en rolle. En rolle som admin gir, er godkjent med en gang,
+    // og VerifiedBy blir admin-en som ga den.
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddRole(string userId, string role)
@@ -60,6 +64,7 @@ public class UserAdminController(
         return RedirectToAction(nameof(Index));
     }
 
+    // POST: fjerner en rolle fra en bruker.
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RemoveRole(string userId, string role)

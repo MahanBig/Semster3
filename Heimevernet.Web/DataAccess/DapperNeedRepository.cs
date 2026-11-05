@@ -4,9 +4,11 @@ using Heimevernet.Web.Models.Entities;
 
 namespace Heimevernet.Web.DataAccess;
 
+// Henter og lagrer behov i MariaDB med Dapper. Bygd opp på samme måte som DapperResourceRepository.
 public class DapperNeedRepository(IDbConnectionFactory connectionFactory) : INeedRepository
 {
-    // AllocatedQuantity er summen av tildelingene til behovet.
+    // Felles SELECT for GetAll og GetById. JOIN-ene henter navnene på kategori, organisasjon og eier, og adressen.
+    // LEFT JOIN der verdien kan mangle. AllocatedQuantity er summen av tildelingene til behovet.
     private const string SelectNeeds =
         """
         SELECT n.Id, n.Title, n.Description, n.Quantity, n.Priority, n.Status, n.RegisteredAt, n.Deadline,
@@ -59,6 +61,7 @@ public class DapperNeedRepository(IDbConnectionFactory connectionFactory) : INee
         connection.Open();
         using var transaction = connection.BeginTransaction();
 
+        // Transaksjon: adressen og behovet lagres sammen eller ikke i det hele tatt.
         need.LocationId = LocationWriter.Save(
             connection, transaction, existingLocationId: null, need.Address, need.PostalCode, need.PostalPlace);
 
@@ -85,6 +88,7 @@ public class DapperNeedRepository(IDbConnectionFactory connectionFactory) : INee
         connection.Open();
         using var transaction = connection.BeginTransaction();
 
+        // Den gamle adressen oppdateres i stedet for at det lages en ny rad hver gang.
         var oldLocationId = connection.QuerySingleOrDefault<int?>(
             "SELECT LocationId FROM Needs WHERE Id = @Id", new { need.Id }, transaction);
 
@@ -102,12 +106,13 @@ public class DapperNeedRepository(IDbConnectionFactory connectionFactory) : INee
             need,
             transaction);
 
+        // Adressen er fjernet i skjemaet: slett den gamle raden i Locations.
         if (need.LocationId is null)
         {
             LocationWriter.DeleteIfUnused(connection, transaction, oldLocationId);
         }
 
-        // Antallet kan ha endret seg.
+        // Antallet som trengs kan ha endret seg, så statusen regnes ut på nytt.
         DapperAllocationRepository.UpdateNeedStatus(connection, transaction, need.Id);
 
         transaction.Commit();
@@ -123,7 +128,7 @@ public class DapperNeedRepository(IDbConnectionFactory connectionFactory) : INee
         var locationId = connection.QuerySingleOrDefault<int?>(
             "SELECT LocationId FROM Needs WHERE Id = @Id", new { Id = id }, transaction);
 
-        // Ressursene som var tildelt skal bli ledige igjen.
+        // Ressursene som var tildelt, skal bli ledige igjen. Vi må finne dem før behovet slettes.
         var resourceIds = connection.Query<int>(
             "SELECT ResourceId FROM Allocations WHERE NeedId = @Id", new { Id = id }, transaction).ToList();
 

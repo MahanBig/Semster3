@@ -1,12 +1,16 @@
+@using Heimevernet.Web.Authorization
 @model Heimevernet.Web.Models.ViewModels.MapPageViewModel
 @{
+    var seesAll = ResourcePermissions.CanSeeAll(User); // Privat ser bare sine egne.
     ViewData["Title"] = "Kart";
     ViewData["FullWidth"] = true; // Kartet skal fylle hele bredden, uten marger.
 }
 
+@* data-resource-filter: søket, kategoriknappene, listen og markørene på kartet henger sammen (site.js). *@
 <div class="map-page" data-resource-filter>
     <div class="map-area">
-        <div id="map" class="map-canvas" role="application" aria-label="Kart over Norge"></div>
+        <div id="map" class="map-canvas" role="application" aria-label="Kart med ressurser"
+             data-create-url="@Url.Action("Create", "ResourceHandler")"></div>
         <div class="map-overlay">
             <label class="search-pill">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
@@ -14,13 +18,31 @@
             </label>
             <partial name="_CategoryChips" />
         </div>
+        <p class="map-hint" id="map-hint">Trykk + for å legge til en ressurs på kartet.</p>
+
+        @* Pluss-knappen slår på "Legg til"-modus. Bare da setter et klikk i kartet en pinne. *@
+        <button type="button" class="map-add-button" id="add-pin" aria-label="Legg til ressurs på kartet">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+        </button>
+        <div class="place-bar" id="place-bar" role="status" hidden>
+            <span id="place-text">Legg til-modus: klikk i kartet der ressursen er.</span>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn-pill btn-pill-small" id="place-confirm" href="#">Registrer ressurs her</a>
+                <button type="button" class="btn-pill btn-pill-outline btn-pill-small" id="place-cancel">Avbryt</button>
+            </div>
+        </div>
     </div>
 
-    <aside class="map-list" aria-label="Ressurser">
+    <aside class="map-list" aria-label="Nærmeste ressurser">
         <div class="list-head">
-            <h1>Ressurser</h1>
-            <span data-filter-count aria-live="polite">@Model.Resources.Count steder</span>
+            <h1>@(seesAll ? "Nærmest deg" : "Mine ressurser")</h1>
+            <span data-filter-count aria-live="polite">@Model.Resources.Count ressurser</span>
         </div>
+
+        <p class="location-line" data-location-status>
+            <span data-location-text>Slå på posisjon for å se hvor langt unna ressursene er.</span>
+            <button type="button" class="link-button" data-use-location>Bruk min posisjon</button>
+        </p>
 
         @if (Model.Resources.Count == 0)
         {
@@ -37,16 +59,84 @@
             <p class="empty-state" data-filter-empty hidden>Ingen ressurser passer søket.</p>
         }
 
-        <a asp-controller="ResourceHandler" asp-action="Index" class="fw-bold">Vis alle ressurser</a>
+        <a asp-controller="ResourceHandler" asp-action="Index" class="fw-bold">Vis alle med flere filtre</a>
     </aside>
 </div>
 
 @section Scripts {
     <script>
         (function () {
-            var map = L.map('map', { zoomControl: false }).setView([64.5, 12], 5); // Norge
+            var mapElement = document.getElementById('map');
+            var map = L.map(mapElement, { zoomControl: false });
             L.control.zoom({ position: 'bottomright' }).addTo(map);
             beredskapTiles(map);
+            kriseklarResourceMap(map, document.querySelector('[data-resource-filter]'));
+
+            // ---------- "Legg til"-modus ----------
+            // Et klikk i kartet gjør ingenting før brukeren har trykket +. Da unngår vi at noen
+            // legger til en ressurs ved et uhell, eller på feil sted fordi de egentlig ville flytte kartet.
+            // I modusen setter første klikk pinnen. Den kan dras eller flyttes med et nytt klikk.
+            var addButton = document.getElementById('add-pin');
+            var placeBar = document.getElementById('place-bar');
+            var placeText = document.getElementById('place-text');
+            var confirm = document.getElementById('place-confirm');
+            var hint = document.getElementById('map-hint');
+            var placing = false;
+            var pin = null;
+
+            function updateLink() {
+                var point = pin.getLatLng();
+                confirm.href = mapElement.dataset.createUrl + '?lat=' + point.lat.toFixed(6) + '&lng=' + point.lng.toFixed(6);
+                confirm.classList.remove('is-disabled');
+                confirm.removeAttribute('aria-disabled');
+                confirm.removeAttribute('tabindex');
+                placeText.textContent = 'Står pinnen riktig? Dra den, eller klikk et annet sted for å flytte den.';
+            }
+
+            function startPlacing() {
+                placing = true;
+                map.closePopup();
+                placeText.textContent = 'Legg til-modus: klikk i kartet der ressursen er.';
+                // Lenken kan ikke brukes før pinnen er satt.
+                confirm.removeAttribute('href');
+                confirm.classList.add('is-disabled');
+                confirm.setAttribute('aria-disabled', 'true');
+                confirm.setAttribute('tabindex', '-1');
+                placeBar.hidden = false;
+                addButton.hidden = true;
+                hint.hidden = true;
+                mapElement.classList.add('is-placing');
+                document.getElementById('place-cancel').focus();
+            }
+
+            function stopPlacing() {
+                placing = false;
+                if (pin) { map.removeLayer(pin); pin = null; }
+                placeBar.hidden = true;
+                addButton.hidden = false;
+                hint.hidden = false;
+                mapElement.classList.remove('is-placing');
+                addButton.focus();
+            }
+
+            addButton.addEventListener('click', startPlacing);
+            document.getElementById('place-cancel').addEventListener('click', stopPlacing);
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && placing) { stopPlacing(); }
+            });
+
+            map.on('click', function (event) {
+                if (!placing) { return; } // Utenfor modusen: et klikk i kartet legger ikke til noe.
+                if (!pin) {
+                    pin = L.marker(event.latlng, {
+                        icon: kriseklarMarkerIcon('#C2410C'), draggable: true, keyboard: true, title: 'Ny ressurs'
+                    }).addTo(map);
+                    pin.on('drag dragend', updateLink);
+                } else {
+                    pin.setLatLng(event.latlng);
+                }
+                updateLink();
+            });
         })();
     </script>
 }

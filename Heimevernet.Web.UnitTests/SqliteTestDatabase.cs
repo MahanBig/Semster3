@@ -96,6 +96,12 @@ internal sealed class SqliteTestDatabase : IDbConnectionFactory, IDisposable
             CategoryId INTEGER NOT NULL REFERENCES Categories (Id),
             LocationId INTEGER NULL REFERENCES Locations (Id));
 
+        CREATE TABLE ResourceImages (
+            ResourceId INTEGER NOT NULL PRIMARY KEY REFERENCES Resources (Id) ON DELETE CASCADE,
+            ContentType TEXT NOT NULL,
+            Data BLOB NOT NULL,
+            UploadedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+
         CREATE TABLE Allocations (
             NeedId INTEGER NOT NULL REFERENCES Needs (Id) ON DELETE CASCADE,
             ResourceId INTEGER NOT NULL REFERENCES Resources (Id) ON DELETE CASCADE,
@@ -103,10 +109,10 @@ internal sealed class SqliteTestDatabase : IDbConnectionFactory, IDisposable
             AllocatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (NeedId, ResourceId));
 
-        -- Same categories and order as Schema.sql, so Id 1 = Mat, 2 = Vann ... 7 = Informasjon.
+        -- Samme kategorier og rekkefølge som Schema.sql, så Id 1 = Mat, 2 = Vann ... 7 = Informasjon, 8 = Annet.
         INSERT INTO Categories (Name, Description) VALUES
             ('Mat', NULL), ('Vann', NULL), ('Ly og varme', NULL), ('Helse', NULL),
-            ('Verktøy', NULL), ('Strøm og lading', NULL), ('Informasjon', NULL);
+            ('Verktøy', NULL), ('Strøm og lading', NULL), ('Informasjon', NULL), ('Annet', NULL);
         """;
 
     // Et unikt navn per test, så testene aldri deler data. "Cache=Shared" lar flere tilkoblinger se samme database.

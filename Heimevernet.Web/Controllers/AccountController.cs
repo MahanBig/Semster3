@@ -79,8 +79,8 @@ public class AccountController(
         var result = await userManager.CreateAsync(user, model.Password);
         if (result.Succeeded)
         {
-            // Alle nye brukere får den vanlige rollen. Admin må gis av en annen admin.
-            await userManager.AddToRoleAsync(user, AppRoles.User);
+            // Alle nye brukere blir Privat. Offentlig og Admin gis av en admin på admin-siden.
+            await userManager.AddToRoleAsync(user, AppRoles.Private);
             await signInManager.SignInAsync(user, isPersistent: false);
             return RedirectToAction("Index", "Home");
         }

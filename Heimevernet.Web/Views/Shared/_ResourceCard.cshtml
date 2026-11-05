@@ -1,0 +1,36 @@
+@using System.Globalization
+@using Heimevernet.Web.Models.ViewModels.Resource
+@model ResourceViewModel
+@{
+    // Ett kort i rutenettet på Ressurser, som i designet: ikon, avstand, navn, kategori og sted, status.
+    // data-* brukes av filteret og kartet i site.js. Avstanden ([data-distance]) regnes ut i nettleseren.
+    var category = ResourceCategory.FromType(Model.Category);
+    var searchText = $"{Model.Name} {Model.Category} {Model.Description} {Model.Address} {Model.PostalPlace}".ToLowerInvariant();
+    var where = string.IsNullOrWhiteSpace(Model.PostalPlace) ? null : Model.PostalPlace;
+}
+<li data-filter-item
+    data-category="@category.Key" data-label="@category.Label" data-color="@category.Color" data-icon="@category.IconPath"
+    data-name="@Model.Name" data-search="@searchText" data-place="@Model.PostalPlace" data-status="@Model.Status"
+    data-registered="@Model.RegisteredAt?.ToString("o", CultureInfo.InvariantCulture)"
+    data-lat="@Model.Latitude?.ToString("0.######", CultureInfo.InvariantCulture)"
+    data-lng="@Model.Longitude?.ToString("0.######", CultureInfo.InvariantCulture)"
+    data-url="@Url.Action("Index", "Resource", new { id = Model.Id })">
+    <a class="resource-card" asp-controller="Resource" asp-action="Index" asp-route-id="@Model.Id">
+        <span class="resource-card-thumb" style="background: @category.Tint; color: @category.Color">
+            @if (Model.HasImage)
+            {
+                <img src="@Url.Action("Image", "Resource", new { id = Model.Id })" alt="" loading="lazy" />
+            }
+            else
+            {
+                @Html.Raw(category.IconSvg(48, 1.7))
+            }
+            <span class="resource-card-distance" data-distance hidden></span>
+        </span>
+        <span class="resource-card-body">
+            <strong>@Model.Name</strong>
+            <span class="resource-card-meta">@category.Label@(where is null ? "" : " · " + where)</span>
+            <span class="status-line status--@Model.Status"><span class="status-dot" aria-hidden="true"></span>@ResourceStatus.Label(Model.Status) · @Model.Quantity stk</span>
+        </span>
+    </a>
+</li>

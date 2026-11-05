@@ -21,7 +21,7 @@ public class ResourceEditDeleteTests
     public void Create_Post_SetsLoggedInUserAsOwner()
     {
         var repository = Repository();
-        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository()).WithUser("kari@test.no", AppRoles.User);
+        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository(), new FakeResourceImageRepository()).WithUser("kari@test.no", AppRoles.Private);
 
         controller.Create(ValidModel("Vannpost"));
 
@@ -31,7 +31,7 @@ public class ResourceEditDeleteTests
     [Fact]
     public void Edit_Get_Owner_GetsFormWithCurrentValues()
     {
-        var controller = new ResourceHandlerController(Repository(), new FakeCategoryRepository()).WithUser("ola@test.no", AppRoles.User);
+        var controller = new ResourceHandlerController(Repository(), new FakeCategoryRepository(), new FakeResourceImageRepository()).WithUser("ola@test.no", AppRoles.Private);
 
         var view = Assert.IsType<ViewResult>(controller.Edit(1));
 
@@ -42,7 +42,7 @@ public class ResourceEditDeleteTests
     [Fact]
     public void Edit_Get_OtherUser_IsForbidden()
     {
-        var controller = new ResourceHandlerController(Repository(), new FakeCategoryRepository()).WithUser("kari@test.no", AppRoles.User);
+        var controller = new ResourceHandlerController(Repository(), new FakeCategoryRepository(), new FakeResourceImageRepository()).WithUser("kari@test.no", AppRoles.Private);
 
         Assert.IsType<ForbidResult>(controller.Edit(1));
     }
@@ -50,7 +50,7 @@ public class ResourceEditDeleteTests
     [Fact]
     public void Edit_Get_UnknownId_ReturnsNotFound()
     {
-        var controller = new ResourceHandlerController(Repository(), new FakeCategoryRepository()).WithUser("admin@test.no", AppRoles.Admin);
+        var controller = new ResourceHandlerController(Repository(), new FakeCategoryRepository(), new FakeResourceImageRepository()).WithUser("admin@test.no", AppRoles.Admin);
 
         Assert.IsType<NotFoundResult>(controller.Edit(999));
     }
@@ -59,7 +59,7 @@ public class ResourceEditDeleteTests
     public void Edit_Post_Owner_SavesChangesAndKeepsOwner()
     {
         var repository = Repository();
-        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository()).WithUser("ola@test.no", AppRoles.User);
+        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository(), new FakeResourceImageRepository()).WithUser("ola@test.no", AppRoles.Private);
 
         var result = controller.Edit(1, ValidModel());
 
@@ -77,7 +77,7 @@ public class ResourceEditDeleteTests
     public void Edit_Post_OtherUser_IsForbiddenAndNothingIsSaved()
     {
         var repository = Repository();
-        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository()).WithUser("kari@test.no", AppRoles.User);
+        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository(), new FakeResourceImageRepository()).WithUser("kari@test.no", AppRoles.Private);
 
         Assert.IsType<ForbidResult>(controller.Edit(1, ValidModel()));
         Assert.Empty(repository.Updated);
@@ -87,7 +87,7 @@ public class ResourceEditDeleteTests
     public void Edit_Post_InvalidModel_ShowsFormAgain()
     {
         var repository = Repository();
-        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository()).WithUser("ola@test.no", AppRoles.User);
+        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository(), new FakeResourceImageRepository()).WithUser("ola@test.no", AppRoles.Private);
         controller.ModelState.AddModelError(nameof(ResourceViewModel.Name), "Skriv et navn.");
 
         var view = Assert.IsType<ViewResult>(controller.Edit(1, ValidModel(name: "")));
@@ -100,7 +100,7 @@ public class ResourceEditDeleteTests
     public void Edit_Post_Admin_CanEditResourceWithoutOwner()
     {
         var repository = Repository();
-        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository()).WithUser("admin@test.no", AppRoles.Admin);
+        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository(), new FakeResourceImageRepository()).WithUser("admin@test.no", AppRoles.Admin);
 
         Assert.IsType<RedirectToActionResult>(controller.Edit(2, ValidModel("Oppdatert seed")));
         Assert.Null(Assert.Single(repository.Updated).UserId);
@@ -109,7 +109,7 @@ public class ResourceEditDeleteTests
     [Fact]
     public void Delete_Get_OtherUser_IsForbidden()
     {
-        var controller = new ResourceHandlerController(Repository(), new FakeCategoryRepository()).WithUser("kari@test.no", AppRoles.User);
+        var controller = new ResourceHandlerController(Repository(), new FakeCategoryRepository(), new FakeResourceImageRepository()).WithUser("kari@test.no", AppRoles.Private);
 
         Assert.IsType<ForbidResult>(controller.Delete(1));
     }
@@ -118,7 +118,7 @@ public class ResourceEditDeleteTests
     public void DeleteConfirmed_Owner_DeletesAndRedirectsToList()
     {
         var repository = Repository();
-        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository()).WithUser("ola@test.no", AppRoles.User);
+        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository(), new FakeResourceImageRepository()).WithUser("ola@test.no", AppRoles.Private);
 
         var redirect = Assert.IsType<RedirectToActionResult>(controller.DeleteConfirmed(1));
 
@@ -132,7 +132,7 @@ public class ResourceEditDeleteTests
     public void DeleteConfirmed_OtherUser_IsForbiddenAndNothingIsDeleted()
     {
         var repository = Repository();
-        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository()).WithUser("kari@test.no", AppRoles.User);
+        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository(), new FakeResourceImageRepository()).WithUser("kari@test.no", AppRoles.Private);
 
         Assert.IsType<ForbidResult>(controller.DeleteConfirmed(1));
         Assert.Empty(repository.Deleted);
@@ -141,7 +141,7 @@ public class ResourceEditDeleteTests
     [Fact]
     public void DeleteConfirmed_UnknownId_ReturnsNotFound()
     {
-        var controller = new ResourceHandlerController(Repository(), new FakeCategoryRepository()).WithUser("admin@test.no", AppRoles.Admin);
+        var controller = new ResourceHandlerController(Repository(), new FakeCategoryRepository(), new FakeResourceImageRepository()).WithUser("admin@test.no", AppRoles.Admin);
 
         Assert.IsType<NotFoundResult>(controller.DeleteConfirmed(999));
     }
@@ -151,8 +151,8 @@ public class ResourceEditDeleteTests
     {
         var repository = Repository();
 
-        var asOwner = new ResourceController(repository).WithUser("ola@test.no", AppRoles.User).Index(1);
-        var asOther = new ResourceController(repository).WithUser("kari@test.no", AppRoles.User).Index(1);
+        var asOwner = new ResourceController(repository, new FakeResourceImageRepository()).WithUser("ola@test.no", AppRoles.Private).Index(1);
+        var asOther = new ResourceController(repository, new FakeResourceImageRepository()).WithUser("kari@test.no", AppRoles.Public).Index(1); // Offentlig ser alle.
 
         Assert.True(Assert.IsType<ResourceViewModel>(Assert.IsType<ViewResult>(asOwner).Model).CanModify);
         Assert.False(Assert.IsType<ResourceViewModel>(Assert.IsType<ViewResult>(asOther).Model).CanModify);

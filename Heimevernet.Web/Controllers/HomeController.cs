@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Heimevernet.Web.Authorization;
 using Heimevernet.Web.DataAccess;
 using Heimevernet.Web.Models;
 using Heimevernet.Web.Models.ViewModels;
@@ -15,7 +16,8 @@ public class HomeController(IResourceRepository resourceRepository) : Controller
     {
         var model = new MapPageViewModel
         {
-            Resources = resourceRepository.GetAll()
+            // Privat ser bare sine egne ressurser, Offentlig og Admin ser alle.
+            Resources = ResourcePermissions.Visible(User, resourceRepository.GetAll())
                 .Select(Models.ViewModels.Resource.ResourceViewModel.FromEntity)
                 .ToList()
         };

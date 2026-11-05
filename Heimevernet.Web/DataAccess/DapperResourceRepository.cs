@@ -8,11 +8,14 @@ namespace Heimevernet.Web.DataAccess;
 public class DapperResourceRepository(IDbConnectionFactory connectionFactory) : IResourceRepository
 {
     // LEFT JOIN fordi adresse og eier kan mangle.
+    // Latitude/Longitude er DECIMAL i databasen. CAST gjør dem til DOUBLE, som passer double? i C#.
     private const string SelectResources =
         """
         SELECT r.Id, r.Name, r.Description, r.Quantity, r.Status, r.RegisteredAt, r.UserId, r.CategoryId, r.LocationId,
                c.Name AS CategoryName,
                l.Address, l.PostalCode, p.PostalPlace,
+               CAST(l.Latitude AS DOUBLE) AS Latitude, CAST(l.Longitude AS DOUBLE) AS Longitude,
+               CASE WHEN EXISTS (SELECT 1 FROM ResourceImages i WHERE i.ResourceId = r.Id) THEN 1 ELSE 0 END AS HasImage,
                u.Name AS OwnerName, u.Email AS OwnerEmail, u.PhoneNumber AS OwnerPhone
         FROM Resources r
         INNER JOIN Categories c ON c.Id = r.CategoryId
@@ -47,7 +50,8 @@ public class DapperResourceRepository(IDbConnectionFactory connectionFactory) : 
         using var transaction = connection.BeginTransaction();
 
         resource.LocationId = LocationWriter.Save(
-            connection, transaction, existingLocationId: null, resource.Address, resource.PostalCode, resource.PostalPlace);
+            connection, transaction, existingLocationId: null, resource.Address, resource.PostalCode, resource.PostalPlace,
+            resource.Latitude, resource.Longitude);
 
         // Id står ikke med: MariaDB lager den (AUTO_INCREMENT), og RETURNING Id gir oss den tilbake.
         var id = connection.ExecuteScalar<int>(
@@ -75,7 +79,8 @@ public class DapperResourceRepository(IDbConnectionFactory connectionFactory) : 
             "SELECT LocationId FROM Resources WHERE Id = @Id", new { resource.Id }, transaction);
 
         resource.LocationId = LocationWriter.Save(
-            connection, transaction, oldLocationId, resource.Address, resource.PostalCode, resource.PostalPlace);
+            connection, transaction, oldLocationId, resource.Address, resource.PostalCode, resource.PostalPlace,
+            resource.Latitude, resource.Longitude);
 
         // UserId og RegisteredAt endres ikke.
         var changedRows = connection.Execute(

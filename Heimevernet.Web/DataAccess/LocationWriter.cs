@@ -8,16 +8,19 @@ namespace Heimevernet.Web.DataAccess;
 internal static class LocationWriter
 {
     // Lager eller oppdaterer adressen og returnerer Id-en til raden i Locations.
-    // Returnerer null hvis adressefeltene er tomme.
+    // Returnerer null hvis både adressefeltene og koordinatene er tomme.
+    // Koordinatene (punktet på kartet) er valgfrie. Behov sender ingen koordinater.
     public static int? Save(
         DbConnection connection,
         DbTransaction transaction,
         int? existingLocationId,
         string? address,
         string? postalCode,
-        string? postalPlace)
+        string? postalPlace,
+        double? latitude = null,
+        double? longitude = null)
     {
-        if (address is null && postalCode is null)
+        if (address is null && postalCode is null && latitude is null && longitude is null)
         {
             return null;
         }
@@ -38,15 +41,23 @@ internal static class LocationWriter
         if (existingLocationId is { } id)
         {
             connection.Execute(
-                "UPDATE Locations SET Address = @Address, PostalCode = @PostalCode WHERE Id = @Id",
-                new { Id = id, Address = address, PostalCode = postalCode },
+                """
+                UPDATE Locations
+                SET Address = @Address, PostalCode = @PostalCode, Latitude = @Latitude, Longitude = @Longitude
+                WHERE Id = @Id
+                """,
+                new { Id = id, Address = address, PostalCode = postalCode, Latitude = latitude, Longitude = longitude },
                 transaction);
             return id;
         }
 
         return connection.ExecuteScalar<int>(
-            "INSERT INTO Locations (Address, PostalCode) VALUES (@Address, @PostalCode) RETURNING Id",
-            new { Address = address, PostalCode = postalCode },
+            """
+            INSERT INTO Locations (Address, PostalCode, Latitude, Longitude)
+            VALUES (@Address, @PostalCode, @Latitude, @Longitude)
+            RETURNING Id
+            """,
+            new { Address = address, PostalCode = postalCode, Latitude = latitude, Longitude = longitude },
             transaction);
     }
 

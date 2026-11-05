@@ -19,6 +19,9 @@ public class Resource
     public string? Address { get; set; }
     public string? PostalCode { get; set; }
     public string? PostalPlace { get; set; }
+    public double? Latitude { get; set; }  // Punktet på kartet (Locations). Null hvis det ikke er valgt.
+    public double? Longitude { get; set; }
+    public bool HasImage { get; set; } // Om det finnes en rad i ResourceImages. Selve bildet hentes bare når det vises.
     public string? OwnerName { get; set; }
     public string? OwnerEmail { get; set; }
     public string? OwnerPhone { get; set; }

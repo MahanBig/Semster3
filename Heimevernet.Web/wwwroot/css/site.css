@@ -197,6 +197,7 @@ a:hover { color: var(--primary-hover); }
 .page {
   width: 100%;
   max-width: 1180px;
+  margin: 0 auto; /* Midtstilt i området til høyre for menyen på store skjermer, i stedet for å klemmes mot venstre. */
   box-sizing: border-box;
   padding: 24px 32px 48px;
   display: flex;
@@ -393,6 +394,204 @@ fieldset legend { font-size: 18px; font-weight: 700; }
 .list-head span { font-size: 15px; color: var(--muted); }
 .leaflet-container { font-family: var(--bs-body-font-family); }
 
+/* Markører på kartet: rund i kategorifargen med ikon (site.js, markerIcon). */
+.kk-marker { background: none; border: 0; }
+.kk-marker-pin {
+  width: 40px; height: 40px; box-sizing: border-box; border-radius: 50%;
+  border: 3px solid #FFFFFF; box-shadow: 0 2px 6px rgba(15, 27, 45, 0.35);
+  display: flex; align-items: center; justify-content: center; color: #FFFFFF;
+}
+.kk-popup { display: flex; flex-direction: column; gap: 4px; font-size: 15px; min-width: 160px; }
+.kk-popup strong { font-size: 16px; }
+.kk-popup span { color: var(--muted); }
+.kk-popup a { font-weight: 700; }
+.map-hint {
+  position: absolute; left: 16px; bottom: 16px; z-index: 500; margin: 0;
+  padding: 8px 14px; border-radius: 12px; background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow-float); font-size: 15px; color: var(--text-2); pointer-events: none;
+}
+
+/* Pluss-knappen og linjen som vises mens man plasserer pinnen (forsiden). */
+.map-add-button {
+  position: absolute; right: 16px; bottom: 96px; z-index: 600;
+  width: 56px; height: 56px; border-radius: 50%; border: 0;
+  background: var(--alert); color: #FFFFFF; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 14px rgba(15, 27, 45, 0.3);
+}
+.map-add-button:hover { background: #9A3412; }
+.place-bar {
+  position: absolute; left: 16px; right: 16px; bottom: 16px; z-index: 600; max-width: 640px;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px;
+  padding: 12px 16px; border-radius: 16px; background: #FFFFFF; box-shadow: var(--shadow-float);
+  font-size: 16px; font-weight: 700;
+}
+.place-bar .is-disabled { opacity: 0.45; pointer-events: none; }
+.place-bar[hidden], .map-add-button[hidden], .map-hint[hidden] { display: none; }
+.leaflet-container.is-placing, .is-placing .leaflet-grab { cursor: crosshair; }
+
+/* Posisjonslinjen: "Avstanden regnes fra der du er nå. Oppdater posisjon" */
+.location-line { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 15px; color: var(--muted); }
+.link-button {
+  border: 0; background: none; padding: 0; min-height: 32px;
+  color: var(--primary); font-weight: 700; text-decoration: underline; cursor: pointer;
+}
+.link-button:hover { color: var(--primary-hover); }
+.link-button:disabled { color: var(--muted); text-decoration: none; cursor: default; }
+
+.resource-distance { flex: none; font-size: 15px; font-weight: 700; color: var(--text); }
+.status-line { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.status-dot { width: 9px; height: 9px; border-radius: 50%; background: #8593A5; flex: none; }
+.resource-text .status-line.status--tilgjengelig, .status-line.status--tilgjengelig { color: var(--ok); }
+.status--tilgjengelig .status-dot { background: #16A34A; }
+.resource-text .status-line.status--i_bruk, .status-line.status--i_bruk { color: #92400E; }
+.status--i_bruk .status-dot { background: #D97706; }
+.resource-text .status-line.status--utilgjengelig, .status-line.status--utilgjengelig { color: var(--danger); }
+.status--utilgjengelig .status-dot { background: #DC2626; }
+
+/* ---------- Ressurser: rutenett/kart med filtre til høyre (designet "Ressurser nær deg") ---------- */
+
+.resources-page { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
+.resources-main { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.search-pill.search-pill--wide { max-width: none; box-shadow: none; border-color: var(--chip-border); }
+.filter-status { font-size: 17px; }
+.filter-status span { color: var(--muted); }
+
+.segmented { display: flex; padding: 4px; border-radius: 26px; background: var(--surface); border: 1px solid var(--border); }
+.segmented button {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px;
+  border: 0; border-radius: 22px; background: transparent; color: var(--text);
+  font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.segmented button[aria-pressed="true"] { background: var(--primary); color: #FFFFFF; }
+
+.resource-cards {
+  margin: 0; padding: 0; list-style: none;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px;
+}
+.resource-card {
+  height: 100%; display: flex; flex-direction: column; overflow: hidden;
+  border-radius: 16px; border: 1px solid var(--border); background: var(--surface);
+  color: var(--text); text-decoration: none;
+}
+.resource-card:hover { border-color: var(--primary); color: var(--text); box-shadow: 0 4px 14px rgba(15, 27, 45, 0.1); }
+.resource-card-thumb { position: relative; height: 120px; display: flex; align-items: center; justify-content: center; }
+.resource-card-distance {
+  position: absolute; top: 10px; right: 10px; padding: 4px 10px; border-radius: 12px;
+  background: #FFFFFF; color: var(--text); font-size: 14px; font-weight: 700;
+}
+.resource-card-body { display: flex; flex-direction: column; gap: 5px; padding: 12px 14px 14px; }
+.resource-card-body strong { font-size: 17px; line-height: 1.25; }
+.resource-card-meta { font-size: 15px; color: var(--muted); }
+.resource-card-body .status-line { font-size: 14px; }
+
+.resources-map { position: relative; height: 600px; border-radius: 18px; overflow: hidden; border: 1px solid var(--border); background: var(--map-bg); }
+.empty-filter { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; border-style: dashed; border-color: var(--border-strong); }
+.empty-filter h2 { margin: 0; font-size: 20px; }
+.empty-filter p { margin: 0; color: var(--muted); }
+
+.filter-panel {
+  position: sticky; top: 16px; box-sizing: border-box; display: block; /* <details> støtter ikke flex i alle nettlesere. */
+  padding: 24px; border-radius: var(--radius-card); background: var(--surface); border: 1px solid var(--border);
+}
+.filter-panel > summary { display: flex; align-items: center; justify-content: space-between; list-style: none; cursor: pointer; }
+.filter-panel > summary::-webkit-details-marker { display: none; }
+.filter-panel > summary h2 { margin: 0; font-size: 24px; }
+.filter-panel-chevron { display: none; }
+.filter-panel[open] > *:not(summary) { margin-top: 22px; }
+.filter-reset { position: absolute; top: 28px; right: 24px; margin-top: 0 !important; }
+.filter-section { display: flex; flex-direction: column; gap: 10px; }
+.filter-section h3, .filter-label { margin: 0; font-size: 17px; font-weight: 700; }
+.filter-hint { margin: 0; font-size: 14px; color: var(--muted); }
+.chip.chip--square { border-radius: 10px; box-shadow: none; }
+.chip[aria-checked="true"] { background: var(--primary); border-color: var(--primary); color: #FFFFFF; }
+.chip-count {
+  min-width: 22px; height: 22px; padding: 0 6px; box-sizing: border-box; border-radius: 11px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #EEF1F5; color: var(--text-2); font-size: 13px;
+}
+.chip[aria-pressed="true"] .chip-count { background: rgba(255, 255, 255, 0.2); color: #FFFFFF; }
+.check-row { display: flex; align-items: center; gap: 12px; min-height: 44px; font-size: 16px; cursor: pointer; }
+.filter-callout { display: flex; flex-direction: column; gap: 6px; padding: 16px; border-radius: 16px; background: var(--bg); font-size: 15px; }
+.filter-callout span { color: var(--muted); line-height: 1.45; }
+.filter-callout a { font-weight: 700; }
+
+/* Minikart i skjemaet og på detaljsiden */
+.point-picker { display: flex; flex-direction: column; gap: 10px; }
+.point-picker-map, .detail-map {
+  height: 280px; border-radius: 14px; overflow: hidden;
+  border: 1px solid var(--border-strong); background: var(--map-bg);
+}
+.point-picker-map { cursor: crosshair; }
+.detail-map { height: 220px; border-color: var(--border); }
+
+@media (max-width: 1100px) {
+  .resources-page { grid-template-columns: minmax(0, 1fr); }
+  .filter-panel { position: static; order: -1; padding: 16px 20px; }
+  .filter-panel-chevron { display: block; transition: transform 0.15s; }
+  .filter-panel[open] .filter-panel-chevron { transform: rotate(180deg); }
+  .filter-panel > summary h2 { font-size: 20px; }
+  .filter-reset { position: static; align-self: flex-start; }
+  .resources-map { height: 460px; }
+}
+
+/* ---------- Bilder på ressurser ---------- */
+.resource-thumb { overflow: hidden; }
+.resource-thumb img, .resource-card-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.resource-card-thumb { overflow: hidden; }
+.detail-hero--image { width: 100%; object-fit: cover; display: block; }
+.image-field { display: flex; flex-direction: column; gap: 8px; }
+.image-current { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.image-current img, .image-preview { width: 160px; height: 110px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border); }
+.image-preview[hidden] { display: none; }
+
+/* ---------- Roller, admin og innstillinger ---------- */
+.role-note {
+  margin: 0; padding: 12px 16px; border-radius: 14px;
+  background: #E3EAFB; color: #1E3A8A; font-size: 15px;
+}
+.role-legend { margin: 0 0 12px; padding-left: 18px; font-size: 15px; color: var(--text-2); display: flex; flex-direction: column; gap: 2px; }
+.admin-table td, .admin-table th { padding: 10px 8px; }
+.admin-table .btn-pill-small { min-height: 38px; padding: 0 12px; font-size: 14px; }
+.small-text { font-size: 14px; }
+.role-form { display: flex; align-items: center; gap: 8px; }
+.role-form select { min-width: 140px; }
+.segmented a {
+  display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px;
+  border-radius: 22px; color: var(--text); font-size: 15px; font-weight: 700; text-decoration: none;
+}
+.segmented a:hover { background: #EEF2F8; color: var(--primary); }
+.confirm-delete > summary { list-style: none; cursor: pointer; }
+.confirm-delete > summary::-webkit-details-marker { display: none; }
+.confirm-delete[open] > summary { margin-bottom: 8px; }
+.confirm-delete p { margin: 0 0 8px; font-size: 14px; max-width: 32ch; }
+a.user-chip { text-decoration: none; }
+a.user-chip:hover { background: rgba(255, 255, 255, 0.1); color: #FFFFFF; }
+
+/* ---------- Menyknappen (tre streker som blir til en X) ---------- */
+/* Vises bare på mobil. På PC er .sidebar-panel bare en vanlig del av sidemenyen (display: contents). */
+.sidebar-panel { display: contents; }
+.menu-backdrop { display: none; }
+.menu-toggle {
+  display: none; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  width: 48px; height: 48px; padding: 0; border: 0; border-radius: 12px;
+  background: transparent; color: #FFFFFF; cursor: pointer;
+}
+.menu-toggle:hover { background: rgba(255, 255, 255, 0.1); }
+.menu-toggle span {
+  display: block; width: 26px; height: 3px; border-radius: 2px; background: currentColor;
+  transition: transform 0.25s ease, opacity 0.2s ease;
+}
+/* Åpen: øverste og nederste strek flyttes til midten og vris 45 grader hver sin vei, midterste forsvinner. */
+.menu-toggle[aria-expanded="true"] span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+.menu-toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.menu-toggle[aria-expanded="true"] span:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+@media (prefers-reduced-motion: reduce) {
+  .menu-toggle span, .sidebar-panel { transition: none !important; }
+}
+
+.auth-mobile-brand { display: none; }
+
 /* ---------- Innlogging (delt skjerm) ---------- */
 
 .auth { display: flex; flex-wrap: wrap; min-height: 100vh; }
@@ -429,26 +628,31 @@ fieldset legend { font-size: 18px; font-weight: 700; }
 
 @media (max-width: 900px) {
   .app { flex-direction: column; }
+  /* Toppen på mobil: bare logoen og knappen med tre streker. Resten ligger i sidemenyen. */
   .sidebar {
-    position: static; width: auto; height: auto; overflow: visible;
-    flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12px;
-    padding: 12px 16px;
+    position: sticky; top: 0; z-index: 1100; width: auto; height: auto; overflow: visible;
+    flex-direction: row; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px 12px 10px 16px;
   }
-  .brand { font-size: 18px; padding: 0; }
-  .sidebar nav { order: 3; width: 100%; }
-  .nav-list { flex-direction: row; overflow-x: auto; gap: 6px; scrollbar-width: none; }
-  .nav-list::-webkit-scrollbar { display: none; }
-  .nav-list a { min-height: 44px; padding: 0 14px; font-size: 15px; white-space: nowrap; }
-  .sidebar-spacer, .sidebar-footer { display: none; }
-  .emergency { display: none; }
-  .sidebar-user { margin-left: auto; flex-direction: row; align-items: center; }
-  /* Bare initialen vises i toppen; navnet er fortsatt der for skjermlesere. */
-  .user-chip-text {
-    position: absolute; width: 1px; height: 1px; overflow: hidden;
-    clip: rect(0 0 0 0); white-space: nowrap;
+  .brand { font-size: 19px; padding: 0; }
+  .brand-mark { width: 30px; height: 38px; }
+  .menu-toggle { display: flex; position: relative; z-index: 2; }
+
+  /* Sidemenyen glir inn fra høyre. Den har det samme som sidemenyen på PC: valgene, nødnumrene,
+     profilen og Logg ut. visibility: hidden gjør at den ikke kan få fokus når den er lukket. */
+  .sidebar-panel {
+    display: flex; flex-direction: column; gap: 22px;
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 1;
+    width: min(320px, 86vw); box-sizing: border-box;
+    padding: 76px 16px 24px; overflow-y: auto;
+    background: var(--navy); box-shadow: -8px 0 24px rgba(0, 0, 0, 0.25);
+    transform: translateX(100%); visibility: hidden;
+    transition: transform 0.25s ease, visibility 0s linear 0.25s;
   }
-  .user-chip { padding: 0; }
-  .sidebar-user .btn-pill { min-height: 40px; padding: 0 14px; font-size: 15px; white-space: nowrap; }
+  .sidebar.is-open .sidebar-panel { transform: none; visibility: visible; transition: transform 0.25s ease; }
+  .menu-backdrop { display: block; position: fixed; inset: 0; z-index: 0; background: rgba(15, 27, 45, 0.5); }
+  .menu-backdrop[hidden] { display: none; }
+  body.menu-open { overflow: hidden; } /* Siden bak ruller ikke mens menyen er åpen. */
   .page { padding: 16px; }
   .page.page--full { padding: 0; }
   /* Kategoriknappene på én rad som rulles sidelengs, som i mobildesignet */
@@ -457,14 +661,50 @@ fieldset legend { font-size: 18px; font-weight: 700; }
   .map-overlay .chip { flex: none; }
   h1 { font-size: 1.6rem; }
   .crisis-banner { padding: 10px 16px; }
-  .map-page { min-height: 0; }
-  .map-area { min-height: 420px; flex-basis: 100%; }
-  .map-list { max-height: none; border-left: 0; border-top: 1px solid var(--border); }
+  /* Forsiden på mobil: bare kartet, så det fyller skjermen uten scrolling. "Nærmest deg" vises ikke.
+     Hele listen med filtre finnes under Ressurser. */
+  .app { min-height: 100dvh; }
+  .map-page { flex: 1; min-height: 360px; } /* Fyller resten av skjermen under menyen (og krisevarselet). */
+  .map-area { min-height: 0; flex-basis: 100%; }
+  .map-list { display: none; }
+  .map-hint { display: none; }
+  .map-add-button { bottom: 104px; right: 12px; }
+  .place-bar { left: 8px; right: 8px; bottom: 8px; font-size: 15px; }
+
+  /* Ressurser på mobil: to kort i bredden og lavere bilder, så mer får plass på skjermen. */
+  .resources-main { gap: 12px; }
+  .resources-main .page-head { gap: 8px; }
+  .resources-main .page-head > div:last-child { width: 100%; flex-wrap: nowrap !important; justify-content: space-between; }
+  .segmented button { padding: 0 12px; }
+  .resource-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .resource-card-thumb { height: 84px; }
+  .resource-card-thumb svg { width: 34px; height: 34px; }
+  .resource-card-body { padding: 10px; gap: 3px; }
+  .resource-card-body strong { font-size: 15px; }
+  .resource-card-meta, .resource-card-body .status-line { font-size: 13px; }
+  .resource-card-distance { top: 6px; right: 6px; padding: 2px 8px; font-size: 12px; }
+  .filter-status { font-size: 15px; }
+  .search-pill { min-height: 46px; }
+
+  /* Detaljsiden og skjemaer: mindre luft. */
+  .detail-hero { height: 150px; }
+  .panel { padding: 16px; }
+  .panel-grid { gap: 16px; }
+  .point-picker-map { height: 220px; }
+  .page { gap: 14px; }
+  .admin-table .role-form { flex-wrap: wrap; }
   .auth-hero { padding: 24px; gap: 20px; }
   .auth-hero h1 { font-size: 28px; }
   .auth-hero-body { gap: 0; }
   .check-list { display: none; } /* Skjemaet skal synes uten mye scrolling på mobil */
-  .auth-main { padding: 24px 16px; }
+  .auth-main { padding: 20px 16px 24px; order: -1; flex-direction: column; align-items: stretch; justify-content: flex-start; } /* Innloggingen øverst, den blå delen med nødnumrene under. */
+  .auth-hero .brand { display: none; } /* Logoen står over skjemaet i stedet. */
+  .auth-mobile-brand {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
+    color: var(--navy); font-size: 22px; font-weight: 700; text-decoration: none;
+  }
+  /* Logoen har en hvit hake, så den trenger mørk bakgrunn på den lyse siden. */
+  .auth-mobile-brand img { box-sizing: content-box; padding: 5px 7px; border-radius: 10px; background: var(--navy); }
   .auth-card { padding: 24px; }
 }
 

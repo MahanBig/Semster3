@@ -14,7 +14,7 @@ public class ResourceHandlerControllerTests
         var repository = new FakeResourceRepository(
             new Resource { Id = 7, Name = "Water pump", Description = "Stored in depot A", CategoryName = "Verktøy" },
             new Resource { Id = 12, Name = "Minibus", Description = "Nine seats", CategoryName = "Informasjon" });
-        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository());
+        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository(), new FakeResourceImageRepository()).WithUser("ola@test.no", Heimevernet.Web.Models.AppRoles.Public);
 
         var result = controller.Index();
 
@@ -40,7 +40,7 @@ public class ResourceHandlerControllerTests
     [Fact]
     public void Index_EmptyRepository_ReturnsEmptyList()
     {
-        var controller = new ResourceHandlerController(new FakeResourceRepository(), new FakeCategoryRepository());
+        var controller = new ResourceHandlerController(new FakeResourceRepository(), new FakeCategoryRepository(), new FakeResourceImageRepository());
 
         var result = controller.Index();
 
@@ -52,7 +52,7 @@ public class ResourceHandlerControllerTests
     [Fact]
     public void Create_Get_ReturnsEmptyForm()
     {
-        var controller = new ResourceHandlerController(new FakeResourceRepository(), new FakeCategoryRepository());
+        var controller = new ResourceHandlerController(new FakeResourceRepository(), new FakeCategoryRepository(), new FakeResourceImageRepository());
 
         var result = controller.Create();
 
@@ -66,7 +66,7 @@ public class ResourceHandlerControllerTests
     {
         var repository = new FakeResourceRepository(
             new Resource { Id = 7, Name = "Water pump", Description = "Stored in depot A", CategoryName = "Verktøy" });
-        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository()).WithUser("admin@test.no");
+        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository(), new FakeResourceImageRepository()).WithUser("admin@test.no");
         var model = new ResourceViewModel
         {
             Name = "  Lastebil ",
@@ -99,7 +99,7 @@ public class ResourceHandlerControllerTests
     public void Create_Post_InvalidModel_ShowsFormAgainAndDoesNotSave()
     {
         var repository = new FakeResourceRepository();
-        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository()).WithUser("admin@test.no");
+        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository(), new FakeResourceImageRepository()).WithUser("admin@test.no");
         controller.ModelState.AddModelError(nameof(ResourceViewModel.Name), "Skriv et navn.");
         var model = new ResourceViewModel { Description = "Uten navn", Category = "Verktøy" };
 
@@ -114,7 +114,7 @@ public class ResourceHandlerControllerTests
     public void Create_Post_UnknownCategory_ShowsFormAgainAndDoesNotSave()
     {
         var repository = new FakeResourceRepository();
-        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository()).WithUser("ola@test.no");
+        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository(), new FakeResourceImageRepository()).WithUser("ola@test.no");
         var model = new ResourceViewModel { Name = "Båt", Description = "Robåt", Category = "Finnes ikke" };
 
         var result = controller.Create(model);

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Heimevernet.Web.DataAccess;
 using Heimevernet.Web.DataAccess.Identity;
 using Heimevernet.Web.Models.Entities;
@@ -23,6 +24,7 @@ if (string.IsNullOrWhiteSpace(connectionString))
 // Repository og Identity-stores ber den om en ny tilkobling hver gang de skal kjøre SQL.
 builder.Services.AddSingleton<IDbConnectionFactory>(new MySqlConnectionFactory(connectionString));
 builder.Services.AddScoped<IResourceRepository, DapperResourceRepository>();
+builder.Services.AddScoped<IResourceImageRepository, DapperResourceImageRepository>();
 builder.Services.AddScoped<ICategoryRepository, DapperCategoryRepository>();
 builder.Services.AddScoped<INeedRepository, DapperNeedRepository>();
 builder.Services.AddScoped<IAllocationRepository, DapperAllocationRepository>();
@@ -60,6 +62,10 @@ builder.Services.AddAuthorization(options =>
         .RequireAuthenticatedUser()
         .Build();
 });
+
+// Hvor ofte innloggingen sjekkes mot databasen. Endrer admin rollen til en bruker, eller brukeren bytter passord,
+// gjelder endringen senest etter ett minutt, uten at brukeren må logge ut og inn (standard er 30 minutter).
+builder.Services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.FromMinutes(1));
 
 // Innloggingen huskes i en cookie. Her sier vi hvor brukeren sendes når det trengs.
 builder.Services.ConfigureApplicationCookie(options =>
@@ -110,6 +116,16 @@ app.Use(async (context, next) =>
     headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()";
     await next();
 });
+// Fast kultur for alle forespørsler: tall skrives og leses med punktum (58.1464), uansett språk på maskinen.
+// Ellers ville koordinatene fra kartet bli lest feil på en norsk Windows-maskin, der desimaltegnet er komma.
+// Datoene i viewene har eget format, så de påvirkes ikke.
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture(CultureInfo.InvariantCulture),
+    SupportedCultures = [CultureInfo.InvariantCulture],
+    SupportedUICultures = [CultureInfo.InvariantCulture]
+});
+
 app.UseRouting(); // Rekkefølgen hver forespørsel går gjennom.
 
 app.UseAuthentication(); // Leser innloggings-cookien og finner ut HVEM brukeren er.

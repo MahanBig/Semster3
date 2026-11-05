@@ -13,7 +13,7 @@ public class HomeControllerTests
     {
         var resources = new FakeResourceRepository(
             new Resource { Id = 3, Name = "Aggregat", Description = "5 kW", CategoryName = "Strøm og lading" });
-        var controller = new HomeController(resources);
+        var controller = new HomeController(resources).WithUser("ola@test.no", Heimevernet.Web.Models.AppRoles.Public);
 
         var result = controller.Index();
 

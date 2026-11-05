@@ -14,7 +14,7 @@ public class ResourceControllerTests
         var repository = new FakeResourceRepository(
             new Resource { Id = 7, Name = "Water pump", Description = "Stored in depot A", CategoryName = "Verktøy" },
             new Resource { Id = 12, Name = "Minibus", Description = "Nine seats", CategoryName = "Informasjon", OwnerName = "Ola", OwnerPhone = "12345678" });
-        var controller = new ResourceController(repository);
+        var controller = new ResourceController(repository, new FakeResourceImageRepository()).WithUser("ola@test.no", Heimevernet.Web.Models.AppRoles.Public);
 
         var result = controller.Index(12);
 
@@ -31,7 +31,7 @@ public class ResourceControllerTests
     [Fact]
     public void Index_MissingId_RedirectsToResourceList()
     {
-        var controller = new ResourceController(new FakeResourceRepository());
+        var controller = new ResourceController(new FakeResourceRepository(), new FakeResourceImageRepository());
 
         var result = controller.Index();
 
@@ -44,7 +44,7 @@ public class ResourceControllerTests
     public void Index_UnknownId_ReturnsNotFound()
     {
         var repository = new FakeResourceRepository(new Resource { Id = 7, Name = "Water pump" });
-        var controller = new ResourceController(repository);
+        var controller = new ResourceController(repository, new FakeResourceImageRepository()).WithUser("ola@test.no", Heimevernet.Web.Models.AppRoles.Public);
 
         var result = controller.Index(999);
 

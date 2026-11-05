@@ -68,21 +68,21 @@ public class DapperUserStoreTests
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
         await roleManager.CreateAsync(new ApplicationRole("Admin"));
-        await roleManager.CreateAsync(new ApplicationRole("Bruker"));
+        await roleManager.CreateAsync(new ApplicationRole("Privat"));
         var user = new ApplicationUser { UserName = "per@test.no", Email = "per@test.no" };
         await userManager.CreateAsync(user, Password);
 
         await userManager.AddToRoleAsync(user, "Admin");
-        await userManager.AddToRoleAsync(user, "Bruker");
+        await userManager.AddToRoleAsync(user, "Privat");
 
         Assert.True(await userManager.IsInRoleAsync(user, "admin")); // Rollenavn skiller ikke mellom store og små bokstaver.
-        Assert.Equal("Admin, Bruker", string.Join(", ", await userManager.GetRolesAsync(user)));
+        Assert.Equal("Admin, Privat", string.Join(", ", await userManager.GetRolesAsync(user)));
         Assert.Single(await userManager.GetUsersInRoleAsync("Admin"));
 
         await userManager.RemoveFromRoleAsync(user, "Admin");
 
         Assert.False(await userManager.IsInRoleAsync(user, "Admin"));
-        Assert.Equal("Bruker", Assert.Single(await userManager.GetRolesAsync(user)));
+        Assert.Equal("Privat", Assert.Single(await userManager.GetRolesAsync(user)));
     }
 
     [Fact]

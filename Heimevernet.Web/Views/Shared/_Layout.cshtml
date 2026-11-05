@@ -31,11 +31,19 @@
     <a href="#main" class="visually-hidden-focusable">Hopp til innholdet</a>
 
     <div class="app">
-        <aside class="sidebar">
+        <aside class="sidebar" data-sidebar>
             <a class="brand" asp-controller="Home" asp-action="Index">
                 <img class="brand-mark" src="~/img/kriseklar.svg" alt="" />
                 KriseKlar
             </a>
+
+            @* Bare på mobil: knappen med tre streker øverst til høyre åpner sidemenyen (og blir til en X). *@
+            <button type="button" class="menu-toggle" data-menu-toggle aria-expanded="false" aria-controls="sidebar-panel" aria-label="Åpne meny">
+                <span></span><span></span><span></span>
+            </button>
+
+            @* På PC er denne bare en del av sidemenyen (display: contents). På mobil er den sidemenyen som glir inn fra høyre. *@
+            <div class="sidebar-panel" id="sidebar-panel" data-sidebar-panel>
 
             <nav aria-label="Hovedmeny">
                 <ul class="nav-list">
@@ -62,10 +70,16 @@
                         <li>
                             <a asp-controller="UserAdmin" asp-action="Index" aria-current="@Current(["UserAdmin"])">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c1-3.5 3.5-5.5 6.5-5.5s5.5 2 6.5 5.5"></path><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.8.8 3 2.6 3.5 5.2"></path></svg>
-                                Brukere
+                                Admin
                             </a>
                         </li>
                     }
+                    <li>
+                        <a asp-controller="Settings" asp-action="Index" aria-current="@Current(["Settings"])">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
+                            Innstillinger
+                        </a>
+                    </li>
                 </ul>
             </nav>
 
@@ -85,6 +99,8 @@
             <p class="sidebar-footer">
                 <a asp-controller="Home" asp-action="Privacy">Personvern</a>
             </p>
+            </div>
+            <div class="menu-backdrop" data-menu-close hidden></div>
         </aside>
 
         <div class="main">

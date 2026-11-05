@@ -1,0 +1,110 @@
+@using Heimevernet.Web.Models.ViewModels.Settings
+@model SettingsViewModel
+@{
+    ViewData["Title"] = "Innstillinger";
+}
+
+<div class="page-head">
+    <h1>Innstillinger</h1>
+</div>
+
+@if (TempData["Message"] is string message)
+{
+    <div class="alert alert-success m-0" role="status">@message</div>
+}
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger m-0" role="alert">@error</div>
+}
+
+<div class="panel-grid">
+    <div class="panel-wide d-flex flex-column gap-3">
+        @* Profil: navn, e-post (= brukernavn) og telefon. *@
+        <form asp-action="Profile" method="post" class="panel d-flex flex-column gap-3">
+            <h2 class="m-0">Profil</h2>
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+            <div>
+                <label asp-for="Profile.Name" class="form-label"></label>
+                <input asp-for="Profile.Name" class="form-control" autocomplete="name" />
+                <span asp-validation-for="Profile.Name" class="text-danger"></span>
+            </div>
+            <div>
+                <label asp-for="Profile.Email" class="form-label"></label>
+                <div id="email-hint" class="form-text mb-2">Du logger inn med denne e-posten.</div>
+                <input asp-for="Profile.Email" class="form-control" autocomplete="email" aria-describedby="email-hint" />
+                <span asp-validation-for="Profile.Email" class="text-danger"></span>
+            </div>
+            <div>
+                <label asp-for="Profile.PhoneNumber" class="form-label">Telefon <span class="optional">(valgfritt)</span></label>
+                <div id="phone-hint" class="form-text mb-2">Vises som kontakt på ressursene du legger inn.</div>
+                <input asp-for="Profile.PhoneNumber" class="form-control" autocomplete="tel" inputmode="tel" aria-describedby="phone-hint" />
+                <span asp-validation-for="Profile.PhoneNumber" class="text-danger"></span>
+            </div>
+            <button type="submit" class="btn-pill align-self-start">Lagre profil</button>
+        </form>
+
+        <form asp-action="Password" method="post" class="panel d-flex flex-column gap-3">
+            <h2 class="m-0">Bytt passord</h2>
+            <div>
+                <label asp-for="Password.CurrentPassword" class="form-label"></label>
+                <input asp-for="Password.CurrentPassword" class="form-control" autocomplete="current-password" />
+                <span asp-validation-for="Password.CurrentPassword" class="text-danger"></span>
+            </div>
+            <div>
+                <label asp-for="Password.NewPassword" class="form-label"></label>
+                <div id="password-hint" class="form-text mb-2">Minst 8 tegn, med stor og liten bokstav, tall og spesialtegn.</div>
+                <input asp-for="Password.NewPassword" class="form-control" autocomplete="new-password" aria-describedby="password-hint" />
+                <span asp-validation-for="Password.NewPassword" class="text-danger"></span>
+            </div>
+            <div>
+                <label asp-for="Password.ConfirmPassword" class="form-label"></label>
+                <input asp-for="Password.ConfirmPassword" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="Password.ConfirmPassword" class="text-danger"></span>
+            </div>
+            <button type="submit" class="btn-pill align-self-start">Bytt passord</button>
+        </form>
+    </div>
+
+    <aside class="panel-narrow d-flex flex-column gap-3">
+        <section class="panel">
+            <h2>Om deg</h2>
+            <dl class="facts">
+                <div><dt>Rolle</dt><dd>@(Model.Role ?? "Ingen")</dd></div>
+                <div><dt>Bruker siden</dt><dd>@Model.CreatedAt.ToString("dd.MM.yyyy")</dd></div>
+                <div><dt>Dine ressurser</dt><dd><a asp-controller="ResourceHandler" asp-action="Index">@Model.ResourceCount</a></dd></div>
+                <div><dt>Dine behov</dt><dd>@Model.NeedCount</dd></div>
+            </dl>
+            <p class="form-text mt-3 mb-0">@AppRoles.Describe(Model.Role)@(Model.Role == AppRoles.Private ? " Trenger du å se alle ressursene, kan en admin gi deg rollen Offentlig." : "")</p>
+        </section>
+
+        <section class="panel d-flex flex-column gap-2">
+            <h2 class="m-0">Dine data</h2>
+            <p class="m-0 form-text">Last ned alt vi har lagret om deg: profilen, ressursene og behovene dine.</p>
+            <a asp-action="Download" class="btn-pill btn-pill-outline btn-pill-small align-self-start">Last ned mine data (JSON)</a>
+        </section>
+
+        <section class="panel d-flex flex-column gap-2">
+            <h2 class="m-0">Slett kontoen</h2>
+            @if (Model.IsAdmin)
+            {
+                <p class="m-0 form-text">En admin kan ikke slette sin egen konto. Be en annen admin gjøre det.</p>
+            }
+            else
+            {
+                <p class="m-0 form-text">Kontoen og innloggingen slettes. Ressursene og behovene dine blir liggende uten eier, så andre fortsatt kan finne dem.</p>
+                <details class="confirm-delete">
+                    <summary class="btn-pill btn-pill-danger-outline btn-pill-small">Slett kontoen min</summary>
+                    <form asp-action="Delete" method="post" class="d-flex flex-column gap-2">
+                        <label for="confirmPassword" class="form-label m-0">Skriv passordet ditt for å bekrefte</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" class="form-control" autocomplete="current-password" required />
+                        <button type="submit" class="btn-pill btn-pill-danger btn-pill-small align-self-start">Ja, slett kontoen</button>
+                    </form>
+                </details>
+            }
+        </section>
+    </aside>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

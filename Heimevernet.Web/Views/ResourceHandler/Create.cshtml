@@ -12,7 +12,8 @@
 
 <h1 class="m-0">Meld inn en ressurs</h1>
 
-<form asp-action="Create" method="post" class="panel-grid">
+@* enctype="multipart/form-data" trengs for å sende med bildefilen. *@
+<form asp-action="Create" method="post" enctype="multipart/form-data" class="panel-grid">
     <partial name="_ResourceForm" model="Model" />
 </form>
 

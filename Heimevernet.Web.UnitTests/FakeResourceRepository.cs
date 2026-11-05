@@ -57,6 +57,8 @@ internal sealed class FakeResourceRepository(params Resource[] resources) : IRes
         CategoryName = resource.CategoryName,
         Address = resource.Address,
         PostalCode = resource.PostalCode,
-        PostalPlace = resource.PostalPlace
+        PostalPlace = resource.PostalPlace,
+        Latitude = resource.Latitude,
+        Longitude = resource.Longitude
     };
 }

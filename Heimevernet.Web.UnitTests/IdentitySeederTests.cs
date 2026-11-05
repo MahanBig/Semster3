@@ -26,7 +26,7 @@ public class IdentitySeederTests
         await IdentitySeeder.SeedAsync(roleManager, userManager, new DapperRoleVerificationRepository(database), AdminEmail, AdminPassword, NullLogger.Instance);
 
         Assert.True(await roleManager.RoleExistsAsync(AppRoles.Admin));
-        Assert.True(await roleManager.RoleExistsAsync(AppRoles.User));
+        Assert.True(await roleManager.RoleExistsAsync(AppRoles.Private));
         var admin = await userManager.FindByEmailAsync(AdminEmail);
         Assert.NotNull(admin);
         Assert.True(await userManager.IsInRoleAsync(admin, AppRoles.Admin));

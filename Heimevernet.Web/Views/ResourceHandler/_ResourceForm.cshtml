@@ -46,6 +46,29 @@
             <span asp-validation-for="Status" class="text-danger"></span>
         </div>
     </div>
+
+    @* Bilde (valgfritt). Serveren sjekker type og størrelse (Models/ImageUpload.cs). *@
+    <div class="image-field">
+        <label for="Image" class="form-label">Bilde <span class="optional">(valgfritt, JPEG, PNG eller WebP, maks 5 MB)</span></label>
+        @if (Model.HasImage && Model.Id is not null)
+        {
+            <div class="image-current">
+                <img src="@Url.Action("Image", "Resource", new { id = Model.Id })" alt="Bildet av @Model.Name" />
+                <label class="check-row">
+                    <input type="checkbox" class="form-check-input" name="removeImage" value="true" />
+                    Fjern bildet
+                </label>
+            </div>
+            <div class="form-text mb-2">Velg et nytt bilde for å bytte ut det gamle.</div>
+        }
+        <input type="file" id="Image" name="Image" class="form-control" accept="@ImageUpload.Accept" data-image-input />
+        <img class="image-preview" data-image-preview alt="Forhåndsvisning av bildet du har valgt" hidden />
+        @Html.ValidationMessage("Image", new { @class = "text-danger" })
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="form-text">Hvis du valgte et bilde, må du velge det på nytt (nettleseren sender ikke filen to ganger).</div>
+        }
+    </div>
 </div>
 
 <div class="panel d-flex flex-column gap-4">
@@ -55,6 +78,7 @@
         <legend class="form-label mb-1">Hvor er ressursen? <span class="optional">(valgfritt, men da vises den på kartet)</span></legend>
         <div class="point-picker-map" data-point-map role="application" aria-label="Kart. Klikk for å velge hvor ressursen er."></div>
         <p class="form-text m-0" data-point-text aria-live="polite">Ingen punkt valgt. Klikk i kartet der ressursen er.</p>
+        <p class="form-text m-0 fw-bold" data-point-address aria-live="polite"></p>
         <div class="d-flex flex-wrap gap-2">
             <button type="button" class="btn-pill btn-pill-outline btn-pill-small" data-point-mine>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l18-8-8 18-2-8z"></path></svg>

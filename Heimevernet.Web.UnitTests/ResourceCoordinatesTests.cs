@@ -53,7 +53,7 @@ public class ResourceCoordinatesTests
     [Fact]
     public void CreateGet_FromTheMap_PrefillsThePoint()
     {
-        var controller = new ResourceHandlerController(new FakeResourceRepository(), new FakeCategoryRepository());
+        var controller = new ResourceHandlerController(new FakeResourceRepository(), new FakeCategoryRepository(), new FakeResourceImageRepository());
 
         var model = Assert.IsType<ResourceViewModel>(Assert.IsType<ViewResult>(controller.Create(58.1234567, 8.7654321)).Model);
 
@@ -64,7 +64,7 @@ public class ResourceCoordinatesTests
     [Fact]
     public void CreateGet_InvalidPoint_IsIgnored()
     {
-        var controller = new ResourceHandlerController(new FakeResourceRepository(), new FakeCategoryRepository());
+        var controller = new ResourceHandlerController(new FakeResourceRepository(), new FakeCategoryRepository(), new FakeResourceImageRepository());
 
         var model = Assert.IsType<ResourceViewModel>(Assert.IsType<ViewResult>(controller.Create(123, 8)).Model);
 
@@ -76,7 +76,7 @@ public class ResourceCoordinatesTests
     public void CreatePost_SavesThePoint()
     {
         var repository = new FakeResourceRepository();
-        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository()).WithUser("ola@test.no", AppRoles.User);
+        var controller = new ResourceHandlerController(repository, new FakeCategoryRepository(), new FakeResourceImageRepository()).WithUser("ola@test.no", AppRoles.Private);
 
         controller.Create(new ResourceViewModel
         {

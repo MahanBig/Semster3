@@ -24,6 +24,7 @@ if (string.IsNullOrWhiteSpace(connectionString))
 // Repository og Identity-stores ber den om en ny tilkobling hver gang de skal kjøre SQL.
 builder.Services.AddSingleton<IDbConnectionFactory>(new MySqlConnectionFactory(connectionString));
 builder.Services.AddScoped<IResourceRepository, DapperResourceRepository>();
+builder.Services.AddScoped<IResourceImageRepository, DapperResourceImageRepository>();
 builder.Services.AddScoped<ICategoryRepository, DapperCategoryRepository>();
 builder.Services.AddScoped<INeedRepository, DapperNeedRepository>();
 builder.Services.AddScoped<IAllocationRepository, DapperAllocationRepository>();
@@ -61,6 +62,10 @@ builder.Services.AddAuthorization(options =>
         .RequireAuthenticatedUser()
         .Build();
 });
+
+// Hvor ofte innloggingen sjekkes mot databasen. Endrer admin rollen til en bruker, eller brukeren bytter passord,
+// gjelder endringen senest etter ett minutt, uten at brukeren må logge ut og inn (standard er 30 minutter).
+builder.Services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.FromMinutes(1));
 
 // Innloggingen huskes i en cookie. Her sier vi hvor brukeren sendes når det trengs.
 builder.Services.ConfigureApplicationCookie(options =>

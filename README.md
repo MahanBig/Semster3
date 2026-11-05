@@ -66,9 +66,20 @@ docker compose down -v       # stopper og sletter volumer (database og innloggin
 Appen bruker ASP.NET Core Identity. Brukere og roller lagres i MariaDB (tabellene `AspNetUsers`, `AspNetRoles`, `AspNetUserRoles`) via egne Dapper-klasser: `DataAccess/Identity/DapperUserStore.cs` og `DapperRoleStore.cs`.
 
 - Brukere og roller er klassene `ApplicationUser` og `ApplicationRole` (`Models/Entities/`). De arver fra Identity og har i tillegg feltene fra ER-diagrammet: navn, samtykke og opprettet på brukeren, og beskrivelse, tilgangsnivå og «krever godkjenning» på rollen.
-- Rollene `Admin` og `Bruker` lages automatisk ved oppstart.
-- Nye brukere registrerer seg på `/Account/Register` med navn, e-post, passord, telefon (valgfritt) og samtykke, og får rollen `Bruker`.
-- `Admin` krever godkjenning: koblingen i `AspNetUserRoles` teller ikke før `VerifiedAt` har en verdi. Når en admin gir rollen på `/UserAdmin`, lagres hvem som godkjente og når. Den første admin-brukeren godkjennes av oppstarten.
+- Det finnes tre roller (`Models/AppRoles.cs`), som lages automatisk ved oppstart. Hver bruker har én av dem:
+
+  | Rolle | Ser ressurser | Legger til | Endrer og sletter | Admin-siden |
+  |---|---|---|---|---|
+  | `Privat` (privatperson) | Bare sine egne | Ja | Sine egne | Nei |
+  | `Offentlig` (kommune, etat, beredskap) | Alle | Ja | Sine egne | Nei |
+  | `Admin` | Alle | Ja | Alle | Ja |
+
+- Nye brukere registrerer seg på `/Account/Register` med navn, e-post, passord, telefon (valgfritt) og samtykke, og blir `Privat`. En admin gir `Offentlig` eller `Admin` på admin-siden.
+- `Offentlig` og `Admin` krever godkjenning: koblingen i `AspNetUserRoles` teller ikke før `VerifiedAt` har en verdi. Når en admin gir rollen, lagres hvem som godkjente og når. Den første admin-brukeren godkjennes av oppstarten.
+- En `Privat`-bruker som prøver å åpne en annens ressurs (eller bildet til den), får 404, så det ikke avsløres at den finnes.
+- Når admin endrer rollen til noen, gjelder det etter maks ett minutt uten ny innlogging (`SecurityStampValidatorOptions` i `Program.cs`).
+- **Admin-siden** (`/UserAdmin`) har tre deler: brukerne med nedtrekksliste for rolle og sletting (med bekreftelse), alle ressursene og alle behovene med Endre og Slett. Admin kan ikke fjerne sin egen admin-rolle eller slette seg selv.
+- **Innstillinger** (`/Settings`, eller klikk på navnet i menyen): endre navn, e-post (som også er brukernavnet) og telefon, bytte passord, se rollen sin og antall ressurser og behov, laste ned alle dataene sine som JSON (innsynsrett), og slette kontoen etter å ha skrevet passordet. Id-en hentes alltid fra innloggingen, aldri fra skjemaet, så ingen kan endre en annen bruker.
 - En admin-bruker lages ved oppstart med e-post og passord fra `.env`. Passordet må ha minst 8 tegn, stor og liten bokstav, et tall og et spesialtegn. Er det for svakt, starter appen uten admin-bruker og skriver en feilmelding i loggen.
 
 | Side | Krever |
@@ -78,7 +89,8 @@ Appen bruker ASP.NET Core Identity. Brukere og roller lagres i MariaDB (tabellen
 | Endre og slette ressurs (`/ResourceHandler/Edit/{id}`, `/ResourceHandler/Delete/{id}`) | Innlogging, og at du la inn ressursen selv, eller rollen `Admin` |
 | Endre og slette behov (`/Need/Edit/{id}`, `/Need/Delete/{id}`) | Innlogging, og at du meldte inn behovet selv, eller rollen `Admin` |
 | Tildele en ressurs til et behov (`/Need/Details/{id}`) | At du eier ressursen, eller rollen `Admin` |
-| Brukere (`/UserAdmin`) | Rollen `Admin` |
+| Innstillinger (`/Settings`) | Innlogging. Gjelder bare deg selv |
+| Admin (`/UserAdmin`) | Rollen `Admin` |
 
 Den som ikke er logget inn, sendes automatisk til innloggingssiden og kommer tilbake til siden de prøvde å åpne etter innlogging. Dette styres av en `FallbackPolicy` i `Program.cs`: alle sider krever innlogging hvis de ikke har `[AllowAnonymous]`. Da kan vi ikke glemme å beskytte en ny side.
 
@@ -96,11 +108,62 @@ Har du en database fra før kategori, lokasjon og behov kom inn, stopper appen v
 | `AspNetRoles` (Rolle) | Roller: navn, beskrivelse, tilgangsnivå, om rollen krever godkjenning |
 | `AspNetUserRoles` (BrukerRolle) | Hvem som har hvilken rolle, og hvem som godkjente den og når |
 | `Resources` (Ressurs) | Ressurser: navn, beskrivelse, antall, status, kategori, lokasjon, eier |
+| `ResourceImages` | Bildet til en ressurs (høyst ett). Egen tabell, så de store bildedataene bare leses når bildet vises |
 | `Needs` (Behov) | Behov: tittel, beskrivelse, antall, prioritet, status, frist, kategori, lokasjon, organisasjon, hvem som meldte det inn |
 | `Allocations` (Tildeling) | Hvilke ressurser som er gitt til hvilke behov, og hvor mange |
-| `Categories` (Kategori) | De sju kategoriene (Mat, Vann, ...). Legges inn av `Schema.sql` |
+| `Categories` (Kategori) | De åtte kategoriene (Mat, Vann, ..., Annet). Legges inn av `Schema.sql` |
 | `Locations` (Lokasjon) og `PostalCodes` (Poststed) | Adressen til en ressurs eller et behov, og postnummer med poststed |
 | `Organizations`, `Competences`, `UserOrganizations`, `UserCompetences`, `ResourceCompetences` | Organisasjoner og kompetanser. Tabellene finnes, men har ingen sider i appen ennå |
+
+### Normalisering
+
+Databasen er laget for å følge **tredje normalform (3NF)**: hver opplysning lagres ett sted, og hver kolonne beskriver bare nøkkelen i sin egen tabell.
+
+- **1NF:** Alle kolonner har én verdi. Det er ingen lister i én kolonne (f.eks. «roller: Admin, Privat»). Flere verdier lagres som flere rader i en egen tabell.
+- **2NF:** I tabellene med sammensatt nøkkel avhenger de andre kolonnene av hele nøkkelen. I `Allocations (NeedId, ResourceId)` gjelder `Quantity` og `AllocatedAt` akkurat den tildelingen. `VerifiedBy` og `VerifiedAt` i `AspNetUserRoles (UserId, RoleId)` gjelder akkurat den rollen for den brukeren.
+- **3NF:** Ingen kolonne avhenger av en annen kolonne enn nøkkelen:
+  - Poststedet avhenger av postnummeret, ikke av adressen. Derfor ligger det i `PostalCodes`, og `Locations` har bare postnummeret.
+  - Kategorinavnet ligger i `Categories`, og ressurser og behov har bare `CategoryId`.
+  - Navn, e-post og telefon til eieren ligger bare i `AspNetUsers`. Ressurser og behov har `UserId`, så endrer brukeren e-post i innstillingene, stemmer det overalt med en gang.
+  - Rollene og hva de betyr ligger i `AspNetRoles`, ikke på brukeren.
+
+**Mange-til-mange-relasjoner** er laget med en koblingstabell med sammensatt primærnøkkel og to fremmednøkler. Den sammensatte nøkkelen hindrer duplikater, og `ON DELETE CASCADE` fjerner koblingene når en av sidene slettes:
+
+| Koblingstabell | Kobler | Ekstra kolonner |
+|---|---|---|
+| `AspNetUserRoles` | Brukere ↔ roller | Hvem som godkjente rollen og når |
+| `Allocations` | Behov ↔ ressurser | Antall og tidspunkt |
+| `UserOrganizations` | Brukere ↔ organisasjoner | – |
+| `UserCompetences` | Brukere ↔ kompetanser | – |
+| `ResourceCompetences` | Ressurser ↔ kompetanser | – |
+
+**Bevisste unntak:**
+- `ResourceImages` er en 1:0..1-tabell (nøkkelen er `ResourceId`) av hensyn til ytelse, ikke normalisering. Bildene leses bare når de vises.
+- `Status` og `Priority` er `ENUM` i stedet for egne oppslagstabeller. Verdiene er faste og styrer logikken i koden (`Models/StatusValues.cs`), så en egen tabell ville ikke gitt noe.
+- Ressurser og behov peker til en egen rad i `Locations`, selv om to ressurser kan ligge på samme adresse. Da kan én flyttes uten at den andre flytter med.
+
+```mermaid
+erDiagram
+    AspNetUsers ||--o{ AspNetUserRoles : har
+    AspNetRoles ||--o{ AspNetUserRoles : gis
+    AspNetUsers |o--o{ Resources : eier
+    AspNetUsers |o--o{ Needs : "melder inn"
+    Categories ||--o{ Resources : kategori
+    Categories ||--o{ Needs : kategori
+    Locations |o--o{ Resources : ligger
+    Locations |o--o{ Needs : ligger
+    PostalCodes |o--o{ Locations : poststed
+    Resources ||--o| ResourceImages : bilde
+    Needs ||--o{ Allocations : får
+    Resources ||--o{ Allocations : "gis til"
+    Organizations |o--o{ Needs : "på vegne av"
+    AspNetUsers ||--o{ UserOrganizations : ""
+    Organizations ||--o{ UserOrganizations : ""
+    AspNetUsers ||--o{ UserCompetences : ""
+    Competences ||--o{ UserCompetences : ""
+    Resources ||--o{ ResourceCompetences : ""
+    Competences ||--o{ ResourceCompetences : ""
+```
 
 Statusene oppdateres automatisk når ressurser tildeles (`DataAccess/DapperAllocationRepository.cs`): et behov er `åpen` uten tildelinger, `under_behandling` når noe er tildelt, og `dekket` når summen av tildelt antall når antallet som trengs. En ressurs er `i_bruk` så lenge den er tildelt et behov.
 
@@ -144,6 +207,8 @@ Controllerne kjenner bare grensesnittene (`IResourceRepository`, `INeedRepositor
 - Forsiden viser ressursene som markører i kategorifargen og listen «Nærmest deg», sortert etter avstand. Kartene starter i Kristiansand, flyttes dit brukeren er hvis posisjonen deles, og holder seg innenfor Norge.
 - `/ResourceHandler` følger designet «Ressurser nær deg»: rutenett eller kart, søk, og filtre for avstand (1–25 km), kategori (med antall), sted, «Tilgjengelige nå» og sortering.
 - Avstanden regnes ut i nettleseren (`wwwroot/js/site.js`) fra posisjonen nettleseren gir. Posisjonen sendes aldri til serveren og lagres bare i fanen (`sessionStorage`). Sier brukeren nei, virker alt unntatt avstand.
+- Når et punkt velges, fylles adresse, postnummer og poststed inn automatisk fra koordinatene (oppslag mot Nominatim fra OpenStreetMap i nettleseren). Det brukeren har skrevet selv, overskrives ikke. Åpnes en ressurs med punkt men uten adresse i Endre, slås adressen opp. Da blir ressursene søkbare på adresse og sted.
+- En ressurs kan ha ett bilde (JPEG, PNG eller WebP, maks 5 MB). Det vises på kortene, i listen og på detaljsiden, og serveres fra `/Resource/Image/{id}` med samme tilgangsregel som ressursen.
 - Appen bruker fast kultur (`UseRequestLocalization` i `Program.cs`), så koordinater alltid skrives og leses med punktum, også på en norsk Windows-maskin.
 
 ### Teknologivalg
@@ -192,9 +257,10 @@ Testscenarioer:
 
 | Område | Hva testes |
 |---|---|
-| Systemtest | Sidene åpnes, ressurser fra databasen vises, registrering og innlogging, legge til / endre / slette ressurs (krav 3), punkt på kartet lagres og vises, «Legg til ressurs her» fyller inn punktet, filtrene finnes på ressurssiden, validering av skjema, data overlever omstart av containeren |
-| Tilgangskontroll | Utlogget sendes til innlogging fra alle sider (også forsiden og ressurslisten), mens innloggingssiden, CSS og logo er åpne, vanlig bruker får «Ingen tilgang» på admin-sider, Kari får ikke endre eller slette Olas ressurs, verken via knappene eller ved å sende POST direkte |
-| CSRF | POST uten anti-forgery-token gir 400 Bad Request |
+| Systemtest | Sidene åpnes, ressurser fra databasen vises, registrering og innlogging, rollene (Privat ser bare sine egne, Offentlig ser alle, admin gir roller og sletter brukere), bilde og kategorien Annet, innstillinger (endre navn, telefon og passord, laste ned data), legge til / endre / slette ressurs (krav 3), punkt på kartet lagres og vises, «Legg til ressurs her» fyller inn punktet, filtrene finnes på ressurssiden, validering av skjema, data overlever omstart av containeren |
+| Tilgangskontroll | Privat får 404 på andres ressurser og bilder, utlogget sendes til innlogging fra alle sider (også forsiden og ressurslisten), mens innloggingssiden, CSS og logo er åpne, vanlig bruker får «Ingen tilgang» på admin-sider, Kari får ikke endre eller slette Olas ressurs, verken via knappene eller ved å sende POST direkte |
+| CSRF | POST uten anti-forgery-token gir 400 Bad Request, også for å endre rolle og profil |
+| Filopplasting | En tekstfil som later som den er PNG, blir avvist |
 | XSS | `<script>` i en beskrivelse vises som tekst og kjøres ikke |
 | SQL-injeksjon | `'); DROP TABLE Resources; --` lagres som vanlig tekst, tabellen finnes fortsatt |
 | Åpen redirect | `ReturnUrl=https://evil.example.com` ved innlogging blir ignorert |
@@ -233,9 +299,9 @@ Kjørt 5. november 2026 mot appen i Docker (`docker compose up --build -d`).
 
 | Test | Antall | Bestått |
 |---|---|---|
-| Enhetstester (`dotnet test`) | 79 | 79 ✅ |
-| Systemtest (`tests/system/system-og-sikkerhetstest.ps1`) | 31 | 31 ✅ |
-| Sikkerhetstest (samme skript) | 30 | 30 ✅ |
+| Enhetstester (`dotnet test`) | 88 | 88 ✅ |
+| Systemtest (`tests/system/system-og-sikkerhetstest.ps1`) | 47 | 47 ✅ |
+| Sikkerhetstest (samme skript) | 35 | 35 ✅ |
 | Manuelle tester (tabellen over) | 13 | 13 ✅ |
 | Brukervennlighetstest | *TODO* | *TODO* |
 
@@ -262,6 +328,7 @@ Tiltakene under er testet automatisk i `tests/system/system-og-sikkerhetstest.ps
 | Åpen redirect | `ReturnUrl` etter innlogging brukes bare hvis den peker til vår egen side (`Url.IsLocalUrl`) | `Controllers/AccountController.cs` |
 | Stjålet innloggings-cookie | Cookien er `HttpOnly` (JavaScript kan ikke lese den) og krypteres med Data Protection. Nøklene lagres i et eget volum | `Program.cs`, `docker-compose.yml` |
 | Clickjacking og andre nettleserangrep | Sikkerhets-headere på alle svar: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy` | `Program.cs` |
+| Farlige filer som «bilder» | Opplastede bilder sjekkes på serveren ut fra de første bytene i filen (JPEG, PNG, WebP), ikke filnavnet eller typen nettleseren oppgir. Maks 5 MB, og forespørsler over grensen avvises før de leses inn (`RequestSizeLimit`). Bildet serveres med typen serveren fant og `nosniff` | `Models/ImageUpload.cs`, `Controllers/ResourceHandlerController.cs` |
 | Ugyldige data | Validering med attributter (`[Required]`, `[StringLength]`, `[RegularExpression]` for postnummer, `[Phone]`) både i nettleseren og på serveren (`ModelState.IsValid`) | `Models/ViewModels/` |
 | Hemmeligheter i Git | Admin-passordet og root-passordet til databasen ligger i `.env`, som er i `.gitignore` | `.env.example`, `.gitignore` |
 | Container blir tatt over | Web-containeren kjører som en vanlig bruker, ikke root (`USER $APP_UID`). Runtime-imaget har ikke SDK-en | `Heimevernet.Web/Dockerfile` |

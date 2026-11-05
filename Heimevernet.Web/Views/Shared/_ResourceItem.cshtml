@@ -15,7 +15,16 @@
     data-lng="@Model.Longitude?.ToString("0.######", CultureInfo.InvariantCulture)"
     data-url="@Url.Action("Index", "Resource", new { id = Model.Id })">
     <a class="resource-item" asp-controller="Resource" asp-action="Index" asp-route-id="@Model.Id">
-        <span class="resource-thumb" style="background: @category.Tint; color: @category.Color">@Html.Raw(category.IconSvg(22))</span>
+        <span class="resource-thumb" style="background: @category.Tint; color: @category.Color">
+            @if (Model.HasImage)
+            {
+                <img src="@Url.Action("Image", "Resource", new { id = Model.Id })" alt="" loading="lazy" />
+            }
+            else
+            {
+                @Html.Raw(category.IconSvg(22))
+            }
+        </span>
         <span class="resource-text">
             <strong>@Model.Name</strong>
             <span class="status-line status--@Model.Status"><span class="status-dot" aria-hidden="true"></span>@ResourceStatus.Label(Model.Status)</span>

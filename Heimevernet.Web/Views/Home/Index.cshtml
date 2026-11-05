@@ -1,5 +1,7 @@
+@using Heimevernet.Web.Authorization
 @model Heimevernet.Web.Models.ViewModels.MapPageViewModel
 @{
+    var seesAll = ResourcePermissions.CanSeeAll(User); // Privat ser bare sine egne.
     ViewData["Title"] = "Kart";
     ViewData["FullWidth"] = true; // Kartet skal fylle hele bredden, uten marger.
 }
@@ -33,7 +35,7 @@
 
     <aside class="map-list" aria-label="Nærmeste ressurser">
         <div class="list-head">
-            <h1>Nærmest deg</h1>
+            <h1>@(seesAll ? "Nærmest deg" : "Mine ressurser")</h1>
             <span data-filter-count aria-live="polite">@Model.Resources.Count ressurser</span>
         </div>
 

@@ -27,9 +27,16 @@
 
 <div class="panel-grid">
     <article class="panel-wide d-flex flex-column gap-4">
-        <div class="detail-hero" style="background: @category.Tint; color: @category.Color" aria-hidden="true">
-            @Html.Raw(category.IconSvg(96, 1.4))
-        </div>
+        @if (Model.HasImage)
+        {
+            <img class="detail-hero detail-hero--image" src="@Url.Action("Image", "Resource", new { id = Model.Id })" alt="Bilde av @Model.Name" />
+        }
+        else
+        {
+            <div class="detail-hero" style="background: @category.Tint; color: @category.Color" aria-hidden="true">
+                @Html.Raw(category.IconSvg(96, 1.4))
+            </div>
+        }
 
         <div class="d-flex flex-column gap-3">
             <span class="badge-category" style="background: @category.Tint; color: @category.Color">

@@ -12,6 +12,10 @@
     @* asp-action + method="post" legger automatisk til en anti-forgery-token. *@
     <form asp-action="Login" method="post" class="d-flex flex-column gap-3">
         <input type="hidden" asp-for="ReturnUrl" />
+        @if (TempData["Message"] is string message)
+        {
+            <div class="alert alert-success m-0" role="status">@message</div>
+        }
         <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
 
         <div>

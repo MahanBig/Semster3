@@ -4,13 +4,15 @@
     {
         var name = User.Identity.Name ?? "";
         var initials = name.Length > 0 ? name.Substring(0, 1).ToUpperInvariant() : "?";
-        <div class="user-chip">
+        var role = User.IsInRole(AppRoles.Admin) ? AppRoles.Admin : User.IsInRole(AppRoles.Public) ? AppRoles.Public : AppRoles.Private;
+        @* Lenke til innstillingene, der man kan endre navn, e-post og passord. *@
+        <a class="user-chip" asp-controller="Settings" asp-action="Index" title="Innstillinger">
             <span class="avatar" aria-hidden="true">@initials</span>
             <span class="user-chip-text">
-                <span>Innlogget@(User.IsInRole(AppRoles.Admin) ? " · admin" : "")</span>
+                <span>Innlogget · @role.ToLowerInvariant()</span>
                 <strong><span class="visually-hidden">Logget inn som </span>@name</strong>
             </span>
-        </div>
+        </a>
         <form asp-controller="Account" asp-action="Logout" method="post">
             <button type="submit" class="btn-pill btn-pill-light btn-pill-block">Logg ut</button>
         </form>

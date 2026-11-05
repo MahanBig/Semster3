@@ -32,14 +32,18 @@ public sealed record ResourceCategory(string Key, string Label, string Color, st
         "M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M12 11v5M12 8h.01",
         ["info", "informasjon"]);
 
-    public static readonly IReadOnlyList<ResourceCategory> All = [Food, Water, Shelter, Health, Tools, Power, Info];
+    public static readonly ResourceCategory Other = new("annet", "Annet", "#5B6472", "#ECEEF1",
+        "M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10", // En eske
+        ["annet"]);
 
-    // Finner kategorien som passer et kategorinavn. Ukjent gir Informasjon.
+    public static readonly IReadOnlyList<ResourceCategory> All = [Food, Water, Shelter, Health, Tools, Power, Info, Other];
+
+    // Finner kategorien som passer et kategorinavn. Ukjent gir Annet.
     public static ResourceCategory FromType(string? type)
     {
         if (string.IsNullOrWhiteSpace(type))
         {
-            return Info;
+            return Other;
         }
 
         var text = type.Trim().ToLowerInvariant();
@@ -51,7 +55,7 @@ public sealed record ResourceCategory(string Key, string Label, string Color, st
                 return category;
             }
         }
-        return Info;
+        return Other;
     }
 
     // SVG-ikonet som HTML. Inneholder bare faste verdier fra denne klassen, aldri brukerdata.

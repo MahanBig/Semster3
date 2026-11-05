@@ -111,6 +111,19 @@ CREATE TABLE IF NOT EXISTS Resources (
     CONSTRAINT FK_Resources_Locations FOREIGN KEY (LocationId) REFERENCES Locations (Id) ON DELETE SET NULL
 );
 
+-- Bildet til en ressurs. Egen tabell (1:0..1 mot Resources) fordi bildedataene er store:
+-- da hentes de bare når bildet faktisk skal vises, ikke hver gang listen med ressurser leses.
+-- ResourceId er både primærnøkkel og fremmednøkkel, så en ressurs kan ha høyst ett bilde.
+-- ContentType settes av serveren ut fra filens innhold (JPEG, PNG eller WebP), ikke det nettleseren påstår.
+CREATE TABLE IF NOT EXISTS ResourceImages (
+    ResourceId INT NOT NULL,
+    ContentType VARCHAR(50) NOT NULL,
+    Data MEDIUMBLOB NOT NULL,
+    UploadedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (ResourceId),
+    CONSTRAINT FK_ResourceImages_Resources FOREIGN KEY (ResourceId) REFERENCES Resources (Id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS Needs (
     Id INT NOT NULL AUTO_INCREMENT,
     Title VARCHAR(100) NOT NULL,
@@ -176,4 +189,5 @@ INSERT IGNORE INTO Categories (Name, Description) VALUES
     ('Helse', 'Førstehjelp, medisin og helsehjelp'),
     ('Verktøy', 'Verktøy, utstyr og kjøretøy'),
     ('Strøm og lading', 'Aggregat, nødstrøm og lading'),
-    ('Informasjon', 'Informasjonspunkter og annet');
+    ('Informasjon', 'Informasjonspunkter'),
+    ('Annet', 'Det som ikke passer i de andre kategoriene');

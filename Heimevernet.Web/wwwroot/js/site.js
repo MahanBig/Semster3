@@ -398,7 +398,64 @@
     // ---------- Velg punkt på et lite kart (skjemaet for ny/endret ressurs) ----------
     // Markup: [data-point-picker] med [data-point-map], input[data-point-lat], input[data-point-lng],
     // [data-point-text], knappene [data-point-mine] og [data-point-clear].
+    // Adresse fra koordinater ("reverse geocoding") med Nominatim fra OpenStreetMap.
+    // Oppslaget gjøres fra nettleseren, så serveren trenger ikke internett. Nominatim tillater ett oppslag
+    // i sekundet, så vi venter til brukeren har sluttet å flytte pinnen (debounce) og avbryter gamle oppslag.
+    // Feltene fylles bare hvis de er tomme eller ble fylt ut automatisk før. Det brukeren har skrevet selv, røres ikke.
+    function createAddressLookup(form, statusElement) {
+        var fields = {
+            address: form.querySelector('[name="Address"]'),
+            postalCode: form.querySelector('[name="PostalCode"]'),
+            postalPlace: form.querySelector('[name="PostalPlace"]')
+        };
+        if (!fields.address) { return function () { }; }
+
+        Object.keys(fields).forEach(function (key) {
+            var input = fields[key];
+            if (input) { input.addEventListener('input', function () { delete input.dataset.autofilled; }); }
+        });
+
+        function fill(input, value) {
+            if (!input || !value) { return; }
+            if (input.value.trim() === '' || input.dataset.autofilled === 'true') {
+                input.value = value;
+                input.dataset.autofilled = 'true';
+            }
+        }
+
+        var timer = null;
+        var controller = null;
+        return function (lat, lng) {
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+                if (controller) { controller.abort(); }
+                controller = 'AbortController' in window ? new AbortController() : null;
+                statusElement.textContent = 'Henter adressen for punktet …';
+                var url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&accept-language=nb'
+                    + '&lat=' + lat.toFixed(6) + '&lon=' + lng.toFixed(6);
+                fetch(url, { signal: controller ? controller.signal : undefined, headers: { 'Accept': 'application/json' } })
+                    .then(function (response) { return response.ok ? response.json() : null; })
+                    .then(function (data) {
+                        var a = data && data.address;
+                        if (!a) { statusElement.textContent = 'Fant ingen adresse her. Skriv den inn selv hvis du vet den.'; return; }
+                        var street = [a.road || a.pedestrian || a.footway || a.path || a.hamlet, a.house_number].filter(Boolean).join(' ');
+                        var place = a.city || a.town || a.village || a.municipality || a.suburb || '';
+                        var postcode = /^\d{4}$/.test(a.postcode || '') ? a.postcode : '';
+                        fill(fields.address, street);
+                        if (postcode && place) { fill(fields.postalCode, postcode); fill(fields.postalPlace, place); }
+                        statusElement.textContent = 'Adresse fra kartet: ' + ([street, (postcode + ' ' + place).trim()].filter(Boolean).join(', ') || 'ukjent')
+                            + '. Sjekk at den stemmer.';
+                    })
+                    .catch(function (error) {
+                        if (error && error.name === 'AbortError') { return; }
+                        statusElement.textContent = 'Fikk ikke hentet adressen. Skriv den inn selv.';
+                    });
+            }, 700);
+        };
+    }
+
     function initPointPicker(root) {
+        var lookupAddress = createAddressLookup(root.closest('form') || document, root.querySelector('[data-point-address]'));
         var latInput = root.querySelector('[data-point-lat]');
         var lngInput = root.querySelector('[data-point-lng]');
         var text = root.querySelector('[data-point-text]');
@@ -408,7 +465,7 @@
         beredskapTiles(map);
         var marker = null;
 
-        function setPoint(lat, lng, zoom) {
+        function setPoint(lat, lng, zoom, skipLookup) {
             // Punktum som desimaltegn, 6 desimaler (ca. 10 cm), som i databasen.
             latInput.value = lat.toFixed(6);
             lngInput.value = lng.toFixed(6);
@@ -424,6 +481,7 @@
             text.textContent = 'Valgt punkt: ' + lat.toFixed(5) + ', ' + lng.toFixed(5) + '. Dra markøren eller klikk et annet sted for å flytte den.';
             clear.hidden = false;
             if (zoom) { map.setView([lat, lng], zoom); }
+            if (!skipLookup) { lookupAddress(lat, lng); }
             latInput.dispatchEvent(new Event('change', { bubbles: true }));
         }
 
@@ -453,15 +511,41 @@
         var lat = parseFloat(latInput.value);
         var lng = parseFloat(lngInput.value);
         if (!isNaN(lat) && !isNaN(lng)) {
-            setPoint(lat, lng, 15);
+            // Punkt fra før (fra kartet på forsiden, eller en ressurs som endres): slå opp adressen
+            // bare hvis den mangler, så ressursen blir søkbar på adresse.
+            var addressInput = (root.closest('form') || document).querySelector('[name="Address"]');
+            setPoint(lat, lng, 15, addressInput && addressInput.value.trim() !== '');
         } else {
             clearPoint();
             map.setView(position ? [position.lat, position.lng] : KRISTIANSAND, position ? 13 : START_ZOOM);
         }
     }
 
+    // ---------- Forhåndsvisning av bildet i skjemaet ----------
+    function initImagePreview(input) {
+        var preview = input.parentNode.querySelector('[data-image-preview]');
+        input.addEventListener('change', function () {
+            var file = input.files && input.files[0];
+            if (!file || !preview) { if (preview) { preview.hidden = true; } return; }
+            if (file.size > 5 * 1024 * 1024) {
+                alertField(input, 'Bildet er større enn 5 MB. Velg et mindre bilde.');
+                input.value = '';
+                preview.hidden = true;
+                return;
+            }
+            alertField(input, '');
+            preview.src = URL.createObjectURL(file); // Vises bare i nettleseren, sendes ikke før du lagrer.
+            preview.hidden = false;
+        });
+    }
+    function alertField(input, message) {
+        var error = input.parentNode.querySelector('.field-validation-valid, .field-validation-error');
+        if (error) { error.textContent = message; error.className = message ? 'text-danger field-validation-error' : 'text-danger field-validation-valid'; }
+    }
+
     // ---------- Start ----------
 
     document.querySelectorAll('[data-resource-filter]').forEach(initResourceFilter);
     document.querySelectorAll('[data-point-picker]').forEach(initPointPicker);
+    document.querySelectorAll('[data-image-input]').forEach(initImagePreview);
 })();

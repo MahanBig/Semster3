@@ -1,75 +1,181 @@
 @using Heimevernet.Web.Models.ViewModels.UserAdmin
-@model List<UserWithRolesViewModel>
+@model AdminPageViewModel
 @{
-    ViewData["Title"] = "Brukere";
+    ViewData["Title"] = "Administrasjon";
 }
 
-<h1>Brukere og roller</h1>
+<div class="page-head">
+    <div class="d-flex flex-column gap-1">
+        <h1>Administrasjon</h1>
+        <p class="lead-text">Roller, brukere, ressurser og behov.</p>
+    </div>
+    <nav class="segmented" aria-label="Deler av admin-siden">
+        <a href="#brukere">Brukere (@Model.Users.Count)</a>
+        <a href="#ressurser">Ressurser (@Model.Resources.Count)</a>
+        <a href="#behov">Behov (@Model.Needs.Count)</a>
+    </nav>
+</div>
 
+@if (TempData["Message"] is string message)
+{
+    <div class="alert alert-success m-0" role="status">@message</div>
+}
 @if (TempData["Error"] is string error)
 {
-    <div class="alert alert-danger" role="alert">@error</div>
+    <div class="alert alert-danger m-0" role="alert">@error</div>
 }
 
-<section class="panel">
-<div class="table-responsive">
-    <table class="table table-striped align-middle">
-        <caption>Alle registrerte brukere. Legg til eller fjern roller med knappene.</caption>
-        <thead>
-            <tr>
-                <th scope="col">Navn</th>
-                <th scope="col">E-post</th>
-                <th scope="col">Telefon</th>
-                <th scope="col">Roller</th>
-                <th scope="col">Endre roller</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var user in Model)
-            {
+<section class="panel" id="brukere" aria-labelledby="brukere-title">
+    <h2 id="brukere-title">Brukere og roller</h2>
+    <ul class="role-legend">
+        @foreach (var role in AppRoles.All)
+        {
+            <li><strong>@role:</strong> @AppRoles.Describe(role)</li>
+        }
+    </ul>
+    <div class="table-responsive">
+        <table class="table align-middle admin-table">
+            <caption>Velg en rolle og trykk Lagre. Nye brukere blir Privat.</caption>
+            <thead>
                 <tr>
-                    <td>@(user.Name ?? "Ikke oppgitt")</td>
-                    <td>@user.Email</td>
-                    <td>@(user.PhoneNumber ?? "–")</td>
-                    <td>
-                        @if (user.Roles.Count == 0)
-                        {
-                            <span>Ingen</span>
-                        }
-                        @foreach (var status in user.Roles)
-                        {
-                            <div>
-                                <strong>@status.RoleName</strong>
-                                @if (!status.IsActive)
-                                {
-                                    <span class="text-danger">(venter på godkjenning)</span>
-                                }
-                                else if (status.RequiresVerification)
-                                {
-                                    <span class="text-muted" style="font-size: 14px">
-                                        (godkjent @status.VerifiedAt?.ToString("yyyy-MM-dd")@(status.VerifiedByEmail is null ? " ved oppstart" : $" av {status.VerifiedByEmail}"))
-                                    </span>
-                                }
-                            </div>
-                        }
-                    </td>
-                    <td>
-                        @foreach (var role in AppRoles.All)
-                        {
-                            var status = user.Roles.FirstOrDefault(s => s.RoleName == role);
-                            var hasRole = status is { IsActive: true };
-                            <form asp-action="@(hasRole ? "RemoveRole" : "AddRole")" method="post" class="d-inline">
-                                <input type="hidden" name="userId" value="@user.Id" />
-                                <input type="hidden" name="role" value="@role" />
-                                <button type="submit" class="btn btn-sm @(hasRole ? "btn-outline-danger" : "btn-outline-primary")">
-                                    @(hasRole ? "Fjern" : status is null ? "Gi" : "Godkjenn") @role
-                                </button>
-                            </form>
-                        }
-                    </td>
+                    <th scope="col">Bruker</th>
+                    <th scope="col">Telefon</th>
+                    <th scope="col">Ressurser</th>
+                    <th scope="col">Rolle</th>
+                    <th scope="col"><span class="visually-hidden">Slett</span></th>
                 </tr>
-            }
-        </tbody>
-    </table>
-</div>
+            </thead>
+            <tbody>
+                @foreach (var user in Model.Users)
+                {
+                    var isMe = user.Id == Model.CurrentUserId;
+                    var selectId = $"role-{user.Id}";
+                    <tr>
+                        <td>
+                            <strong>@(user.Name ?? "Ikke oppgitt")@(isMe ? " (deg)" : "")</strong>
+                            <div class="text-muted small-text">@user.Email · registrert @user.CreatedAt.ToString("dd.MM.yyyy")</div>
+                        </td>
+                        <td>@(user.PhoneNumber ?? "–")</td>
+                        <td>@user.ResourceCount</td>
+                        <td>
+                            <form asp-action="SetRole" method="post" class="role-form">
+                                <input type="hidden" name="userId" value="@user.Id" />
+                                <label class="visually-hidden" for="@selectId">Rolle for @user.Email</label>
+                                <select id="@selectId" name="role" class="form-select form-control form-control-sm" disabled="@isMe">
+                                    @if (user.Role is null)
+                                    {
+                                        <option value="" selected>Ingen rolle</option>
+                                    }
+                                    @foreach (var role in AppRoles.All)
+                                    {
+                                        <option value="@role" selected="@(role == user.Role)">@role</option>
+                                    }
+                                </select>
+                                @if (!isMe)
+                                {
+                                    <button type="submit" class="btn-pill btn-pill-outline btn-pill-small">Lagre</button>
+                                }
+                            </form>
+                        </td>
+                        <td>
+                            @if (!isMe)
+                            {
+                                @* <details>: slettingen må bekreftes med et ekstra klikk, uten JavaScript. *@
+                                <details class="confirm-delete">
+                                    <summary class="btn-pill btn-pill-danger-outline btn-pill-small">Slett</summary>
+                                    <form asp-action="DeleteUser" method="post">
+                                        <input type="hidden" name="userId" value="@user.Id" />
+                                        <p>Slette @user.Email? Ressursene hen la inn blir stående uten eier.</p>
+                                        <button type="submit" class="btn-pill btn-pill-danger btn-pill-small">Ja, slett brukeren</button>
+                                    </form>
+                                </details>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="panel" id="ressurser" aria-labelledby="ressurser-title">
+    <h2 id="ressurser-title">Ressurser</h2>
+    @if (Model.Resources.Count == 0)
+    {
+        <p class="m-0 text-muted">Ingen ressurser.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table align-middle admin-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Navn</th>
+                        <th scope="col">Kategori</th>
+                        <th scope="col">Sted</th>
+                        <th scope="col">Eier</th>
+                        <th scope="col">Status</th>
+                        <th scope="col"><span class="visually-hidden">Handlinger</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var resource in Model.Resources)
+                    {
+                        <tr>
+                            <td><a asp-controller="Resource" asp-action="Index" asp-route-id="@resource.Id">@resource.Name</a></td>
+                            <td>@resource.Category</td>
+                            <td>@(resource.PostalPlace ?? "–")</td>
+                            <td>@(resource.OwnerName ?? "Ingen")</td>
+                            <td><span class="status-line status--@resource.Status"><span class="status-dot" aria-hidden="true"></span>@ResourceStatus.Label(resource.Status)</span></td>
+                            <td class="text-nowrap">
+                                <a asp-controller="ResourceHandler" asp-action="Edit" asp-route-id="@resource.Id" class="btn-pill btn-pill-outline btn-pill-small">Endre</a>
+                                <a asp-controller="ResourceHandler" asp-action="Delete" asp-route-id="@resource.Id" class="btn-pill btn-pill-danger-outline btn-pill-small">Slett</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+<section class="panel" id="behov" aria-labelledby="behov-title">
+    <h2 id="behov-title">Behov</h2>
+    @if (Model.Needs.Count == 0)
+    {
+        <p class="m-0 text-muted">Ingen behov.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table align-middle admin-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Tittel</th>
+                        <th scope="col">Kategori</th>
+                        <th scope="col">Prioritet</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Lagt inn av</th>
+                        <th scope="col"><span class="visually-hidden">Handlinger</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var need in Model.Needs)
+                    {
+                        <tr>
+                            <td><a asp-controller="Need" asp-action="Details" asp-route-id="@need.Id">@need.Title</a></td>
+                            <td>@need.Category</td>
+                            <td>@NeedPriority.Label(need.Priority)</td>
+                            <td>@NeedStatus.Label(need.Status)</td>
+                            <td>@(need.OwnerName ?? "Ingen")</td>
+                            <td class="text-nowrap">
+                                <a asp-controller="Need" asp-action="Edit" asp-route-id="@need.Id" class="btn-pill btn-pill-outline btn-pill-small">Endre</a>
+                                <a asp-controller="Need" asp-action="Delete" asp-route-id="@need.Id" class="btn-pill btn-pill-danger-outline btn-pill-small">Slett</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
 </section>

@@ -21,7 +21,7 @@ public class ResourcePermissionsTests
 
     [Fact]
     public void Owner_CanModify() =>
-        Assert.True(ResourcePermissions.CanModify(User("ola-id", AppRoles.User), OwnedByOla));
+        Assert.True(ResourcePermissions.CanModify(User("ola-id", AppRoles.Private), OwnedByOla));
 
     [Fact]
     public void Owner_IsComparedById_NotByName()
@@ -35,13 +35,13 @@ public class ResourcePermissionsTests
     [Fact]
     public void NeedOwner_CanModifyNeed_OtherUserCannot()
     {
-        Assert.True(ResourcePermissions.CanModify(User("ola-id", AppRoles.User), NeedByOla));
-        Assert.False(ResourcePermissions.CanModify(User("kari-id", AppRoles.User), NeedByOla));
+        Assert.True(ResourcePermissions.CanModify(User("ola-id", AppRoles.Private), NeedByOla));
+        Assert.False(ResourcePermissions.CanModify(User("kari-id", AppRoles.Private), NeedByOla));
     }
 
     [Fact]
     public void OtherUser_CannotModify() =>
-        Assert.False(ResourcePermissions.CanModify(User("kari-id", AppRoles.User), OwnedByOla));
+        Assert.False(ResourcePermissions.CanModify(User("kari-id", AppRoles.Private), OwnedByOla));
 
     [Fact]
     public void Admin_CanModifyEverything()

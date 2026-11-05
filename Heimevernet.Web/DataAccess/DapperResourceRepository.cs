@@ -15,6 +15,7 @@ public class DapperResourceRepository(IDbConnectionFactory connectionFactory) : 
                c.Name AS CategoryName,
                l.Address, l.PostalCode, p.PostalPlace,
                CAST(l.Latitude AS DOUBLE) AS Latitude, CAST(l.Longitude AS DOUBLE) AS Longitude,
+               CASE WHEN EXISTS (SELECT 1 FROM ResourceImages i WHERE i.ResourceId = r.Id) THEN 1 ELSE 0 END AS HasImage,
                u.Name AS OwnerName, u.Email AS OwnerEmail, u.PhoneNumber AS OwnerPhone
         FROM Resources r
         INNER JOIN Categories c ON c.Id = r.CategoryId

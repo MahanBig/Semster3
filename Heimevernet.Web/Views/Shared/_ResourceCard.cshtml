@@ -17,7 +17,14 @@
     data-url="@Url.Action("Index", "Resource", new { id = Model.Id })">
     <a class="resource-card" asp-controller="Resource" asp-action="Index" asp-route-id="@Model.Id">
         <span class="resource-card-thumb" style="background: @category.Tint; color: @category.Color">
-            @Html.Raw(category.IconSvg(48, 1.7))
+            @if (Model.HasImage)
+            {
+                <img src="@Url.Action("Image", "Resource", new { id = Model.Id })" alt="" loading="lazy" />
+            }
+            else
+            {
+                @Html.Raw(category.IconSvg(48, 1.7))
+            }
             <span class="resource-card-distance" data-distance hidden></span>
         </span>
         <span class="resource-card-body">

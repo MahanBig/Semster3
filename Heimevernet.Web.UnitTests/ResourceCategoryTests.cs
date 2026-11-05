@@ -14,9 +14,11 @@ public class ResourceCategoryTests
     [InlineData("Kjøretøy", "verktoy")]
     [InlineData("Strøm og lading", "strom")]
     [InlineData("  STRØMAGGREGAT ", "strom")]
-    [InlineData("Type A", "info")]   // En ukjent type blir Informasjon.
-    [InlineData("", "info")]
-    [InlineData(null, "info")]
+    [InlineData("Type A", "annet")]   // En ukjent type blir Annet.
+    [InlineData("", "annet")]
+    [InlineData(null, "annet")]
+    [InlineData("Annet", "annet")]
+    [InlineData("Informasjon", "info")]
     public void FromType_PicksCategoryFromKeywords(string? type, string expectedKey)
     {
         Assert.Equal(expectedKey, ResourceCategory.FromType(type).Key);

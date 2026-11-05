@@ -66,6 +66,9 @@ namespace Heimevernet.Web.Models.ViewModels.Resource
         [BindNever]
         public bool CanModify { get; set; }
 
+        [BindNever]
+        public bool HasImage { get; set; }
+
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
             if (!ResourceStatus.All.Contains(Status))
@@ -98,6 +101,7 @@ namespace Heimevernet.Web.Models.ViewModels.Resource
             PostalPlace = resource.PostalPlace,
             Latitude = resource.Latitude,
             Longitude = resource.Longitude,
+            HasImage = resource.HasImage,
             OwnerName = resource.OwnerName ?? resource.OwnerEmail,
             OwnerPhone = resource.OwnerPhone,
             RegisteredAt = resource.RegisteredAt

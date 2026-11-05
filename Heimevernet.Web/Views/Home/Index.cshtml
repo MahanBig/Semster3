@@ -4,9 +4,11 @@
     ViewData["FullWidth"] = true; // Kartet skal fylle hele bredden, uten marger.
 }
 
+@* data-resource-filter: søket, kategoriknappene, listen og markørene på kartet henger sammen (site.js). *@
 <div class="map-page" data-resource-filter>
     <div class="map-area">
-        <div id="map" class="map-canvas" role="application" aria-label="Kart over Norge"></div>
+        <div id="map" class="map-canvas" role="application" aria-label="Kart med ressurser. Klikk i kartet for å legge til en ressurs der."
+             data-create-url="@Url.Action("Create", "ResourceHandler")"></div>
         <div class="map-overlay">
             <label class="search-pill">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
@@ -14,13 +16,19 @@
             </label>
             <partial name="_CategoryChips" />
         </div>
+        <p class="map-hint">Klikk i kartet for å legge til en ressurs der.</p>
     </div>
 
-    <aside class="map-list" aria-label="Ressurser">
+    <aside class="map-list" aria-label="Nærmeste ressurser">
         <div class="list-head">
-            <h1>Ressurser</h1>
-            <span data-filter-count aria-live="polite">@Model.Resources.Count steder</span>
+            <h1>Nærmest deg</h1>
+            <span data-filter-count aria-live="polite">@Model.Resources.Count ressurser</span>
         </div>
+
+        <p class="location-line" data-location-status>
+            <span data-location-text>Slå på posisjon for å se hvor langt unna ressursene er.</span>
+            <button type="button" class="link-button" data-use-location>Bruk min posisjon</button>
+        </p>
 
         @if (Model.Resources.Count == 0)
         {
@@ -37,16 +45,33 @@
             <p class="empty-state" data-filter-empty hidden>Ingen ressurser passer søket.</p>
         }
 
-        <a asp-controller="ResourceHandler" asp-action="Index" class="fw-bold">Vis alle ressurser</a>
+        <a asp-controller="ResourceHandler" asp-action="Index" class="fw-bold">Vis alle med flere filtre</a>
     </aside>
 </div>
 
 @section Scripts {
     <script>
         (function () {
-            var map = L.map('map', { zoomControl: false }).setView([64.5, 12], 5); // Norge
+            var mapElement = document.getElementById('map');
+            var map = L.map(mapElement, { zoomControl: false });
             L.control.zoom({ position: 'bottomright' }).addTo(map);
             beredskapTiles(map);
+            kriseklarResourceMap(map, document.querySelector('[data-resource-filter]'));
+
+            // Klikk i kartet: tilby å legge til en ressurs akkurat der. Punktet sendes med til skjemaet.
+            map.on('click', function (event) {
+                var lat = event.latlng.lat.toFixed(6);
+                var lng = event.latlng.lng.toFixed(6);
+                var popup = document.createElement('div');
+                popup.className = 'kk-popup';
+                var title = document.createElement('strong');
+                title.textContent = 'Vet du om noe her?';
+                var link = document.createElement('a');
+                link.href = mapElement.dataset.createUrl + '?lat=' + lat + '&lng=' + lng;
+                link.textContent = 'Legg til ressurs her';
+                popup.append(title, link);
+                L.popup().setLatLng(event.latlng).setContent(popup).openOn(map);
+            });
         })();
     </script>
 }

@@ -393,6 +393,128 @@ fieldset legend { font-size: 18px; font-weight: 700; }
 .list-head span { font-size: 15px; color: var(--muted); }
 .leaflet-container { font-family: var(--bs-body-font-family); }
 
+/* Markører på kartet: rund i kategorifargen med ikon (site.js, markerIcon). */
+.kk-marker { background: none; border: 0; }
+.kk-marker-pin {
+  width: 40px; height: 40px; box-sizing: border-box; border-radius: 50%;
+  border: 3px solid #FFFFFF; box-shadow: 0 2px 6px rgba(15, 27, 45, 0.35);
+  display: flex; align-items: center; justify-content: center; color: #FFFFFF;
+}
+.kk-popup { display: flex; flex-direction: column; gap: 4px; font-size: 15px; min-width: 160px; }
+.kk-popup strong { font-size: 16px; }
+.kk-popup span { color: var(--muted); }
+.kk-popup a { font-weight: 700; }
+.map-hint {
+  position: absolute; left: 16px; bottom: 16px; z-index: 500; margin: 0;
+  padding: 8px 14px; border-radius: 12px; background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow-float); font-size: 15px; color: var(--text-2); pointer-events: none;
+}
+
+/* Posisjonslinjen: "Avstanden regnes fra der du er nå. Oppdater posisjon" */
+.location-line { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 15px; color: var(--muted); }
+.link-button {
+  border: 0; background: none; padding: 0; min-height: 32px;
+  color: var(--primary); font-weight: 700; text-decoration: underline; cursor: pointer;
+}
+.link-button:hover { color: var(--primary-hover); }
+.link-button:disabled { color: var(--muted); text-decoration: none; cursor: default; }
+
+.resource-distance { flex: none; font-size: 15px; font-weight: 700; color: var(--text); }
+.status-line { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.status-dot { width: 9px; height: 9px; border-radius: 50%; background: #8593A5; flex: none; }
+.resource-text .status-line.status--tilgjengelig, .status-line.status--tilgjengelig { color: var(--ok); }
+.status--tilgjengelig .status-dot { background: #16A34A; }
+.resource-text .status-line.status--i_bruk, .status-line.status--i_bruk { color: #92400E; }
+.status--i_bruk .status-dot { background: #D97706; }
+.resource-text .status-line.status--utilgjengelig, .status-line.status--utilgjengelig { color: var(--danger); }
+.status--utilgjengelig .status-dot { background: #DC2626; }
+
+/* ---------- Ressurser: rutenett/kart med filtre til høyre (designet "Ressurser nær deg") ---------- */
+
+.resources-page { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
+.resources-main { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.search-pill.search-pill--wide { max-width: none; box-shadow: none; border-color: var(--chip-border); }
+.filter-status { font-size: 17px; }
+.filter-status span { color: var(--muted); }
+
+.segmented { display: flex; padding: 4px; border-radius: 26px; background: var(--surface); border: 1px solid var(--border); }
+.segmented button {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px;
+  border: 0; border-radius: 22px; background: transparent; color: var(--text);
+  font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.segmented button[aria-pressed="true"] { background: var(--primary); color: #FFFFFF; }
+
+.resource-cards {
+  margin: 0; padding: 0; list-style: none;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px;
+}
+.resource-card {
+  height: 100%; display: flex; flex-direction: column; overflow: hidden;
+  border-radius: 16px; border: 1px solid var(--border); background: var(--surface);
+  color: var(--text); text-decoration: none;
+}
+.resource-card:hover { border-color: var(--primary); color: var(--text); box-shadow: 0 4px 14px rgba(15, 27, 45, 0.1); }
+.resource-card-thumb { position: relative; height: 120px; display: flex; align-items: center; justify-content: center; }
+.resource-card-distance {
+  position: absolute; top: 10px; right: 10px; padding: 4px 10px; border-radius: 12px;
+  background: #FFFFFF; color: var(--text); font-size: 14px; font-weight: 700;
+}
+.resource-card-body { display: flex; flex-direction: column; gap: 5px; padding: 12px 14px 14px; }
+.resource-card-body strong { font-size: 17px; line-height: 1.25; }
+.resource-card-meta { font-size: 15px; color: var(--muted); }
+.resource-card-body .status-line { font-size: 14px; }
+
+.resources-map { position: relative; height: 600px; border-radius: 18px; overflow: hidden; border: 1px solid var(--border); background: var(--map-bg); }
+.empty-filter { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; border-style: dashed; border-color: var(--border-strong); }
+.empty-filter h2 { margin: 0; font-size: 20px; }
+.empty-filter p { margin: 0; color: var(--muted); }
+
+.filter-panel {
+  position: sticky; top: 16px; box-sizing: border-box; display: block; /* <details> støtter ikke flex i alle nettlesere. */
+  padding: 24px; border-radius: var(--radius-card); background: var(--surface); border: 1px solid var(--border);
+}
+.filter-panel > summary { display: flex; align-items: center; justify-content: space-between; list-style: none; cursor: pointer; }
+.filter-panel > summary::-webkit-details-marker { display: none; }
+.filter-panel > summary h2 { margin: 0; font-size: 24px; }
+.filter-panel-chevron { display: none; }
+.filter-panel[open] > *:not(summary) { margin-top: 22px; }
+.filter-reset { position: absolute; top: 28px; right: 24px; margin-top: 0 !important; }
+.filter-section { display: flex; flex-direction: column; gap: 10px; }
+.filter-section h3, .filter-label { margin: 0; font-size: 17px; font-weight: 700; }
+.filter-hint { margin: 0; font-size: 14px; color: var(--muted); }
+.chip.chip--square { border-radius: 10px; box-shadow: none; }
+.chip[aria-checked="true"] { background: var(--primary); border-color: var(--primary); color: #FFFFFF; }
+.chip-count {
+  min-width: 22px; height: 22px; padding: 0 6px; box-sizing: border-box; border-radius: 11px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #EEF1F5; color: var(--text-2); font-size: 13px;
+}
+.chip[aria-pressed="true"] .chip-count { background: rgba(255, 255, 255, 0.2); color: #FFFFFF; }
+.check-row { display: flex; align-items: center; gap: 12px; min-height: 44px; font-size: 16px; cursor: pointer; }
+.filter-callout { display: flex; flex-direction: column; gap: 6px; padding: 16px; border-radius: 16px; background: var(--bg); font-size: 15px; }
+.filter-callout span { color: var(--muted); line-height: 1.45; }
+.filter-callout a { font-weight: 700; }
+
+/* Minikart i skjemaet og på detaljsiden */
+.point-picker { display: flex; flex-direction: column; gap: 10px; }
+.point-picker-map, .detail-map {
+  height: 280px; border-radius: 14px; overflow: hidden;
+  border: 1px solid var(--border-strong); background: var(--map-bg);
+}
+.point-picker-map { cursor: crosshair; }
+.detail-map { height: 220px; border-color: var(--border); }
+
+@media (max-width: 1100px) {
+  .resources-page { grid-template-columns: minmax(0, 1fr); }
+  .filter-panel { position: static; order: -1; padding: 16px 20px; }
+  .filter-panel-chevron { display: block; transition: transform 0.15s; }
+  .filter-panel[open] .filter-panel-chevron { transform: rotate(180deg); }
+  .filter-panel > summary h2 { font-size: 20px; }
+  .filter-reset { position: static; align-self: flex-start; }
+  .resources-map { height: 460px; }
+}
+
 /* ---------- Innlogging (delt skjerm) ---------- */
 
 .auth { display: flex; flex-wrap: wrap; min-height: 100vh; }

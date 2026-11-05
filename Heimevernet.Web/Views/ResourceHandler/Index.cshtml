@@ -2,44 +2,177 @@
 @model List<ResourceViewModel>
 @{
     ViewData["Title"] = "Ressurser";
-    ViewData["ShowDescription"] = true; // Kortene på denne siden viser også beskrivelsen.
+    ViewData["ShowCounts"] = true; // Kategoriknappene viser hvor mange ressurser hver gir.
+    // Byene/poststedene som finnes, til filteret "Sted".
+    var places = Model.Select(resource => resource.PostalPlace)
+        .Where(place => !string.IsNullOrWhiteSpace(place))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .Order(StringComparer.Create(new System.Globalization.CultureInfo("nb-NO"), ignoreCase: true))
+        .ToList();
+    var distances = new[] { (1000, "1 km"), (5000, "5 km"), (10000, "10 km"), (25000, "25 km"), (0, "Alle") };
 }
 
-<div class="page-head">
-    <h1>Ressurser</h1>
-    @* Alle som ser denne siden er logget inn (hele appen krever innlogging), så alle kan legge til. *@
-    <a asp-action="Create" class="btn-pill btn-pill-small">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
-        Ny ressurs
-    </a>
+@* Hele siden er ett filter (site.js): søk, filtrene til høyre, kortene og kartet henger sammen.
+   All filtrering skjer i nettleseren, så posisjonen til brukeren sendes aldri til serveren. *@
+<div class="resources-page" data-resource-filter>
+    <div class="resources-main">
+        <div class="page-head">
+            <div class="d-flex flex-column gap-1">
+                <h1>Ressurser nær deg</h1>
+                <p class="location-line" data-location-status>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="7"></circle><circle cx="12" cy="12" r="2"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path></svg>
+                    <span data-location-text>Slå på posisjon for å se hvor langt unna ressursene er.</span>
+                    <button type="button" class="link-button" data-use-location>Bruk min posisjon</button>
+                </p>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <div class="segmented" role="group" aria-label="Visning">
+                    <button type="button" aria-pressed="true" data-view="grid">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg>
+                        Rutenett
+                    </button>
+                    <button type="button" aria-pressed="false" data-view="map">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg>
+                        Kart
+                    </button>
+                </div>
+                @* Alle som ser denne siden er logget inn (hele appen krever innlogging), så alle kan legge til. *@
+                <a asp-action="Create" class="btn-pill btn-pill-small">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+                    Ny ressurs
+                </a>
+            </div>
+        </div>
+
+        @if (TempData["Message"] is string message)
+        {
+            <div class="alert alert-success m-0" role="status">@message</div>
+        }
+
+        <label class="search-pill search-pill--wide">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+            <input type="search" data-filter-search aria-label="Søk etter ressurs" placeholder="Søk etter navn, beskrivelse, adresse eller sted" />
+        </label>
+
+        <p class="filter-status m-0" role="status">
+            <strong data-filter-count>@Model.Count ressurser</strong> <span data-filter-summary></span>
+        </p>
+
+        @if (Model.Count == 0)
+        {
+            <p class="panel empty-state">Ingen ressurser er registrert ennå. Bli den første som melder inn en.</p>
+        }
+        else
+        {
+            <div class="panel empty-filter" data-filter-empty hidden>
+                <h2>Ingen ressurser passer filtrene</h2>
+                <p>Prøv en lengre avstand, et annet søkeord eller fjern noen kategorier.</p>
+                <button type="button" class="btn-pill btn-pill-small" data-filter-reset>Nullstill filtre</button>
+            </div>
+
+            <ul class="resource-cards" data-view-panel="grid">
+                @foreach (var resource in Model)
+                {
+                    <partial name="_ResourceCard" model="resource" />
+                }
+            </ul>
+
+            <div class="resources-map" data-view-panel="map" hidden>
+                <div id="resources-map" class="map-canvas" role="application" aria-label="Kart med ressursene som passer filtrene"></div>
+            </div>
+        }
+    </div>
+
+    @* <details> så filtrene kan foldes sammen på mobil. På stor skjerm står de alltid åpne til høyre. *@
+    <details class="filter-panel" data-filter-panel open>
+        <summary>
+            <h2>Filtrer</h2>
+            <svg class="filter-panel-chevron" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+        </summary>
+
+        <button type="button" class="link-button filter-reset" data-filter-reset>Nullstill</button>
+
+        <section class="filter-section">
+            <h3 id="distance-label">Avstand fra deg</h3>
+            <div class="chip-row" role="radiogroup" aria-labelledby="distance-label">
+                @foreach (var (meters, label) in distances)
+                {
+                    <button type="button" class="chip chip--square" role="radio" data-filter-distance="@meters" aria-checked="@(meters == 0 ? "true" : "false")">@label</button>
+                }
+            </div>
+            <p class="filter-hint" data-filter-walk></p>
+        </section>
+
+        <section class="filter-section">
+            <h3>Hva trenger du?</h3>
+            <partial name="_CategoryChips" />
+        </section>
+
+        @if (places.Count > 0)
+        {
+            <section class="filter-section">
+                <label for="filter-place" class="filter-label">Sted</label>
+                <select id="filter-place" class="form-select form-control" data-filter-place>
+                    <option value="">Alle steder</option>
+                    @foreach (var place in places)
+                    {
+                        <option value="@place">@place</option>
+                    }
+                </select>
+            </section>
+        }
+
+        <section class="filter-section">
+            <h3>Vis bare</h3>
+            <label class="check-row">
+                <input type="checkbox" class="form-check-input" data-filter-available />
+                Tilgjengelige nå
+            </label>
+        </section>
+
+        <section class="filter-section">
+            <label for="filter-sort" class="filter-label">Sorter etter</label>
+            <select id="filter-sort" class="form-select form-control" data-filter-sort>
+                <option value="distance">Nærmest først</option>
+                <option value="newest">Nyeste først</option>
+                <option value="name">Navn (A–Å)</option>
+            </select>
+        </section>
+
+        <div class="filter-callout">
+            <strong>Vet du om noe som mangler?</strong>
+            <span>Meld inn en ressurs, eller klikk i kartet på forsiden der den er.</span>
+            <a asp-action="Create">Meld inn ressurs</a>
+        </div>
+    </details>
 </div>
 
-@if (TempData["Message"] is string message)
-{
-    <div class="alert alert-success" role="status">@message</div>
-}
+@section Scripts {
+    <script>
+        (function () {
+            var root = document.querySelector('[data-resource-filter]');
 
-@if (Model.Count == 0)
-{
-    <p class="panel empty-state">Ingen ressurser er registrert ennå.</p>
-}
-else
-{
-    <section data-resource-filter class="d-flex flex-column gap-3" aria-label="Søk og filtrer ressurser">
-        <label class="search-pill">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
-            <input type="search" data-filter-search aria-label="Søk etter ressurs" placeholder="Søk etter navn, type eller beskrivelse" />
-        </label>
-        <partial name="_CategoryChips" />
+            // Filtrene foldes sammen på smale skjermer, så resultatene kommer høyere opp.
+            var panel = root.querySelector('[data-filter-panel]');
+            if (window.matchMedia('(max-width: 1100px)').matches) { panel.open = false; }
 
-        <p class="m-0 fw-bold" data-filter-count aria-live="polite">@Model.Count steder</p>
-
-        <ul class="resource-grid">
-            @foreach (var resource in Model)
-            {
-                <partial name="_ResourceItem" model="resource" />
-            }
-        </ul>
-        <p class="panel empty-state" data-filter-empty hidden>Ingen ressurser passer søket. Prøv et annet ord eller fjern filtrene.</p>
-    </section>
+            // Rutenett eller kart. Kartet lages første gang det vises.
+            var map = null;
+            var buttons = root.querySelectorAll('[data-view]');
+            buttons.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    var view = button.dataset.view;
+                    buttons.forEach(function (other) { other.setAttribute('aria-pressed', other === button ? 'true' : 'false'); });
+                    root.querySelectorAll('[data-view-panel]').forEach(function (element) {
+                        element.hidden = element.dataset.viewPanel !== view;
+                    });
+                    if (view === 'map' && !map && document.getElementById('resources-map')) {
+                        map = L.map('resources-map');
+                        beredskapTiles(map);
+                        kriseklarResourceMap(map, root);
+                    }
+                });
+            });
+        })();
+    </script>
 }

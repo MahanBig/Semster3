@@ -34,11 +34,18 @@ namespace Heimevernet.Web.Controllers
 
         // ---------- Legge til ----------
 
+        // Kommer brukeren fra kartet ("Legg til ressurs her"), er punktet allerede valgt.
         [HttpGet]
         [Authorize] // Alle innloggede brukere kan legge til ressurser.
-        public IActionResult Create()
+        public IActionResult Create(double? lat = null, double? lng = null)
         {
-            return View(new ResourceViewModel());
+            var model = new ResourceViewModel();
+            if (lat is >= -90 and <= 90 && lng is >= -180 and <= 180)
+            {
+                model.Latitude = Math.Round(lat.Value, 6);
+                model.Longitude = Math.Round(lng.Value, 6);
+            }
+            return View(model);
         }
 
         [HttpPost]
@@ -177,7 +184,10 @@ namespace Heimevernet.Web.Controllers
             CategoryId = categoryId,
             Address = EmptyToNull(model.Address),
             PostalCode = EmptyToNull(model.PostalCode),
-            PostalPlace = EmptyToNull(model.PostalPlace)
+            PostalPlace = EmptyToNull(model.PostalPlace),
+            // DECIMAL(9,6) i databasen: 6 desimaler er ca. 10 cm, mer enn nok.
+            Latitude = model.Latitude is { } lat ? Math.Round(lat, 6) : null,
+            Longitude = model.Longitude is { } lng ? Math.Round(lng, 6) : null
         };
 
         private static string? EmptyToNull(string? value)

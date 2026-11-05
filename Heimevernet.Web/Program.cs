@@ -1,3 +1,4 @@
+using System.Globalization;
 using Heimevernet.Web.DataAccess;
 using Heimevernet.Web.DataAccess.Identity;
 using Heimevernet.Web.Models.Entities;
@@ -110,6 +111,16 @@ app.Use(async (context, next) =>
     headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()";
     await next();
 });
+// Fast kultur for alle forespørsler: tall skrives og leses med punktum (58.1464), uansett språk på maskinen.
+// Ellers ville koordinatene fra kartet bli lest feil på en norsk Windows-maskin, der desimaltegnet er komma.
+// Datoene i viewene har eget format, så de påvirkes ikke.
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture(CultureInfo.InvariantCulture),
+    SupportedCultures = [CultureInfo.InvariantCulture],
+    SupportedUICultures = [CultureInfo.InvariantCulture]
+});
+
 app.UseRouting(); // Rekkefølgen hver forespørsel går gjennom.
 
 app.UseAuthentication(); // Leser innloggings-cookien og finner ut HVEM brukeren er.

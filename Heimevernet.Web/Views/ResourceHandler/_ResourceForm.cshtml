@@ -49,6 +49,25 @@
 </div>
 
 <div class="panel d-flex flex-column gap-4">
+    @* Minikartet: klikk der ressursen er. JavaScript (site.js, initPointPicker) skriver punktet i de skjulte feltene.
+       Kommer brukeren fra forsiden ("Legg til ressurs her"), er punktet allerede valgt. *@
+    <fieldset class="point-picker" data-point-picker>
+        <legend class="form-label mb-1">Hvor er ressursen? <span class="optional">(valgfritt, men da vises den på kartet)</span></legend>
+        <div class="point-picker-map" data-point-map role="application" aria-label="Kart. Klikk for å velge hvor ressursen er."></div>
+        <p class="form-text m-0" data-point-text aria-live="polite">Ingen punkt valgt. Klikk i kartet der ressursen er.</p>
+        <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn-pill btn-pill-outline btn-pill-small" data-point-mine>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l18-8-8 18-2-8z"></path></svg>
+                Bruk min posisjon
+            </button>
+            <button type="button" class="btn-pill btn-pill-outline btn-pill-small" data-point-clear hidden>Fjern punktet</button>
+        </div>
+        <input type="hidden" asp-for="Latitude" data-point-lat />
+        <input type="hidden" asp-for="Longitude" data-point-lng />
+        <span asp-validation-for="Latitude" class="text-danger"></span>
+        <span asp-validation-for="Longitude" class="text-danger"></span>
+    </fieldset>
+
     <div>
         <label asp-for="Address" class="form-label">Adresse <span class="optional">(valgfritt)</span></label>
         <input asp-for="Address" class="form-control" autocomplete="street-address" />

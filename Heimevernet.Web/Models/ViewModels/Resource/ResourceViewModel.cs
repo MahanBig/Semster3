@@ -43,6 +43,15 @@ namespace Heimevernet.Web.Models.ViewModels.Resource
         [Display(Name = "Poststed")]
         public string? PostalPlace { get; set; }
 
+        // Punktet brukeren valgte på kartet. Fylles inn av JavaScript i skjemaet (minikartet).
+        [Range(-90, 90, ErrorMessage = "Ugyldig breddegrad.")]
+        public double? Latitude { get; set; }
+
+        [Range(-180, 180, ErrorMessage = "Ugyldig lengdegrad.")]
+        public double? Longitude { get; set; }
+
+        public bool HasPosition => Latitude is not null && Longitude is not null;
+
         // Vises på siden, men tas aldri fra skjemaet ([BindNever]): controlleren setter dem selv.
         // Ellers kunne noen sende inn en annen eier og "eie" ressursen (overposting).
         [BindNever]
@@ -69,6 +78,11 @@ namespace Heimevernet.Web.Models.ViewModels.Resource
                 yield return new ValidationResult(
                     "Fyll inn både postnummer og poststed, eller ingen av dem.", [nameof(PostalCode), nameof(PostalPlace)]);
             }
+
+            if ((Latitude is null) != (Longitude is null))
+            {
+                yield return new ValidationResult("Velg et punkt på kartet, eller fjern det.", [nameof(Latitude)]);
+            }
         }
 
         public static ResourceViewModel FromEntity(Entities.Resource resource) => new()
@@ -82,6 +96,8 @@ namespace Heimevernet.Web.Models.ViewModels.Resource
             Address = resource.Address,
             PostalCode = resource.PostalCode,
             PostalPlace = resource.PostalPlace,
+            Latitude = resource.Latitude,
+            Longitude = resource.Longitude,
             OwnerName = resource.OwnerName ?? resource.OwnerEmail,
             OwnerPhone = resource.OwnerPhone,
             RegisteredAt = resource.RegisteredAt

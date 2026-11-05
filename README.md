@@ -138,6 +138,14 @@ Controllerne kjenner bare grensesnittene (`IResourceRepository`, `INeedRepositor
 
 **Ressurser:** `/ResourceHandler` lister ressursene fra databasen, `/Resource/Index/{id}` viser én ressurs. Innloggede brukere legger til nye på `/ResourceHandler/Create`, og eier eller admin endrer (`Edit`) og sletter (`Delete`, med en bekreftelsesside først). Etter hver lagring sendes brukeren videre med Post/Redirect/Get og en kort bekreftelse.
 
+**Kart, avstand og filtre:**
+- Hver ressurs kan ha et punkt på kartet. Det lagres i `Locations.Latitude` og `Locations.Longitude` sammen med adressen (`DataAccess/LocationWriter.cs`).
+- Punktet velges i et lite kart i skjemaet (klikk, dra markøren eller «Bruk min posisjon»). Klikker man i kartet på forsiden, kommer man til «Ny ressurs» med punktet ferdig valgt (`/ResourceHandler/Create?lat=…&lng=…`).
+- Forsiden viser ressursene som markører i kategorifargen og listen «Nærmest deg», sortert etter avstand.
+- `/ResourceHandler` følger designet «Ressurser nær deg»: rutenett eller kart, søk, og filtre for avstand (1–25 km), kategori (med antall), sted, «Tilgjengelige nå» og sortering.
+- Avstanden regnes ut i nettleseren (`wwwroot/js/site.js`) fra posisjonen nettleseren gir. Posisjonen sendes aldri til serveren og lagres bare i fanen (`sessionStorage`). Sier brukeren nei, virker alt unntatt avstand.
+- Appen bruker fast kultur (`UseRequestLocalization` i `Program.cs`), så koordinater alltid skrives og leses med punktum, også på en norsk Windows-maskin.
+
 ### Teknologivalg
 
 | Teknologi | Begrunnelse |
@@ -184,7 +192,7 @@ Testscenarioer:
 
 | Område | Hva testes |
 |---|---|
-| Systemtest | Sidene åpnes, ressurser fra databasen vises, registrering og innlogging, legge til / endre / slette ressurs (krav 3), validering av skjema, data overlever omstart av containeren |
+| Systemtest | Sidene åpnes, ressurser fra databasen vises, registrering og innlogging, legge til / endre / slette ressurs (krav 3), punkt på kartet lagres og vises, «Legg til ressurs her» fyller inn punktet, filtrene finnes på ressurssiden, validering av skjema, data overlever omstart av containeren |
 | Tilgangskontroll | Utlogget sendes til innlogging fra alle sider (også forsiden og ressurslisten), mens innloggingssiden, CSS og logo er åpne, vanlig bruker får «Ingen tilgang» på admin-sider, Kari får ikke endre eller slette Olas ressurs, verken via knappene eller ved å sende POST direkte |
 | CSRF | POST uten anti-forgery-token gir 400 Bad Request |
 | XSS | `<script>` i en beskrivelse vises som tekst og kjøres ikke |
@@ -221,12 +229,12 @@ Malen ligger i [`docs/brukervennlighetstest.md`](docs/brukervennlighetstest.md):
 
 ### Testresultater
 
-Kjørt 4. november 2026 mot appen i Docker (`docker compose up --build -d`).
+Kjørt 5. november 2026 mot appen i Docker (`docker compose up --build -d`).
 
 | Test | Antall | Bestått |
 |---|---|---|
-| Enhetstester (`dotnet test`) | 72 | 72 ✅ |
-| Systemtest (`tests/system/system-og-sikkerhetstest.ps1`) | 26 | 26 ✅ |
+| Enhetstester (`dotnet test`) | 79 | 79 ✅ |
+| Systemtest (`tests/system/system-og-sikkerhetstest.ps1`) | 30 | 30 ✅ |
 | Sikkerhetstest (samme skript) | 30 | 30 ✅ |
 | Manuelle tester (tabellen over) | 13 | 13 ✅ |
 | Brukervennlighetstest | *TODO* | *TODO* |

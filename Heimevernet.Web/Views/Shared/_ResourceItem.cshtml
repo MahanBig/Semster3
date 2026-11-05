@@ -1,22 +1,25 @@
+@using System.Globalization
 @using Heimevernet.Web.Models.ViewModels.Resource
 @model ResourceViewModel
 @{
-    // Ett ressurskort i en liste.
+    // Én rad i listen "Nærmest deg" på forsiden.
+    // data-* brukes av filteret og kartet i site.js. Avstanden ([data-distance]) regnes ut i nettleseren.
     var category = ResourceCategory.FromType(Model.Category);
-    var showDescription = ViewData["ShowDescription"] is true;
-    var searchText = $"{Model.Name} {Model.Category} {Model.Description} {Model.PostalPlace}".ToLowerInvariant();
+    var searchText = $"{Model.Name} {Model.Category} {Model.Description} {Model.Address} {Model.PostalPlace}".ToLowerInvariant();
 }
-<li data-filter-item data-category="@category.Key" data-search="@searchText">
+<li data-filter-item
+    data-category="@category.Key" data-label="@category.Label" data-color="@category.Color" data-icon="@category.IconPath"
+    data-name="@Model.Name" data-search="@searchText" data-place="@Model.PostalPlace" data-status="@Model.Status"
+    data-registered="@Model.RegisteredAt?.ToString("o", CultureInfo.InvariantCulture)"
+    data-lat="@Model.Latitude?.ToString("0.######", CultureInfo.InvariantCulture)"
+    data-lng="@Model.Longitude?.ToString("0.######", CultureInfo.InvariantCulture)"
+    data-url="@Url.Action("Index", "Resource", new { id = Model.Id })">
     <a class="resource-item" asp-controller="Resource" asp-action="Index" asp-route-id="@Model.Id">
         <span class="resource-thumb" style="background: @category.Tint; color: @category.Color">@Html.Raw(category.IconSvg(22))</span>
         <span class="resource-text">
             <strong>@Model.Name</strong>
-            <span>@Model.Category · @ResourceStatus.Label(Model.Status)</span>
-            @if (showDescription)
-            {
-                <span class="resource-desc">@Model.Description</span>
-            }
+            <span class="status-line status--@Model.Status"><span class="status-dot" aria-hidden="true"></span>@ResourceStatus.Label(Model.Status)</span>
         </span>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A5868" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+        <span class="resource-distance" data-distance hidden></span>
     </a>
 </li>

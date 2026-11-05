@@ -1,3 +1,4 @@
+@using System.Globalization
 @using Heimevernet.Web.Models.ViewModels.Resource
 @model ResourceViewModel
 @{
@@ -6,6 +7,12 @@
     // "Storgata 1, 4790 Lillesand" – tomme deler hoppes over.
     var place = $"{Model.PostalCode} {Model.PostalPlace}".Trim();
     var fullAddress = string.Join(", ", new[] { Model.Address, place }.Where(part => !string.IsNullOrWhiteSpace(part)));
+    // Punktet med punktum som desimaltegn, til kartet og lenken til OpenStreetMap.
+    var lat = Model.Latitude?.ToString("0.######", CultureInfo.InvariantCulture);
+    var lng = Model.Longitude?.ToString("0.######", CultureInfo.InvariantCulture);
+    var mapLink = Model.HasPosition
+        ? $"https://www.openstreetmap.org/?mlat={lat}&mlon={lng}#map=16/{lat}/{lng}"
+        : fullAddress.Length > 0 ? $"https://www.openstreetmap.org/search?query={Uri.EscapeDataString(fullAddress)}" : null;
 }
 
 <a asp-controller="ResourceHandler" asp-action="Index" class="back-link">
@@ -62,13 +69,26 @@
     <aside class="panel-narrow d-flex flex-column gap-3">
         <section class="panel">
             <h2>Plassering</h2>
+            @if (Model.HasPosition)
+            {
+                @* Lite kart med punktet. data-* leses av skriptet nederst. *@
+                <div class="detail-map" id="detail-map" role="img" aria-label="Kart som viser hvor ressursen er"
+                     data-lat="@lat" data-lng="@lng" data-color="@category.Color" data-icon="@category.IconPath"></div>
+                <p class="location-line mt-2 mb-0" data-location-status>
+                    <span data-location-text></span>
+                    <button type="button" class="link-button" data-use-location>Bruk min posisjon</button>
+                </p>
+                <p class="mt-1 mb-0 fw-bold" id="detail-distance" hidden></p>
+            }
             @if (fullAddress.Length > 0)
             {
                 <dl class="facts">
                     <div><dt>Adresse</dt><dd>@fullAddress</dd></div>
                 </dl>
-                <a class="btn-pill btn-pill-block mt-3" target="_blank" rel="noopener"
-                   href="https://www.openstreetmap.org/search?query=@Uri.EscapeDataString(fullAddress)">
+            }
+            @if (mapLink is not null)
+            {
+                <a class="btn-pill btn-pill-block mt-3" target="_blank" rel="noopener" href="@mapLink">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l18-8-8 18-2-8z"></path></svg>
                     Finn i kart
                     <span class="visually-hidden">(åpnes i ny fane)</span>
@@ -97,3 +117,29 @@
         </section>
     </aside>
 </div>
+
+@section Scripts {
+    @if (Model.HasPosition)
+    {
+        <script>
+            (function () {
+                var element = document.getElementById('detail-map');
+                var lat = parseFloat(element.dataset.lat), lng = parseFloat(element.dataset.lng);
+                var map = L.map(element, { scrollWheelZoom: false }).setView([lat, lng], 15);
+                beredskapTiles(map);
+                L.marker([lat, lng], { icon: kriseklarMarkerIcon(element.dataset.color, element.dataset.icon), keyboard: false }).addTo(map);
+
+                // Avstand fra brukeren, regnet ut i nettleseren.
+                var distance = document.getElementById('detail-distance');
+                function show(position) {
+                    if (!position) { distance.hidden = true; return; }
+                    var meters = map.distance([position.lat, position.lng], [lat, lng]);
+                    distance.textContent = (meters < 1000 ? Math.round(meters / 10) * 10 + ' m' : String(Math.round(meters / 100) / 10).replace('.', ',') + ' km') + ' unna deg';
+                    distance.hidden = false;
+                }
+                kriseklarPosition.onChange(show);
+                show(kriseklarPosition.get());
+            })();
+        </script>
+    }
+}

@@ -1,9 +1,17 @@
-@* Kategoriknappene fra designet. Brukes som filter sammen med site.js (data-resource-filter). *@
+@* Kategoriknappene fra designet. Brukes som filter sammen med site.js (data-resource-filter).
+   Med ViewData["ShowCounts"] = true får hver knapp et tall som viser hvor mange ressurser den gir. *@
+@{
+    var showCounts = ViewData["ShowCounts"] is true;
+}
 <div class="chip-row" role="group" aria-label="Filtrer på kategori">
     @foreach (var category in ResourceCategory.All)
     {
-        <button type="button" class="chip" data-filter-chip data-category="@category.Key" aria-pressed="false" style="--chip-color: @category.Color">
+        <button type="button" class="chip" data-filter-chip data-category="@category.Key" data-label="@category.Label" aria-pressed="false" style="--chip-color: @category.Color">
             @Html.Raw(category.IconSvg(18, 2.3))@category.Label
+            @if (showCounts)
+            {
+                <span class="chip-count" data-chip-count aria-hidden="true"></span>
+            }
         </button>
     }
 </div>

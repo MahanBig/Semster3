@@ -57,6 +57,7 @@ docker compose down -v       # stopper og sletter volumer (database og innloggin
 | `DataProtection__KeysPath` | `docker-compose.yml` | Mappe for innloggingsnøklene (volumet `dataprotection-keys`), så brukere forblir innlogget etter omstart |
 | `ADMIN_PASSWORD` | `.env` | Passord til første admin-bruker. Ligger aldri i Git |
 | `ADMIN_EMAIL` | `.env` (valgfri) | E-post til første admin-bruker, standard `admin@heimevernet.local` |
+| `Beredskap__Varsel__Tittel` og `Beredskap__Varsel__Tekst` | `docker-compose.yml` eller `appsettings.json` (valgfri) | Krisevarsel øverst på alle sider. Vises bare når tittelen har en verdi, og i dag bare for admin. Står tomt som standard |
 | `MARIADB_ROOT_PASSWORD` | `.env` (valgfri) | Root-passord til MariaDB, standard `heimevernet-dev` (bare lokal utvikling) |
 
 `.env.example` viser hvilke verdier som finnes. `.env` ligger i `.gitignore`.

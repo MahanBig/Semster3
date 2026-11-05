@@ -410,6 +410,24 @@ fieldset legend { font-size: 18px; font-weight: 700; }
   box-shadow: var(--shadow-float); font-size: 15px; color: var(--text-2); pointer-events: none;
 }
 
+/* Pluss-knappen og linjen som vises mens man plasserer pinnen (forsiden). */
+.map-add-button {
+  position: absolute; right: 16px; bottom: 96px; z-index: 600;
+  width: 56px; height: 56px; border-radius: 50%; border: 0;
+  background: var(--alert); color: #FFFFFF; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 14px rgba(15, 27, 45, 0.3);
+}
+.map-add-button:hover { background: #9A3412; }
+.place-bar {
+  position: absolute; left: 16px; right: 16px; bottom: 16px; z-index: 600; max-width: 640px;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px;
+  padding: 12px 16px; border-radius: 16px; background: #FFFFFF; box-shadow: var(--shadow-float);
+  font-size: 16px; font-weight: 700;
+}
+.place-bar[hidden], .map-add-button[hidden], .map-hint[hidden] { display: none; }
+.leaflet-container.is-placing, .is-placing .leaflet-grab { cursor: crosshair; }
+
 /* Posisjonslinjen: "Avstanden regnes fra der du er nå. Oppdater posisjon" */
 .location-line { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 15px; color: var(--muted); }
 .link-button {

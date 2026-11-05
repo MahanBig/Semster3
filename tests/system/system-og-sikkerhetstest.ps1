@@ -82,6 +82,7 @@ try {
     $r = Req '/' $olaC; Check 'Ny bruker er logget inn etter registrering' ($r.Content -match ('Logget inn som (</span>)?' + [regex]::Escape($ola))) ''
     $r = Register $kariC $kari $password; Check 'Bruker nr. 2 kan registrere seg' ($r.StatusCode -eq 302) "$($r.StatusCode)"
     $r = Req '/' $olaC; Check 'Forsiden (kart) åpnes for innlogget bruker' ($r.StatusCode -eq 200 -and $r.Content -match 'id="map"') "$($r.StatusCode)"
+    Check 'Forsiden har pluss-knappen for å sette en pinne og registrere en ressurs' ($r.Content -match 'id="add-pin"' -and $r.Content -match 'data-create-url="/ResourceHandler/Create"') ''
     $r = Req '/ResourceHandler' $olaC
     $ids = [regex]::Matches($r.Content, 'href="/Resource/Index/(\d+)"') | ForEach-Object { $_.Groups[1].Value }
     Check 'Ressurslisten viser ressurser fra databasen' ($r.StatusCode -eq 200 -and $ids.Count -ge 3) "$($ids.Count) ressurser"

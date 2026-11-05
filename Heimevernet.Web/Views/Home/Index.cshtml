@@ -16,7 +16,19 @@
             </label>
             <partial name="_CategoryChips" />
         </div>
-        <p class="map-hint">Klikk i kartet for å legge til en ressurs der.</p>
+        <p class="map-hint" id="map-hint">Trykk + eller klikk i kartet for å legge til en ressurs.</p>
+
+        @* Pluss-knappen: setter en pinne på kartet som brukeren drar dit ressursen er, og går så til skjemaet. *@
+        <button type="button" class="map-add-button" id="add-pin" aria-label="Legg til ressurs på kartet">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+        </button>
+        <div class="place-bar" id="place-bar" role="status" hidden>
+            <span>Dra pinnen, eller klikk i kartet der ressursen er.</span>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn-pill btn-pill-small" id="place-confirm" href="#">Registrer ressurs her</a>
+                <button type="button" class="btn-pill btn-pill-outline btn-pill-small" id="place-cancel">Avbryt</button>
+            </div>
+        </div>
     </div>
 
     <aside class="map-list" aria-label="Nærmeste ressurser">
@@ -58,8 +70,55 @@
             beredskapTiles(map);
             kriseklarResourceMap(map, document.querySelector('[data-resource-filter]'));
 
-            // Klikk i kartet: tilby å legge til en ressurs akkurat der. Punktet sendes med til skjemaet.
+            // ---------- Pluss-knappen: legg en pinne på kartet ----------
+            var addButton = document.getElementById('add-pin');
+            var placeBar = document.getElementById('place-bar');
+            var confirm = document.getElementById('place-confirm');
+            var hint = document.getElementById('map-hint');
+            var pin = null;
+
+            // Lenken til skjemaet får alltid punktet der pinnen står nå.
+            function updateLink() {
+                var point = pin.getLatLng();
+                confirm.href = mapElement.dataset.createUrl + '?lat=' + point.lat.toFixed(6) + '&lng=' + point.lng.toFixed(6);
+            }
+
+            function startPlacing() {
+                map.closePopup();
+                pin = L.marker(map.getCenter(), {
+                    icon: kriseklarMarkerIcon('#C2410C'), draggable: true, keyboard: true, title: 'Ny ressurs'
+                }).addTo(map);
+                pin.on('drag dragend', updateLink);
+                updateLink();
+                placeBar.hidden = false;
+                addButton.hidden = true;
+                hint.hidden = true;
+                mapElement.classList.add('is-placing');
+                confirm.focus();
+            }
+
+            function stopPlacing() {
+                if (pin) { map.removeLayer(pin); pin = null; }
+                placeBar.hidden = true;
+                addButton.hidden = false;
+                hint.hidden = false;
+                mapElement.classList.remove('is-placing');
+                addButton.focus();
+            }
+
+            addButton.addEventListener('click', startPlacing);
+            document.getElementById('place-cancel').addEventListener('click', stopPlacing);
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && pin) { stopPlacing(); }
+            });
+
+            // Klikk i kartet: flytt pinnen hvis den er satt ut. Ellers: tilby å legge til en ressurs akkurat der.
             map.on('click', function (event) {
+                if (pin) {
+                    pin.setLatLng(event.latlng);
+                    updateLink();
+                    return;
+                }
                 var lat = event.latlng.lat.toFixed(6);
                 var lng = event.latlng.lng.toFixed(6);
                 var popup = document.createElement('div');

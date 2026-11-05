@@ -1,6 +1,6 @@
 # Resultat: system- og sikkerhetstest
 
-Kjørt 2026-11-05 21:47 mot http://localhost:8080. **60 av 60 bestått.**
+Kjørt 2026-11-05 21:50 mot http://localhost:8080. **61 av 61 bestått.**
 
 ## System
 
@@ -10,14 +10,15 @@ Kjørt 2026-11-05 21:47 mot http://localhost:8080. **60 av 60 bestått.**
 | ✅ | Ny bruker er logget inn etter registrering |  |
 | ✅ | Bruker nr. 2 kan registrere seg | 302 |
 | ✅ | Forsiden (kart) åpnes for innlogget bruker | 200 |
-| ✅ | Ressurslisten viser ressurser fra databasen | 5 ressurser |
+| ✅ | Forsiden har pluss-knappen for å sette en pinne og registrere en ressurs |  |
+| ✅ | Ressurslisten viser ressurser fra databasen | 6 ressurser |
 | ✅ | Ressurssiden åpnes | 200 |
 | ✅ | Ressurs uten eier: vanlig bruker ser ikke Endre/Slett |  |
 | ✅ | Ukjent ressurs gir 404 | 404 |
 | ✅ | Innlogget bruker ser "Ny ressurs" |  |
 | ✅ | Innlogget bruker kan åpne "Ny ressurs" | 200 |
 | ✅ | Ressurs uten navn blir avvist med feilmelding | 200 |
-| ✅ | Bruker legger til ressurs | /Resource/Index/10 |
+| ✅ | Bruker legger til ressurs | /Resource/Index/13 |
 | ✅ | Ressursen lagres med alle felt og eier |  |
 | ✅ | Punktet fra kartet lagres og vises på ressurssiden |  |
 | ✅ | Eier ser Endre og Slett |  |
@@ -34,7 +35,7 @@ Kjørt 2026-11-05 21:47 mot http://localhost:8080. **60 av 60 bestått.**
 | ✅ | Eier sletter ressursen, den er borte | 302, deretter 404 |
 | ✅ | Admin kan slette andres ressurs | 404 |
 | ✅ | Etter utlogging kreves innlogging igjen | http://localhost:8080/Account/Login?ReturnUrl=%2FResourceHandler%2FCreate |
-| ✅ | Etter omstart: data er beholdt og ikke duplisert | 6 før, 6 etter |
+| ✅ | Etter omstart: data er beholdt og ikke duplisert | 7 før, 7 etter |
 | ✅ | Etter omstart: admin er fortsatt logget inn | 200 |
 
 ## Sikkerhet
@@ -47,18 +48,18 @@ Kjørt 2026-11-05 21:47 mot http://localhost:8080. **60 av 60 bestått.**
 | ✅ | Header Permissions-Policy | geolocation=(), camera=(), microphone=() |
 | ✅ | Utlogget: forsiden sender til innlogging | http://localhost:8080/Account/Login?ReturnUrl=%2F |
 | ✅ | Utlogget: ressurslisten sender til innlogging | http://localhost:8080/Account/Login?ReturnUrl=%2FResourceHandler |
-| ✅ | Utlogget: ressurssiden sender til innlogging | http://localhost:8080/Account/Login?ReturnUrl=%2FResource%2FIndex%2F10 |
+| ✅ | Utlogget: ressurssiden sender til innlogging | http://localhost:8080/Account/Login?ReturnUrl=%2FResource%2FIndex%2F13 |
 | ✅ | Innloggingssiden er åpen og har ikke "Fortsett uten å logge inn" | 200 |
 | ✅ | Registreringssiden er åpen | 200 |
 | ✅ | Logo og CSS lastes uten innlogging (innloggingssiden ser riktig ut) | 200 |
 | ✅ | Utlogget: "Ny ressurs" krever innlogging | http://localhost:8080/Account/Login?ReturnUrl=%2FResourceHandler%2FCreate |
-| ✅ | Utlogget: Endre krever innlogging | http://localhost:8080/Account/Login?ReturnUrl=%2FResourceHandler%2FEdit%2F10 |
+| ✅ | Utlogget: Endre krever innlogging | http://localhost:8080/Account/Login?ReturnUrl=%2FResourceHandler%2FEdit%2F13 |
 | ✅ | Utlogget: brukeradministrasjon krever innlogging | http://localhost:8080/Account/Login?ReturnUrl=%2FUserAdmin |
 | ✅ | Vanlig bruker får "Ingen tilgang" på brukeradministrasjon | http://localhost:8080/Account/AccessDenied?ReturnUrl=%2FUserAdmin |
-| ✅ | Annen bruker får "Ingen tilgang" på Endre (GET) | http://localhost:8080/Account/AccessDenied?ReturnUrl=%2FResourceHandler%2FEdit%2F10 |
-| ✅ | Annen bruker får "Ingen tilgang" på Slett (GET) | http://localhost:8080/Account/AccessDenied?ReturnUrl=%2FResourceHandler%2FDelete%2F10 |
-| ✅ | Annen bruker kan ikke endre ved å sende POST direkte | http://localhost:8080/Account/AccessDenied?ReturnUrl=%2FResourceHandler%2FEdit%2F10 |
-| ✅ | Annen bruker kan ikke slette ved å sende POST direkte | http://localhost:8080/Account/AccessDenied?ReturnUrl=%2FResourceHandler%2FDelete%2F10 |
+| ✅ | Annen bruker får "Ingen tilgang" på Endre (GET) | http://localhost:8080/Account/AccessDenied?ReturnUrl=%2FResourceHandler%2FEdit%2F13 |
+| ✅ | Annen bruker får "Ingen tilgang" på Slett (GET) | http://localhost:8080/Account/AccessDenied?ReturnUrl=%2FResourceHandler%2FDelete%2F13 |
+| ✅ | Annen bruker kan ikke endre ved å sende POST direkte | http://localhost:8080/Account/AccessDenied?ReturnUrl=%2FResourceHandler%2FEdit%2F13 |
+| ✅ | Annen bruker kan ikke slette ved å sende POST direkte | http://localhost:8080/Account/AccessDenied?ReturnUrl=%2FResourceHandler%2FDelete%2F13 |
 | ✅ | Ressursen er uendret etter angrepene |  |
 | ✅ | CSRF: Slett uten token blir blokkert (400) | 400 |
 | ✅ | CSRF: Ny ressurs uten token blir blokkert (400) | 400 |

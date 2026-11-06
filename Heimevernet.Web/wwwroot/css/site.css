@@ -711,3 +711,8 @@ a.user-chip:hover { background: rgba(255, 255, 255, 0.1); color: #FFFFFF; }
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; transition: none !important; }
 }
+
+/* Kontaktinfo på ressurssiden: etikett over verdien. */
+.contact-list { margin: 0 0 1rem; }
+.contact-list dt { font-size: .85rem; font-weight: 600; color: var(--bs-secondary-color, #5c6670); }
+.contact-list dd { margin: 0 0 .6rem; font-weight: 600; overflow-wrap: anywhere; }

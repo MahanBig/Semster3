@@ -80,7 +80,10 @@ internal sealed class SqliteTestDatabase : IDbConnectionFactory, IDisposable
             RegisteredAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             UserId TEXT NULL,
             CategoryId INTEGER NOT NULL REFERENCES Categories (Id),
-            LocationId INTEGER NULL REFERENCES Locations (Id));
+            LocationId INTEGER NULL REFERENCES Locations (Id),
+            ContactName TEXT NULL,
+            ContactPhone TEXT NULL,
+            ContactEmail TEXT NULL);
 
         CREATE TABLE Needs (
             Id INTEGER PRIMARY KEY AUTOINCREMENT,

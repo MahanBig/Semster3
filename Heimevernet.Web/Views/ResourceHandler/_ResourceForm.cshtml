@@ -109,6 +109,30 @@
             <span asp-validation-for="PostalPlace" class="text-danger"></span>
         </div>
     </div>
-    <p class="form-text m-0">Telefonnummeret ditt fra brukerprofilen vises som kontakt på ressursen.</p>
+</div>
+
+<div class="panel d-flex flex-column gap-4">
+    @* Kontaktinfo for denne ressursen. Alt er valgfritt: er feltene tomme, vises telefonnummeret fra profilen din. *@
+    <fieldset class="d-flex flex-column gap-3">
+        <legend class="form-label mb-0">Kontaktinfo <span class="optional">(valgfritt)</span></legend>
+        <p id="contact-hint" class="form-text m-0">Hvem skal folk kontakte om ressursen? Lar du feltene stå tomme, vises telefonnummeret fra profilen din.</p>
+        <div>
+            <label asp-for="ContactName" class="form-label">Kontaktperson</label>
+            <input asp-for="ContactName" class="form-control" autocomplete="name" aria-describedby="contact-hint" />
+            <span asp-validation-for="ContactName" class="text-danger"></span>
+        </div>
+        <div class="row g-3">
+            <div class="col-sm-5">
+                <label asp-for="ContactPhone" class="form-label"></label>
+                <input asp-for="ContactPhone" class="form-control" type="tel" inputmode="tel" autocomplete="tel" />
+                <span asp-validation-for="ContactPhone" class="text-danger"></span>
+            </div>
+            <div class="col-sm-7">
+                <label asp-for="ContactEmail" class="form-label"></label>
+                <input asp-for="ContactEmail" class="form-control" type="email" autocomplete="email" />
+                <span asp-validation-for="ContactEmail" class="text-danger"></span>
+            </div>
+        </div>
+    </fieldset>
     <button type="submit" class="btn-pill btn-pill-block">@(ViewData["SubmitText"] ?? "Lagre")</button>
 </div>

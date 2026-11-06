@@ -50,6 +50,21 @@ namespace Heimevernet.Web.Models.ViewModels.Resource
         [Range(-180, 180, ErrorMessage = "Ugyldig lengdegrad.")]
         public double? Longitude { get; set; }
 
+        // Kontaktinfo for ressursen (valgfritt). Tomt = eierens telefon fra profilen vises.
+        [StringLength(100, ErrorMessage = "Kontaktnavnet kan ha maks {1} tegn.")]
+        [Display(Name = "Kontaktperson")]
+        public string? ContactName { get; set; }
+
+        [Phone(ErrorMessage = "Ugyldig telefonnummer.")]
+        [StringLength(20, ErrorMessage = "Telefonnummeret kan ha maks {1} tegn.")]
+        [Display(Name = "Telefon")]
+        public string? ContactPhone { get; set; }
+
+        [EmailAddress(ErrorMessage = "Ugyldig e-postadresse.")]
+        [StringLength(255, ErrorMessage = "E-posten kan ha maks {1} tegn.")]
+        [Display(Name = "E-post")]
+        public string? ContactEmail { get; set; }
+
         public bool HasPosition => Latitude is not null && Longitude is not null;
 
         // Vises på siden, men tas aldri fra skjemaet ([BindNever]): controlleren setter dem selv.
@@ -102,6 +117,9 @@ namespace Heimevernet.Web.Models.ViewModels.Resource
             Latitude = resource.Latitude,
             Longitude = resource.Longitude,
             HasImage = resource.HasImage,
+            ContactName = resource.ContactName,
+            ContactPhone = resource.ContactPhone,
+            ContactEmail = resource.ContactEmail,
             OwnerName = resource.OwnerName ?? resource.OwnerEmail,
             OwnerPhone = resource.OwnerPhone,
             RegisteredAt = resource.RegisteredAt

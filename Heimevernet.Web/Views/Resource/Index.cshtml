@@ -13,6 +13,11 @@
     var mapLink = Model.HasPosition
         ? $"https://www.openstreetmap.org/?mlat={lat}&mlon={lng}#map=16/{lat}/{lng}"
         : fullAddress.Length > 0 ? $"https://www.openstreetmap.org/search?query={Uri.EscapeDataString(fullAddress)}" : null;
+    // Kontaktinfo på ressursen går foran eierens. Er telefonen tom, brukes telefonnummeret fra eierens profil.
+    var contactName = string.IsNullOrWhiteSpace(Model.ContactName) ? Model.OwnerName : Model.ContactName;
+    var contactPhone = string.IsNullOrWhiteSpace(Model.ContactPhone) ? Model.OwnerPhone : Model.ContactPhone;
+    var contactEmail = Model.ContactEmail;
+    var hasContact = !string.IsNullOrEmpty(contactPhone) || !string.IsNullOrEmpty(contactEmail);
 }
 
 <a asp-controller="ResourceHandler" asp-action="Index" class="back-link">
@@ -109,13 +114,41 @@
 
         <section class="panel">
             <h2>Kontakt</h2>
-            @if (!string.IsNullOrEmpty(Model.OwnerPhone))
+            @if (hasContact)
             {
-                <p class="mb-3">Eiers telefon: <strong>@Model.OwnerPhone</strong></p>
-                <a class="btn-pill btn-pill-outline btn-pill-block" href="tel:@Model.OwnerPhone">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg>
-                    Ring eier
-                </a>
+                <dl class="contact-list">
+                    @if (!string.IsNullOrEmpty(contactName))
+                    {
+                        <dt>Kontaktperson</dt>
+                        <dd>@contactName</dd>
+                    }
+                    @if (!string.IsNullOrEmpty(contactPhone))
+                    {
+                        <dt>Telefon</dt>
+                        <dd>@contactPhone</dd>
+                    }
+                    @if (!string.IsNullOrEmpty(contactEmail))
+                    {
+                        <dt>E-post</dt>
+                        <dd>@contactEmail</dd>
+                    }
+                </dl>
+                <div class="d-flex flex-column gap-2">
+                    @if (!string.IsNullOrEmpty(contactPhone))
+                    {
+                        <a class="btn-pill btn-pill-outline btn-pill-block" href="tel:@contactPhone">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg>
+                            Ring
+                        </a>
+                    }
+                    @if (!string.IsNullOrEmpty(contactEmail))
+                    {
+                        <a class="btn-pill btn-pill-outline btn-pill-block" href="mailto:@contactEmail">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 7l9 6 9-6"></path></svg>
+                            Send e-post
+                        </a>
+                    }
+                </div>
             }
             else
             {

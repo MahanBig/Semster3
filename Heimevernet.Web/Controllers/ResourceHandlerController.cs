@@ -223,6 +223,9 @@ namespace Heimevernet.Web.Controllers
             Address = EmptyToNull(model.Address),
             PostalCode = EmptyToNull(model.PostalCode),
             PostalPlace = EmptyToNull(model.PostalPlace),
+            ContactName = EmptyToNull(model.ContactName),
+            ContactPhone = EmptyToNull(model.ContactPhone),
+            ContactEmail = EmptyToNull(model.ContactEmail),
             // DECIMAL(9,6) i databasen: 6 desimaler er ca. 10 cm, mer enn nok.
             Latitude = model.Latitude is { } lat ? Math.Round(lat, 6) : null,
             Longitude = model.Longitude is { } lng ? Math.Round(lng, 6) : null

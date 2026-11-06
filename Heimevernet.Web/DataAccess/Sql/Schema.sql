@@ -105,11 +105,21 @@ CREATE TABLE IF NOT EXISTS Resources (
     UserId VARCHAR(255) NULL,
     CategoryId INT NOT NULL,
     LocationId INT NULL,
+    ContactName VARCHAR(100) NULL,  -- Kontaktinfo for akkurat denne ressursen (valgfritt).
+    ContactPhone VARCHAR(20) NULL,  -- Tom = eierens telefon fra AspNetUsers vises i stedet.
+    ContactEmail VARCHAR(255) NULL,
     PRIMARY KEY (Id),
     CONSTRAINT FK_Resources_AspNetUsers FOREIGN KEY (UserId) REFERENCES AspNetUsers (Id) ON DELETE SET NULL,
     CONSTRAINT FK_Resources_Categories FOREIGN KEY (CategoryId) REFERENCES Categories (Id),
     CONSTRAINT FK_Resources_Locations FOREIGN KEY (LocationId) REFERENCES Locations (Id) ON DELETE SET NULL
 );
+
+-- Kontaktfeltene kom etter at noen allerede hadde laget databasen. ADD COLUMN IF NOT EXISTS (MariaDB)
+-- legger dem til i en eksisterende tabell, så ingen trenger å slette dataene sine.
+ALTER TABLE Resources
+    ADD COLUMN IF NOT EXISTS ContactName VARCHAR(100) NULL AFTER LocationId,
+    ADD COLUMN IF NOT EXISTS ContactPhone VARCHAR(20) NULL AFTER ContactName,
+    ADD COLUMN IF NOT EXISTS ContactEmail VARCHAR(255) NULL AFTER ContactPhone;
 
 -- Bildet til en ressurs. Egen tabell (1:0..1 mot Resources) fordi bildedataene er store:
 -- da hentes de bare når bildet faktisk skal vises, ikke hver gang listen med ressurser leses.

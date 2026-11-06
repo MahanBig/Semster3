@@ -60,6 +60,36 @@ public class DapperResourceRepositoryTests
     }
 
     [Fact]
+    public void AddAndUpdate_SaveTheContactInfoOfTheResource()
+    {
+        using var database = new SqliteTestDatabase();
+        var repository = new DapperResourceRepository(database);
+
+        var id = repository.Add(new Resource
+        {
+            Name = "Aggregat", Description = "5 kW", CategoryId = Power, RegisteredAt = DateTime.UtcNow,
+            ContactName = "Vaktmester Per", ContactPhone = "40000000", ContactEmail = "vakt@example.no"
+        });
+        var added = repository.GetById(id);
+
+        Assert.NotNull(added);
+        Assert.Equal("Vaktmester Per", added.ContactName);
+        Assert.Equal("40000000", added.ContactPhone);
+        Assert.Equal("vakt@example.no", added.ContactEmail);
+
+        added.ContactName = null;
+        added.ContactPhone = "99999999";
+        added.ContactEmail = null;
+        Assert.True(repository.Update(added));
+        var updated = repository.GetById(id);
+
+        Assert.NotNull(updated);
+        Assert.Null(updated.ContactName);
+        Assert.Equal("99999999", updated.ContactPhone);
+        Assert.Null(updated.ContactEmail);
+    }
+
+    [Fact]
     public void Add_SavesAllFields_AndAddressGoesToLocationsAndPostalCodes()
     {
         using var database = new SqliteTestDatabase();

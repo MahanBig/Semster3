@@ -127,12 +127,15 @@ try {
     $token = Token $r
     $r2 = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = ''; Description = 'x'; Category = 'Verktøy'; __RequestVerificationToken = $token }
     Check 'Ressurs uten navn blir avvist med feilmelding' ($r2.StatusCode -eq 200 -and $r2.Content -match 'field-validation-error') "$($r2.StatusCode)"
-    $r2 = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = $name; Description = '5 kW, diesel'; Category = 'Strøm og lading'; Address = 'Storgata 1'; PostalCode = '4790'; PostalPlace = 'Lillesand'; Latitude = '58.249500'; Longitude = '8.377800'; __RequestVerificationToken = $token }
+    $r2 = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = 'x'; Description = 'x'; Category = 'Verktøy'; ContactEmail = 'ikke-en-epost'; __RequestVerificationToken = $token }
+    Check 'Ugyldig e-post i kontaktinfo blir avvist' ($r2.StatusCode -eq 200 -and $r2.Content -match 'Ugyldig e-postadresse') "$($r2.StatusCode)"
+    $r2 = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = $name; Description = '5 kW, diesel'; Category = 'Strøm og lading'; Address = 'Storgata 1'; PostalCode = '4790'; PostalPlace = 'Lillesand'; Latitude = '58.249500'; Longitude = '8.377800'; ContactName = 'Vaktmester Per'; ContactPhone = '40000000'; ContactEmail = 'vakt@example.no'; __RequestVerificationToken = $token }
     Check 'Bruker legger til ressurs' ($r2.StatusCode -eq 302 -and (Loc $r2) -match '/Resource/Index/(\d+)') "$(Loc $r2)"
     $newId = if ((Loc $r2) -match '/Resource/Index/(\d+)') { $Matches[1] } else { 0 }
     $r = Req "/Resource/Index/$newId" $olaC
     Check 'Ressursen lagres med alle felt og eier' ($r.Content -match [regex]::Escape($name) -and $r.Content -match 'Storgata 1, 4790 Lillesand' -and $r.Content -match 'Lagt inn av Systemtest') ''
     Check 'Punktet fra kartet lagres og vises på ressurssiden' ($r.Content -match 'id="detail-map"' -and $r.Content -match 'data-lat="58.2495"' -and $r.Content -match 'mlat=58.2495&amp;mlon=8.3778') ''
+    Check 'Kontaktinfoen på ressursen vises med ring- og e-postknapp' ($r.Content -match 'Vaktmester Per' -and $r.Content -match 'href="tel:40000000"' -and $r.Content -match 'href="mailto:vakt@example.no"') ''
     Check 'Eier ser Endre og Slett' ($r.Content -match "/ResourceHandler/Edit/$newId" -and $r.Content -match "/ResourceHandler/Delete/$newId") ''
     $r = Req '/ResourceHandler' $olaC
     Check 'Ressurslisten har punktet, så avstand og kartmarkør kan vises' ($r.Content -match ('data-lat="58.2495"[^>]*data-lng="8.3778"')) ''

@@ -361,7 +361,7 @@ Tiltakene under er testet automatisk i `tests/system/system-og-sikkerhetstest.ps
 |---|---|
 | Claude (claude.ai, med tilgang til prosjektmappen) | Forklaring av prosjektet, Identity og roller, overgang fra EF til Dapper, Docker Compose, feilsøking, frontend fra designet, krav 3, sikkerhetstester |
 | Claude Design | Designet «Beredskapskart» (farger, skrift, sideoppsett) |
-| Claude Code (desktop-appen, med tilgang til prosjektmappen) | Sjekke kravene, fjerne posisjon, admin-innlogging, krisevarsel, oppdatere systemtesten, læring av systemet |
+| Claude Code (desktop-appen, med tilgang til prosjektmappen) | Sjekke kravene, fjerne posisjon, æring av systemet |
 
 ### Bruk i hver fase
 

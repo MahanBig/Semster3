@@ -91,7 +91,7 @@ try {
     # ======================= SYSTEMTEST =======================
     $group = 'System'
     $r = Register $olaC $ola $password; Check 'Ny bruker kan registrere seg' ($r.StatusCode -eq 302) "$($r.StatusCode)"
-    $r = Req '/' $olaC; Check 'Ny bruker er logget inn etter registrering' ($r.Content -match ('Logget inn som (</span>)?' + [regex]::Escape($ola))) ''
+    $r = Req '/' $olaC; Check 'Ny bruker er logget inn, og menyen viser navnet (ikke e-posten)' ($r.Content -match 'Logget inn som </span>Systemtest</strong>' -and $r.Content -match ('title="Innstillinger for ' + [regex]::Escape($ola) + '"')) ''
     $r = Register $kariC $kari $password; Check 'Bruker nr. 2 kan registrere seg' ($r.StatusCode -eq 302) "$($r.StatusCode)"
     $per = "systemtest-per-$run@example.com"; $perC = New-Client
     $r = Register $perC $per $password; Check 'Bruker nr. 3 kan registrere seg' ($r.StatusCode -eq 302) "$($r.StatusCode)"
@@ -253,6 +253,7 @@ try {
     $r = Req '/Settings' $perC; Check 'Innstillinger viser info om brukeren' ($r.StatusCode -eq 200 -and $r.Content -match [regex]::Escape($per) -and $r.Content -match 'Privat') "$($r.StatusCode)"
     $r2 = Req '/Settings/Profile' $perC 'Post' @{ 'Profile.Name' = "Per Endret $run"; 'Profile.Email' = $per; 'Profile.PhoneNumber' = '98765432'; __RequestVerificationToken = (Token $r) }
     $r = Req '/Settings' $perC; Check 'Bruker endrer navn og telefon i innstillingene' ($r2.StatusCode -eq 302 -and $r.Content -match "Per Endret $run" -and $r.Content -match '98765432') ''
+    Check 'Det nye navnet vises i menyen med en gang' ($r.Content -match "Logget inn som </span>Per Endret $run</strong>") ''
     $r2 = Req '/Settings/Password' $perC 'Post' @{ 'Password.CurrentPassword' = 'FeilPassord1!'; 'Password.NewPassword' = 'NyttPass1!x'; 'Password.ConfirmPassword' = 'NyttPass1!x'; __RequestVerificationToken = (Token $r) }
     Check 'Bytte passord med feil nåværende passord blir avvist' ($r2.StatusCode -eq 200 -and $r2.Content -match 'Feil passord') "$($r2.StatusCode)"
     $r = Req '/Settings' $perC

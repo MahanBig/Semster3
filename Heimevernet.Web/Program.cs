@@ -1,4 +1,5 @@
 using System.Globalization;
+using Heimevernet.Web.Authorization;
 using Heimevernet.Web.DataAccess;
 using Heimevernet.Web.DataAccess.Identity;
 using Heimevernet.Web.Models.Entities;
@@ -41,7 +42,8 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
     })
     .AddUserStore<DapperUserStore>()  // Brukere -> AspNetUsers, AspNetUserRoles
     .AddRoleStore<DapperRoleStore>()  // Roller  -> AspNetRoles
-    .AddDefaultTokenProviders();      // Trengs f.eks. for "glemt passord" senere.
+    .AddDefaultTokenProviders()       // Trengs f.eks. for "glemt passord" senere.
+    .AddClaimsPrincipalFactory<AppClaimsPrincipalFactory>(); // Legger navnet i innloggingen (se filen).
 
 // Innloggings-cookien krypteres med nøkler (Data Protection). I Docker lagres nøklene i et volum
 // (DataProtection__KeysPath i docker-compose.yml), ellers ville alle blitt logget ut ved hver omstart.

@@ -45,6 +45,13 @@
     }
 
     function requestPosition() {
+        // Nettlesere gir bare posisjon på sikre sider: https, eller localhost. Åpnes appen som
+        // http://192.168.x.x (f.eks. fra mobilen på samme Wi-Fi), spør nettleseren aldri, så vi sier fra i stedet.
+        if (!window.isSecureContext) {
+            positionState = 'insecure';
+            notifyPosition();
+            return;
+        }
         if (!navigator.geolocation) {
             positionState = 'unavailable';
             notifyPosition();
@@ -76,7 +83,8 @@
         asking: ['Henter posisjonen din …', 'Bruk min posisjon'],
         known: ['Avstanden regnes fra der du er nå.', 'Oppdater posisjon'],
         denied: ['Du har ikke gitt tilgang til posisjonen din, så avstand vises ikke.', 'Prøv igjen'],
-        unavailable: ['Fant ikke posisjonen din, så avstand vises ikke.', 'Prøv igjen']
+        unavailable: ['Fant ikke posisjonen din, så avstand vises ikke.', 'Prøv igjen'],
+        insecure: ['Posisjon virker bare over https eller localhost, så avstand vises ikke på denne adressen.', 'Prøv igjen']
     };
     function updateLocationStatus() {
         document.querySelectorAll('[data-location-status]').forEach(function (element) {
@@ -96,8 +104,10 @@
     positionListeners.push(updateLocationStatus);
     updateLocationStatus();
 
-    // På sider med avstand spør vi med en gang, men ikke hvis brukeren allerede har sagt nei.
-    if (!position && document.querySelector('[data-location-status]')) {
+    // Spør om posisjon med en gang appen åpnes (alle sider etter innlogging, [data-sidebar]), så kartet,
+    // avstandene og "Nærmest deg" er klare. Ikke på innloggingssiden, og ikke hvis brukeren allerede har sagt nei.
+    // Svaret huskes av nettleseren, så spørsmålet kommer bare første gang.
+    if (!position && (document.querySelector('[data-sidebar]') || document.querySelector('[data-location-status]'))) {
         if (navigator.permissions && navigator.permissions.query) {
             navigator.permissions.query({ name: 'geolocation' }).then(function (result) {
                 if (result.state === 'denied') {
@@ -106,6 +116,10 @@
                 } else {
                     requestPosition();
                 }
+                // Gir brukeren tilgang senere (i innstillingene til nettleseren), hentes posisjonen med en gang.
+                result.onchange = function () {
+                    if (result.state === 'granted') { requestPosition(); }
+                };
             }, requestPosition);
         } else {
             requestPosition();

@@ -1,12 +1,16 @@
 @using Heimevernet.Web.Models.ViewModels.Resource
 @model ResourceViewModel
 @* Feltene for en ressurs. Brukes av både Create.cshtml og Edit.cshtml, så skjemaet er likt begge steder.
-   Selve <form> ligger i viewene, fordi de sender til ulike actions. *@
-<div class="panel d-flex flex-column gap-4">
-    <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+   Selve <form> ligger i viewene, fordi de sender til ulike actions.
+   På PC ligger de tre delene i tre kolonner (.resource-form i site.css), så hele skjemaet får plass på én skjerm.
+   På mobil kommer de under hverandre i samme rekkefølge. *@
+<div asp-validation-summary="ModelOnly" class="text-danger resource-form-summary" role="alert"></div>
+
+<section class="panel resource-form-step" aria-labelledby="step-what">
+    <h2 id="step-what" class="form-step-title"><span class="form-step-number" aria-hidden="true">1</span>Ressursen</h2>
 
     <fieldset>
-        <legend class="mb-3">Hva slags ressurs er det?</legend>
+        <legend class="form-label">Kategori</legend>
         <div class="chip-row">
             @foreach (var category in ResourceCategory.All)
             {
@@ -25,8 +29,7 @@
     </div>
     <div>
         <label asp-for="Description" class="form-label"></label>
-        <div id="desc-hint" class="form-text mb-2">Hva finnes her, og hva bør folk ta med?</div>
-        <textarea asp-for="Description" class="form-control" rows="5" aria-describedby="desc-hint"></textarea>
+        <textarea asp-for="Description" class="form-control" rows="4" placeholder="Hva finnes her, og hva bør folk ta med?"></textarea>
         <span asp-validation-for="Description" class="text-danger"></span>
     </div>
     <div class="row g-3">
@@ -46,36 +49,15 @@
             <span asp-validation-for="Status" class="text-danger"></span>
         </div>
     </div>
+</section>
 
-    @* Bilde (valgfritt). Serveren sjekker type og størrelse (Models/ImageUpload.cs). *@
-    <div class="image-field">
-        <label for="Image" class="form-label">Bilde <span class="optional">(valgfritt, JPEG, PNG eller WebP, maks 5 MB)</span></label>
-        @if (Model.HasImage && Model.Id is not null)
-        {
-            <div class="image-current">
-                <img src="@Url.Action("Image", "Resource", new { id = Model.Id })" alt="Bildet av @Model.Name" />
-                <label class="check-row">
-                    <input type="checkbox" class="form-check-input" name="removeImage" value="true" />
-                    Fjern bildet
-                </label>
-            </div>
-            <div class="form-text mb-2">Velg et nytt bilde for å bytte ut det gamle.</div>
-        }
-        <input type="file" id="Image" name="Image" class="form-control" accept="@ImageUpload.Accept" data-image-input />
-        <img class="image-preview" data-image-preview alt="Forhåndsvisning av bildet du har valgt" hidden />
-        @Html.ValidationMessage("Image", new { @class = "text-danger" })
-        @if (!ViewData.ModelState.IsValid)
-        {
-            <div class="form-text">Hvis du valgte et bilde, må du velge det på nytt (nettleseren sender ikke filen to ganger).</div>
-        }
-    </div>
-</div>
+<section class="panel resource-form-step" aria-labelledby="step-where">
+    <h2 id="step-where" class="form-step-title"><span class="form-step-number" aria-hidden="true">2</span>Hvor er den? <span class="optional">(valgfritt)</span></h2>
 
-<div class="panel d-flex flex-column gap-4">
     @* Minikartet: klikk der ressursen er. JavaScript (site.js, initPointPicker) skriver punktet i de skjulte feltene.
        Kommer brukeren fra forsiden ("Legg til ressurs her"), er punktet allerede valgt. *@
     <fieldset class="point-picker" data-point-picker>
-        <legend class="form-label mb-1">Hvor er ressursen? <span class="optional">(valgfritt, men da vises den på kartet)</span></legend>
+        <legend class="visually-hidden">Punkt på kartet</legend>
         <div class="point-picker-map" data-point-map role="application" aria-label="Kart. Klikk for å velge hvor ressursen er."></div>
         <p class="form-text m-0" data-point-text aria-live="polite">Ingen punkt valgt. Klikk i kartet der ressursen er.</p>
         <p class="form-text m-0 fw-bold" data-point-address aria-live="polite"></p>
@@ -93,7 +75,7 @@
     </fieldset>
 
     <div>
-        <label asp-for="Address" class="form-label">Adresse <span class="optional">(valgfritt)</span></label>
+        <label asp-for="Address" class="form-label">Adresse</label>
         <input asp-for="Address" class="form-control" autocomplete="street-address" />
         <span asp-validation-for="Address" class="text-danger"></span>
     </div>
@@ -109,30 +91,55 @@
             <span asp-validation-for="PostalPlace" class="text-danger"></span>
         </div>
     </div>
-</div>
+</section>
 
-<div class="panel d-flex flex-column gap-4">
+<section class="panel resource-form-step" aria-labelledby="step-more">
+    <h2 id="step-more" class="form-step-title"><span class="form-step-number" aria-hidden="true">3</span>Bilde og kontakt</h2>
+
+    @* Bilde (valgfritt). Serveren sjekker type og størrelse (Models/ImageUpload.cs). *@
+    <div class="image-field">
+        <label for="Image" class="form-label">Bilde <span class="optional">(valgfritt)</span></label>
+        <div id="image-hint" class="form-text">JPEG, PNG eller WebP, maks 5 MB.</div>
+        @if (Model.HasImage && Model.Id is not null)
+        {
+            <div class="image-current">
+                <img src="@Url.Action("Image", "Resource", new { id = Model.Id })" alt="Bildet av @Model.Name" />
+                <label class="check-row">
+                    <input type="checkbox" class="form-check-input" name="removeImage" value="true" />
+                    Fjern bildet
+                </label>
+            </div>
+            <div class="form-text">Velg et nytt bilde for å bytte ut det gamle.</div>
+        }
+        <input type="file" id="Image" name="Image" class="form-control" accept="@ImageUpload.Accept" aria-describedby="image-hint" data-image-input />
+        <img class="image-preview" data-image-preview alt="Forhåndsvisning av bildet du har valgt" hidden />
+        @Html.ValidationMessage("Image", new { @class = "text-danger" })
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="form-text">Hvis du valgte et bilde, må du velge det på nytt (nettleseren sender ikke filen to ganger).</div>
+        }
+    </div>
+
     @* Kontaktinfo for denne ressursen. Alt er valgfritt: er feltene tomme, vises telefonnummeret fra profilen din. *@
     <fieldset class="d-flex flex-column gap-3">
         <legend class="form-label mb-0">Kontaktinfo <span class="optional">(valgfritt)</span></legend>
-        <p id="contact-hint" class="form-text m-0">Hvem skal folk kontakte om ressursen? Lar du feltene stå tomme, vises telefonnummeret fra profilen din.</p>
+        <p id="contact-hint" class="form-text m-0">Tomme felt = telefonnummeret fra profilen din vises.</p>
         <div>
             <label asp-for="ContactName" class="form-label">Kontaktperson</label>
             <input asp-for="ContactName" class="form-control" autocomplete="name" aria-describedby="contact-hint" />
             <span asp-validation-for="ContactName" class="text-danger"></span>
         </div>
-        <div class="row g-3">
-            <div class="col-sm-5">
-                <label asp-for="ContactPhone" class="form-label"></label>
-                <input asp-for="ContactPhone" class="form-control" type="tel" inputmode="tel" autocomplete="tel" />
-                <span asp-validation-for="ContactPhone" class="text-danger"></span>
-            </div>
-            <div class="col-sm-7">
-                <label asp-for="ContactEmail" class="form-label"></label>
-                <input asp-for="ContactEmail" class="form-control" type="email" autocomplete="email" />
-                <span asp-validation-for="ContactEmail" class="text-danger"></span>
-            </div>
+        <div>
+            <label asp-for="ContactPhone" class="form-label"></label>
+            <input asp-for="ContactPhone" class="form-control" type="tel" inputmode="tel" autocomplete="tel" />
+            <span asp-validation-for="ContactPhone" class="text-danger"></span>
+        </div>
+        <div>
+            <label asp-for="ContactEmail" class="form-label"></label>
+            <input asp-for="ContactEmail" class="form-control" type="email" autocomplete="email" />
+            <span asp-validation-for="ContactEmail" class="text-danger"></span>
         </div>
     </fieldset>
-    <button type="submit" class="btn-pill btn-pill-block">@(ViewData["SubmitText"] ?? "Lagre")</button>
-</div>
+
+    <button type="submit" class="btn-pill btn-pill-block resource-form-submit">@(ViewData["SubmitText"] ?? "Lagre")</button>
+</section>

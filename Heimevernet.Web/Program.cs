@@ -77,6 +77,9 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.AccessDeniedPath = "/Account/AccessDenied"; // Logget inn, men mangler riktig rolle.
 });
 
+// Ikke fortell hvilken webserver vi bruker (fjerner headeren "Server: Kestrel").
+builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
+
 var app = builder.Build();
 
 // Lag tabellene (Schema.sql) før vi legger inn eksempeldata, rollene og admin-brukeren.

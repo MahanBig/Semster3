@@ -79,7 +79,8 @@ function Denied($r) { $r.StatusCode -eq 302 -and (Loc $r) -match '/Account/Acces
 function NeedsLogin($r) { $r.StatusCode -eq 302 -and (Loc $r) -match '/Account/Login' }
 
 $envFile = Join-Path $repoRoot '.env'
-$adminEmail = 'admin@heimevernet.local'
+$adminEmail = ((Get-Content $envFile | Where-Object { $_ -match '^ADMIN_EMAIL=' }) -split '=', 2)[1]
+if (-not $adminEmail) { $adminEmail = 'admin@heimevernet.local' } # Samme standard som docker-compose.yml
 $adminPassword = ((Get-Content $envFile | Where-Object { $_ -match '^ADMIN_PASSWORD=' }) -split '=', 2)[1]
 $run = Get-Random -Maximum 99999
 $password = 'Test1234!x'

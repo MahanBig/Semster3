@@ -716,3 +716,56 @@ a.user-chip:hover { background: rgba(255, 255, 255, 0.1); color: #FFFFFF; }
 .contact-list { margin: 0 0 1rem; }
 .contact-list dt { font-size: .85rem; font-weight: 600; color: var(--bs-secondary-color, #5c6670); }
 .contact-list dd { margin: 0 0 .6rem; font-weight: 600; overflow-wrap: anywhere; }
+
+/* ---------- Skjema for ny/endret ressurs ----------
+   Tre kolonner på PC (ressursen, hvor, bilde og kontakt), så alt får plass på én skjerm.
+   Smalere skjermer: to kolonner der del 3 går over hele bredden, og på mobil én kolonne. */
+.form-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.resource-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: stretch; }
+.resource-form-summary:empty, .resource-form-summary.validation-summary-valid { display: none; }
+.resource-form-summary { grid-column: 1 / -1; }
+.resource-form-step { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.resource-form-step fieldset { min-width: 0; }
+.form-step-title { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 20px; }
+.form-step-title .optional { font-size: 15px; font-weight: 400; color: var(--muted); }
+.form-step-number {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--primary); color: #FFFFFF; font-size: 15px; font-weight: 800;
+}
+.resource-form .form-label { font-size: 16px; margin-bottom: 6px; }
+.resource-form .chip { min-height: 40px; padding: 0 12px; font-size: 14px; }
+.resource-form .chip-row { gap: 6px; }
+.resource-form .image-field { gap: 6px; }
+.resource-form .point-picker { gap: 8px; }
+.resource-form .point-picker p:empty { display: none; } /* Adresselinjen under kartet, før en adresse er funnet. */
+.resource-form-submit { margin-top: auto; }
+@media (min-width: 760px) {
+  .resource-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  section.resource-form-step:last-of-type { grid-column: 1 / -1; }
+}
+@media (min-width: 1100px) {
+  .resource-form { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr); }
+  section.resource-form-step:last-of-type { grid-column: auto; }
+  .resource-form .panel { padding: 20px; }
+  .resource-form .point-picker-map { height: 230px; }
+  .resource-form textarea.form-control { min-height: 0; height: 112px; resize: vertical; }
+  .resource-form .form-control { min-height: 48px; padding-top: 10px; padding-bottom: 10px; }
+}
+/* Lave PC-skjermer (f.eks. 1366x768): litt tettere, så skjemaet fortsatt får plass uten å scrolle. */
+@media (min-width: 1100px) and (max-height: 860px) {
+  .page:has(.resource-form) { padding-top: 16px; padding-bottom: 16px; gap: 14px; }
+  .form-head h1 { font-size: 28px; }
+  .resource-form { gap: 16px; }
+  .resource-form .panel { padding: 16px 18px; }
+  .resource-form-step { gap: 12px; }
+  .form-step-title { font-size: 18px; }
+  .form-step-number { width: 26px; height: 26px; font-size: 14px; }
+  .resource-form .form-label { font-size: 15px; margin-bottom: 4px; }
+  .resource-form .form-control { min-height: 44px; padding-top: 8px; padding-bottom: 8px; font-size: 16px; }
+  .resource-form .chip { min-height: 36px; padding: 0 10px; }
+  .resource-form .point-picker-map { height: 170px; }
+  .resource-form textarea.form-control { height: 84px; }
+  .resource-form .btn-pill-small { min-height: 40px; }
+  .resource-form-submit { min-height: 48px; }
+}

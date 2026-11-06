@@ -357,11 +357,11 @@ Tiltakene under er testet automatisk i `tests/system/system-og-sikkerhetstest.ps
 
 ### Verktøy
 
-| Verktøy | Hvem brukte det | Hva vi brukte det til |
-|---|---|---|
-| Claude (claude.ai, med tilgang til prosjektmappen) | Mahan | Forklaring av prosjektet, Identity og roller, overgang fra EF til Dapper, Docker Compose, feilsøking, frontend fra designet, krav 3, sikkerhetstester |
-| Claude Design | Mahan | Designet «Beredskapskart» (farger, skrift, sideoppsett) |
-| *TODO: andre verktøy (ChatGPT, Copilot …)* | *TODO* | *TODO* |
+| Verktøy | Hva vi brukte det til |
+|---|---|
+| Claude (claude.ai, med tilgang til prosjektmappen) | Forklaring av prosjektet, Identity og roller, overgang fra EF til Dapper, Docker Compose, feilsøking, frontend fra designet, krav 3, sikkerhetstester |
+| Claude Design | Designet «Beredskapskart» (farger, skrift, sideoppsett) |
+| Claude Code (desktop-appen, med tilgang til prosjektmappen) | Sjekke kravene, fjerne posisjon, admin-innlogging, krisevarsel, oppdatere systemtesten, læring av systemet |
 
 ### Bruk i hver fase
 
@@ -384,7 +384,6 @@ Tiltakene under er testet automatisk i `tests/system/system-og-sikkerhetstest.ps
 | «Container exited unexpectedly with exit code 139» | Feilsøking | Fant at admin-passordet manglet spesialtegn. Appen logger nå en feilmelding i stedet for å krasje |
 | «Is it possible to fully switch to a docker compose instead of aspire?» | Enklere drift | Aspire byttet ut med `docker-compose.yml` |
 | «Kan du sjekke gjennom disse kravene» (lenke til oppgaven) | Se hva som manglet | Liste over krav som var oppfylt, delvis oppfylt og manglet |
-| *TODO: legg til prompts fra de andre i gruppen* | | |
 
 ### Refleksjon
 - Hva fungerte godt med KI: Når vi satt fast med problemer var det et bra verktøy for å forstå problemet og å hjelpe oss med problemet

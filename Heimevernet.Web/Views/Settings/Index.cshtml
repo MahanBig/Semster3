@@ -25,19 +25,19 @@
             <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
             <div>
                 <label asp-for="Profile.Name" class="form-label"></label>
-                <input asp-for="Profile.Name" class="form-control" autocomplete="name" />
+                <input asp-for="Profile.Name" class="form-control" autocomplete="name" maxlength="100" />
                 <span asp-validation-for="Profile.Name" class="text-danger"></span>
             </div>
             <div>
                 <label asp-for="Profile.Email" class="form-label"></label>
                 <div id="email-hint" class="form-text mb-2">Du logger inn med denne e-posten.</div>
-                <input asp-for="Profile.Email" class="form-control" autocomplete="email" aria-describedby="email-hint" />
+                <input asp-for="Profile.Email" class="form-control" autocomplete="email" maxlength="256" aria-describedby="email-hint" />
                 <span asp-validation-for="Profile.Email" class="text-danger"></span>
             </div>
             <div>
                 <label asp-for="Profile.PhoneNumber" class="form-label">Telefon <span class="optional">(valgfritt)</span></label>
                 <div id="phone-hint" class="form-text mb-2">Vises som kontakt på ressursene du legger inn.</div>
-                <input asp-for="Profile.PhoneNumber" class="form-control" autocomplete="tel" inputmode="tel" aria-describedby="phone-hint" />
+                <input asp-for="Profile.PhoneNumber" class="form-control" autocomplete="tel" inputmode="tel" maxlength="20" aria-describedby="phone-hint" />
                 <span asp-validation-for="Profile.PhoneNumber" class="text-danger"></span>
             </div>
             <button type="submit" class="btn-pill align-self-start">Lagre profil</button>

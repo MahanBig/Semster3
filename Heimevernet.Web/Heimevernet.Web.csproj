@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <!-- Mangler .NET 10-runtimen, får appen kjøre på en nyere hovedversjon (f.eks. .NET 11) i stedet for å stoppe. -->
+    <RollForward>Major</RollForward>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>heimevernet-web-58bfd5ea-4379-4c76-bb83-e242f18d9e33</UserSecretsId>

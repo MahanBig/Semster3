@@ -128,7 +128,7 @@
 @section Scripts {
     @if (Model.HasPosition)
     {
-        <script>
+        <script nonce="@Context.Items[ContentSecurityPolicy.NonceKey]">
             (function () {
                 var element = document.getElementById('detail-map');
                 var lat = parseFloat(element.dataset.lat), lng = parseFloat(element.dataset.lng);

@@ -23,7 +23,7 @@ namespace Heimevernet.Web.Models.ViewModels.Resource
         [Display(Name = "Kategori")]
         public string Category { get; set; } = string.Empty;
 
-        [Range(1, 100000, ErrorMessage = "Antall må være mellom {1} og {2}.")]
+        [Range(InputRules.MinQuantity, InputRules.MaxQuantity, ErrorMessage = "Antall må være mellom {1} og {2}.")]
         [Display(Name = "Antall")]
         public int Quantity { get; set; } = 1;
 
@@ -35,11 +35,12 @@ namespace Heimevernet.Web.Models.ViewModels.Resource
         [Display(Name = "Adresse")]
         public string? Address { get; set; }
 
-        [RegularExpression(@"^\d{4}$", ErrorMessage = "Postnummer må være 4 siffer.")]
+        [RegularExpression(InputRules.PostalCode, ErrorMessage = InputRules.PostalCodeMessage)]
         [Display(Name = "Postnummer")]
         public string? PostalCode { get; set; }
 
         [StringLength(50, ErrorMessage = "Poststedet kan ha maks {1} tegn.")]
+        [RegularExpression(InputRules.PostalPlace, ErrorMessage = InputRules.PostalPlaceMessage)]
         [Display(Name = "Poststed")]
         public string? PostalPlace { get; set; }
 

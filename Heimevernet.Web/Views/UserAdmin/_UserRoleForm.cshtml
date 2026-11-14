@@ -1,0 +1,24 @@
+@using Heimevernet.Web.Models.ViewModels.UserAdmin
+@model AdminUserActions
+@* Velg rolle + Lagre. Brukes både i tabellen (PC) og i brukerkortene (mobil), se Index.cshtml. *@
+@{
+    var selectId = $"{Model.IdPrefix}role-{Model.User.Id}";
+}
+<form asp-action="SetRole" method="post" class="role-form">
+    <input type="hidden" name="userId" value="@Model.User.Id" />
+    <label class="visually-hidden" for="@selectId">Rolle for @Model.User.Email</label>
+    <select id="@selectId" name="role" class="form-select form-control form-control-sm" disabled="@Model.IsMe">
+        @if (Model.User.Role is null)
+        {
+            <option value="" selected>Ingen rolle</option>
+        }
+        @foreach (var role in AppRoles.All)
+        {
+            <option value="@role" selected="@(role == Model.User.Role)">@role</option>
+        }
+    </select>
+    @if (!Model.IsMe)
+    {
+        <button type="submit" class="btn-pill btn-pill-outline btn-pill-small">Lagre</button>
+    }
+</form>

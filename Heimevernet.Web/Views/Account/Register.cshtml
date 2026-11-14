@@ -14,12 +14,12 @@
 
         <div>
             <label asp-for="Name" class="form-label"></label>
-            <input asp-for="Name" class="form-control" autocomplete="name" />
+            <input asp-for="Name" class="form-control" autocomplete="name" maxlength="100" />
             <span asp-validation-for="Name" class="text-danger"></span>
         </div>
         <div>
             <label asp-for="Email" class="form-label"></label>
-            <input asp-for="Email" class="form-control" autocomplete="username" />
+            <input asp-for="Email" class="form-control" autocomplete="username" maxlength="256" />
             <span asp-validation-for="Email" class="text-danger"></span>
         </div>
         <div>
@@ -35,7 +35,7 @@
         </div>
         <div>
             <label asp-for="PhoneNumber" class="form-label">Telefon <span class="optional">(valgfritt)</span></label>
-            <input asp-for="PhoneNumber" class="form-control" type="tel" autocomplete="tel" />
+            <input asp-for="PhoneNumber" class="form-control" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="912 34 567" />
             <span asp-validation-for="PhoneNumber" class="text-danger"></span>
         </div>
         <div class="form-check">

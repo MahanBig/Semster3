@@ -2,10 +2,15 @@ using System.Globalization;
 using Heimevernet.Web.DataAccess;
 using Heimevernet.Web.DataAccess.Identity;
 using Heimevernet.Web.Models.Entities;
+using Heimevernet.Web.Security;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Fjerner svar-headeren "Server: Kestrel". Da forteller ikke appen angripere hvilken webserver den kjører på,
+// så det blir litt vanskeligere å lete etter kjente svakheter i akkurat den serveren.
+builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
 
 builder.Services.AddControllersWithViews();
 
@@ -106,14 +111,21 @@ if (!app.Environment.IsDevelopment())
 //  - nosniff: ikke gjett filtype (hindrer at en tekstfil blir kjørt som script).
 //  - DENY: siden kan ikke vises inne i en <iframe> på en annen side (hindrer "clickjacking").
 //  - Referrer-Policy: send bare domenet, ikke hele adressen, når man klikker seg videre.
-//  - Permissions-Policy: posisjon, kamera og mikrofon er av.
+//  - Permissions-Policy: posisjon er bare lov for vår egen side (self), så "Bruk min posisjon" virker.
+//    Innhold fra andre sider (f.eks. en iframe) får ikke spørre. Kamera og mikrofon er helt av: () = ingen.
+//  - Content-Security-Policy: hvor scripts, bilder, fonter osv. får lastes fra (se Security/ContentSecurityPolicy.cs).
 app.Use(async (context, next) =>
 {
+    // Ny tilfeldig nonce for hver forespørsel. Viewene setter den på sine <script>-blokker (nonce="...").
+    var nonce = ContentSecurityPolicy.CreateNonce();
+    context.Items[ContentSecurityPolicy.NonceKey] = nonce;
+
     var headers = context.Response.Headers;
     headers["X-Content-Type-Options"] = "nosniff";
     headers["X-Frame-Options"] = "DENY";
     headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-    headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()";
+    headers["Permissions-Policy"] = "geolocation=(self), camera=(), microphone=()";
+    headers["Content-Security-Policy"] = ContentSecurityPolicy.Build(nonce, app.Environment.IsDevelopment());
     await next();
 });
 // Fast kultur for alle forespørsler: tall skrives og leses med punktum (58.1464), uansett språk på maskinen.

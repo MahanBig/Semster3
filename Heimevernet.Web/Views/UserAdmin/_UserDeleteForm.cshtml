@@ -1,0 +1,15 @@
+@using Heimevernet.Web.Models.ViewModels.UserAdmin
+@model AdminUserActions
+@* Slett-knappen. Admin kan ikke slette seg selv, så da vises ingenting. *@
+@if (!Model.IsMe)
+{
+    @* <details>: slettingen må bekreftes med et ekstra klikk, uten JavaScript. *@
+    <details class="confirm-delete">
+        <summary class="btn-pill btn-pill-danger-outline btn-pill-small">Slett</summary>
+        <form asp-action="DeleteUser" method="post">
+            <input type="hidden" name="userId" value="@Model.User.Id" />
+            <p>Slette @Model.User.Email? Ressursene hen la inn blir stående uten eier.</p>
+            <button type="submit" class="btn-pill btn-pill-danger btn-pill-small">Ja, slett brukeren</button>
+        </form>
+    </details>
+}

@@ -24,7 +24,7 @@ KriseKlar er en ASP.NET Core MVC-applikasjon som kjører i Docker. Hele appen kr
 ### Forutsetninger
 - Docker 29.4.1 og Docker Compose
 - Git
-- (Ved lokal utvikling uten Docker) .NET SDK 10.0.401
+- (Ved lokal utvikling uten Docker) .NET SDK 10 eller nyere (10.0.100+). Appen er laget for .NET 10 (LTS), men kan også bygges og kjøres med en nyere SDK/runtime, f.eks. .NET 11.
 
 ### Kjøre applikasjonen
 

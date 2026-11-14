@@ -37,6 +37,9 @@ services:
       ConnectionStrings__heimevernetdb: "Server=mariadb;Port=3306;Database=heimevernetdb;User=root;Password=${MARIADB_ROOT_PASSWORD:-heimevernet-dev}"
       AdminUser__Email: ${ADMIN_EMAIL:-admin@heimevernet.local}
       AdminUser__Password: ${ADMIN_PASSWORD:-}
+      # Krisevarsel øverst på sidene (vises for admin). Tomt = ingen varsel. Settes i .env (VARSEL_TITTEL, VARSEL_TEKST).
+      Beredskap__Varsel__Tittel: ${VARSEL_TITTEL:-}
+      Beredskap__Varsel__Tekst: ${VARSEL_TEKST:-}
       # Innloggingsnøklene lagres i volumet under, så brukerne forblir innlogget etter omstart.
       DataProtection__KeysPath: /keys
     volumes:

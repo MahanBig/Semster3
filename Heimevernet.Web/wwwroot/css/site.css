@@ -258,10 +258,8 @@ a:hover { color: var(--primary-hover); }
 .btn-pill.btn-pill-small { min-height: 44px; padding: 0 16px; font-size: 15px; }
 .btn-pill.btn-pill-block { width: 100%; }
 
-/* Bootstrap-knapper i samme stil */
+/* Bootstrap-knapper (brukes på «Fjern» i behovsdetaljene) i samme runde stil */
 .btn { border-radius: 999px; font-weight: 700; }
-.btn-primary { --bs-btn-bg: var(--primary); --bs-btn-border-color: var(--primary); --bs-btn-hover-bg: var(--primary-hover); --bs-btn-hover-border-color: var(--primary-hover); --bs-btn-active-bg: var(--primary-hover); }
-.btn-outline-primary { --bs-btn-color: var(--primary); --bs-btn-border-color: var(--primary); --bs-btn-hover-bg: var(--primary); --bs-btn-hover-border-color: var(--primary); }
 
 .badge-category {
   align-self: flex-start;
@@ -350,9 +348,6 @@ fieldset legend { font-size: 18px; font-weight: 700; }
 .resource-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .resource-text strong { font-size: 17px; }
 .resource-text span { font-size: 15px; color: var(--muted); }
-.resource-text .resource-desc {
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-}
 
 .resource-grid {
   margin: 0; padding: 0; list-style: none;

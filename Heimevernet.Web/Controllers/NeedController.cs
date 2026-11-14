@@ -279,7 +279,14 @@ public class NeedController(
     // Fyller nedtrekkslisten med organisasjoner. selectedId er den som skal være valgt.
     private void SetOrganizationList(int? selectedId)
     {
-        ViewData["Organizations"] = new SelectList(organizationRepository.GetAll(), "Id", "Name", selectedId);
+        // Typen vises i parentes, f.eks. «Røde Kors (Frivillig organisasjon)», så det er lett å velge riktig.
+        var organizations = organizationRepository.GetAll()
+            .Select(organization => new
+            {
+                organization.Id,
+                Label = string.IsNullOrWhiteSpace(organization.Type) ? organization.Name : $"{organization.Name} ({organization.Type})"
+            });
+        ViewData["Organizations"] = new SelectList(organizations, "Id", "Label", selectedId);
     }
 
     // Gjør skjemadataene om til en entitet som kan lagres. Teksten trimmes, og tomme adressefelt blir null.

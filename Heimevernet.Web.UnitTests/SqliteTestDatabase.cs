@@ -58,8 +58,7 @@ internal sealed class SqliteTestDatabase : IDbConnectionFactory, IDisposable
             Address TEXT NULL,
             PostalCode TEXT NULL REFERENCES PostalCodes (PostalCode),
             Latitude REAL NULL,
-            Longitude REAL NULL,
-            Description TEXT NULL);
+            Longitude REAL NULL);
 
         CREATE TABLE Categories (
             Id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -56,14 +56,13 @@ CREATE TABLE IF NOT EXISTS PostalCodes (
     PRIMARY KEY (PostalCode)
 );
 
--- Latitude, Longitude og Description brukes ikke i koden ennå.
+-- Adresse og punkt på kartet. Hver ressurs og hvert behov har sin egen rad (se LocationWriter.cs).
 CREATE TABLE IF NOT EXISTS Locations (
     Id INT NOT NULL AUTO_INCREMENT,
     Address VARCHAR(150) NULL,
     PostalCode CHAR(4) NULL,
     Latitude DECIMAL(9,6) NULL,
     Longitude DECIMAL(9,6) NULL,
-    Description VARCHAR(255) NULL,
     PRIMARY KEY (Id),
     CONSTRAINT FK_Locations_PostalCodes FOREIGN KEY (PostalCode) REFERENCES PostalCodes (PostalCode)
 );
@@ -191,3 +190,23 @@ INSERT IGNORE INTO Categories (Name, Description) VALUES
     ('Strøm og lading', 'Aggregat, nødstrøm og lading'),
     ('Informasjon', 'Informasjonspunkter'),
     ('Annet', 'Det som ikke passer i de andre kategoriene');
+
+-- Organisasjonene et behov kan meldes inn på vegne av (nedtrekkslisten i behovsskjemaet).
+-- Organizations har ingen unik nøkkel på Name, så INSERT IGNORE ville ikke stoppet duplikater.
+-- WHERE NOT EXISTS legger bare inn en organisasjon som ikke finnes fra før, så skriptet tåler å kjøres ved hver oppstart.
+-- FROM DUAL er en "tom" tabell MariaDB krever når en SELECT uten tabell har WHERE.
+INSERT INTO Organizations (Name, Type)
+    SELECT 'Kristiansand kommune', 'Kommune' FROM DUAL
+    WHERE NOT EXISTS (SELECT 1 FROM Organizations WHERE Name = 'Kristiansand kommune');
+INSERT INTO Organizations (Name, Type)
+    SELECT 'Sivilforsvaret', 'Statlig etat' FROM DUAL
+    WHERE NOT EXISTS (SELECT 1 FROM Organizations WHERE Name = 'Sivilforsvaret');
+INSERT INTO Organizations (Name, Type)
+    SELECT 'Heimevernet', 'Forsvaret' FROM DUAL
+    WHERE NOT EXISTS (SELECT 1 FROM Organizations WHERE Name = 'Heimevernet');
+INSERT INTO Organizations (Name, Type)
+    SELECT 'Røde Kors', 'Frivillig organisasjon' FROM DUAL
+    WHERE NOT EXISTS (SELECT 1 FROM Organizations WHERE Name = 'Røde Kors');
+INSERT INTO Organizations (Name, Type)
+    SELECT 'Norsk Folkehjelp', 'Frivillig organisasjon' FROM DUAL
+    WHERE NOT EXISTS (SELECT 1 FROM Organizations WHERE Name = 'Norsk Folkehjelp');

@@ -79,7 +79,8 @@ function Denied($r) { $r.StatusCode -eq 302 -and (Loc $r) -match '/Account/Acces
 function NeedsLogin($r) { $r.StatusCode -eq 302 -and (Loc $r) -match '/Account/Login' }
 
 $envFile = Join-Path $repoRoot '.env'
-$adminEmail = 'admin@heimevernet.local'
+$adminEmail = ((Get-Content $envFile | Where-Object { $_ -match '^ADMIN_EMAIL=' }) -split '=', 2)[1]
+if (-not $adminEmail) { $adminEmail = 'admin@heimevernet.local' } # Samme standard som docker-compose.yml
 $adminPassword = ((Get-Content $envFile | Where-Object { $_ -match '^ADMIN_PASSWORD=' }) -split '=', 2)[1]
 $run = Get-Random -Maximum 99999
 $password = 'Test1234!x'
@@ -91,7 +92,7 @@ try {
     # ======================= SYSTEMTEST =======================
     $group = 'System'
     $r = Register $olaC $ola $password; Check 'Ny bruker kan registrere seg' ($r.StatusCode -eq 302) "$($r.StatusCode)"
-    $r = Req '/' $olaC; Check 'Ny bruker er logget inn etter registrering' ($r.Content -match ('Logget inn som (</span>)?' + [regex]::Escape($ola))) ''
+    $r = Req '/' $olaC; Check 'Ny bruker er logget inn, og menyen viser navnet (ikke e-posten)' ($r.Content -match 'Logget inn som </span>Systemtest</strong>' -and $r.Content -match ('title="Innstillinger for ' + [regex]::Escape($ola) + '"')) ''
     $r = Register $kariC $kari $password; Check 'Bruker nr. 2 kan registrere seg' ($r.StatusCode -eq 302) "$($r.StatusCode)"
     $per = "systemtest-per-$run@example.com"; $perC = New-Client
     $r = Register $perC $per $password; Check 'Bruker nr. 3 kan registrere seg' ($r.StatusCode -eq 302) "$($r.StatusCode)"
@@ -127,12 +128,15 @@ try {
     $token = Token $r
     $r2 = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = ''; Description = 'x'; Category = 'Verktøy'; __RequestVerificationToken = $token }
     Check 'Ressurs uten navn blir avvist med feilmelding' ($r2.StatusCode -eq 200 -and $r2.Content -match 'field-validation-error') "$($r2.StatusCode)"
-    $r2 = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = $name; Description = '5 kW, diesel'; Category = 'Strøm og lading'; Address = 'Storgata 1'; PostalCode = '4790'; PostalPlace = 'Lillesand'; Latitude = '58.249500'; Longitude = '8.377800'; __RequestVerificationToken = $token }
+    $r2 = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = 'x'; Description = 'x'; Category = 'Verktøy'; ContactEmail = 'ikke-en-epost'; __RequestVerificationToken = $token }
+    Check 'Ugyldig e-post i kontaktinfo blir avvist' ($r2.StatusCode -eq 200 -and $r2.Content -match 'Ugyldig e-postadresse') "$($r2.StatusCode)"
+    $r2 = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = $name; Description = '5 kW, diesel'; Category = 'Strøm og lading'; Address = 'Storgata 1'; PostalCode = '4790'; PostalPlace = 'Lillesand'; Latitude = '58.249500'; Longitude = '8.377800'; ContactName = 'Vaktmester Per'; ContactPhone = '40000000'; ContactEmail = 'vakt@example.no'; __RequestVerificationToken = $token }
     Check 'Bruker legger til ressurs' ($r2.StatusCode -eq 302 -and (Loc $r2) -match '/Resource/Index/(\d+)') "$(Loc $r2)"
     $newId = if ((Loc $r2) -match '/Resource/Index/(\d+)') { $Matches[1] } else { 0 }
     $r = Req "/Resource/Index/$newId" $olaC
     Check 'Ressursen lagres med alle felt og eier' ($r.Content -match [regex]::Escape($name) -and $r.Content -match 'Storgata 1, 4790 Lillesand' -and $r.Content -match 'Lagt inn av Systemtest') ''
     Check 'Punktet fra kartet lagres og vises på ressurssiden' ($r.Content -match 'id="detail-map"' -and $r.Content -match 'data-lat="58.2495"' -and $r.Content -match 'mlat=58.2495&amp;mlon=8.3778') ''
+    Check 'Kontaktinfoen på ressursen vises med ring- og e-postknapp' ($r.Content -match 'Vaktmester Per' -and $r.Content -match 'href="tel:40000000"' -and $r.Content -match 'href="mailto:vakt@example.no"') ''
     Check 'Eier ser Endre og Slett' ($r.Content -match "/ResourceHandler/Edit/$newId" -and $r.Content -match "/ResourceHandler/Delete/$newId") ''
     $r = Req '/ResourceHandler' $olaC
     Check 'Ressurslisten har punktet, så avstand og kartmarkør kan vises' ($r.Content -match ('data-lat="58.2495"[^>]*data-lng="8.3778"')) ''
@@ -253,6 +257,7 @@ try {
     $r = Req '/Settings' $perC; Check 'Innstillinger viser info om brukeren' ($r.StatusCode -eq 200 -and $r.Content -match [regex]::Escape($per) -and $r.Content -match 'Privat') "$($r.StatusCode)"
     $r2 = Req '/Settings/Profile' $perC 'Post' @{ 'Profile.Name' = "Per Endret $run"; 'Profile.Email' = $per; 'Profile.PhoneNumber' = '98765432'; __RequestVerificationToken = (Token $r) }
     $r = Req '/Settings' $perC; Check 'Bruker endrer navn og telefon i innstillingene' ($r2.StatusCode -eq 302 -and $r.Content -match "Per Endret $run" -and $r.Content -match '98765432') ''
+    Check 'Det nye navnet vises i menyen med en gang' ($r.Content -match "Logget inn som </span>Per Endret $run</strong>") ''
     $r2 = Req '/Settings/Password' $perC 'Post' @{ 'Password.CurrentPassword' = 'FeilPassord1!'; 'Password.NewPassword' = 'NyttPass1!x'; 'Password.ConfirmPassword' = 'NyttPass1!x'; __RequestVerificationToken = (Token $r) }
     Check 'Bytte passord med feil nåværende passord blir avvist' ($r2.StatusCode -eq 200 -and $r2.Content -match 'Feil passord') "$($r2.StatusCode)"
     $r = Req '/Settings' $perC

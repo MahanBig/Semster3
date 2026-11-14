@@ -12,6 +12,7 @@ public class DapperResourceRepository(IDbConnectionFactory connectionFactory) : 
     private const string SelectResources =
         """
         SELECT r.Id, r.Name, r.Description, r.Quantity, r.Status, r.RegisteredAt, r.UserId, r.CategoryId, r.LocationId,
+               r.ContactName, r.ContactPhone, r.ContactEmail,
                c.Name AS CategoryName,
                l.Address, l.PostalCode, p.PostalPlace,
                CAST(l.Latitude AS DOUBLE) AS Latitude, CAST(l.Longitude AS DOUBLE) AS Longitude,
@@ -56,8 +57,10 @@ public class DapperResourceRepository(IDbConnectionFactory connectionFactory) : 
         // Id står ikke med: MariaDB lager den (AUTO_INCREMENT), og RETURNING Id gir oss den tilbake.
         var id = connection.ExecuteScalar<int>(
             """
-            INSERT INTO Resources (Name, Description, Quantity, Status, RegisteredAt, UserId, CategoryId, LocationId)
-            VALUES (@Name, @Description, @Quantity, @Status, @RegisteredAt, @UserId, @CategoryId, @LocationId)
+            INSERT INTO Resources (Name, Description, Quantity, Status, RegisteredAt, UserId, CategoryId, LocationId,
+                                   ContactName, ContactPhone, ContactEmail)
+            VALUES (@Name, @Description, @Quantity, @Status, @RegisteredAt, @UserId, @CategoryId, @LocationId,
+                    @ContactName, @ContactPhone, @ContactEmail)
             RETURNING Id
             """,
             resource,
@@ -87,7 +90,8 @@ public class DapperResourceRepository(IDbConnectionFactory connectionFactory) : 
             """
             UPDATE Resources
             SET Name = @Name, Description = @Description, Quantity = @Quantity, Status = @Status,
-                CategoryId = @CategoryId, LocationId = @LocationId
+                CategoryId = @CategoryId, LocationId = @LocationId,
+                ContactName = @ContactName, ContactPhone = @ContactPhone, ContactEmail = @ContactEmail
             WHERE Id = @Id
             """,
             resource,

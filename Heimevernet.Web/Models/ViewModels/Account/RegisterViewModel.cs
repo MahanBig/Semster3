@@ -6,7 +6,7 @@ namespace Heimevernet.Web.Models.ViewModels.Account;
 public class RegisterViewModel
 {
     [Required(ErrorMessage = "Skriv inn navnet ditt.")]
-    [StringLength(100, ErrorMessage = "Navnet kan ha maks {1} tegn.")]
+    [StringLength(InputRules.MaxNameLength, ErrorMessage = "Navnet kan ha maks {1} tegn.")]
     [RegularExpression(InputRules.PersonName, ErrorMessage = InputRules.PersonNameMessage)]
     [Display(Name = "Navn")]
     public string Name { get; set; } = string.Empty;

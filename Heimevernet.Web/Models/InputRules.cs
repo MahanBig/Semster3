@@ -32,6 +32,10 @@ public static class InputRules
     public const string PostalCode = @"^\d{4}$";
     public const string PostalCodeMessage = "Postnummer må være 4 siffer.";
 
+    // Maks lengde på navn: personnavn (registrering, profil, kontaktperson) og navnet på en ressurs.
+    // Brukes både i [StringLength] og i HTML-attributtet maxlength, så de alltid er like.
+    public const int MaxNameLength = 50;
+
     // Antall (ressurser og behov). Brukes både i [Range] og i HTML-attributtene min/max.
     public const int MinQuantity = 1;
     public const int MaxQuantity = 100000;

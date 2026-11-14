@@ -14,6 +14,11 @@ public class Resource
     public int CategoryId { get; set; }
     public int? LocationId { get; set; }
 
+    // Kontaktinfo for akkurat denne ressursen (valgfritt). Er feltene tomme, vises eierens telefon i stedet.
+    public string? ContactName { get; set; }
+    public string? ContactPhone { get; set; }
+    public string? ContactEmail { get; set; }
+
     // Fra andre tabeller (JOIN)
     public string CategoryName { get; set; } = string.Empty;
     public string? Address { get; set; }

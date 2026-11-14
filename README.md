@@ -108,7 +108,7 @@ Har du en database fra før kategori, lokasjon og behov kom inn, stopper appen v
 | `AspNetUsers` (Bruker) | Brukere: e-post, passord-hash, telefon, navn, samtykke, opprettet |
 | `AspNetRoles` (Rolle) | Roller: navn, beskrivelse, tilgangsnivå, om rollen krever godkjenning |
 | `AspNetUserRoles` (BrukerRolle) | Hvem som har hvilken rolle, og hvem som godkjente den og når |
-| `Resources` (Ressurs) | Ressurser: navn, beskrivelse, antall, status, kategori, lokasjon, eier |
+| `Resources` (Ressurs) | Ressurser: navn, beskrivelse, antall, status, kategori, lokasjon, eier og valgfri kontaktinfo |
 | `ResourceImages` | Bildet til en ressurs (høyst ett). Egen tabell, så de store bildedataene bare leses når bildet vises |
 | `Needs` (Behov) | Behov: tittel, beskrivelse, antall, prioritet, status, frist, kategori, lokasjon, organisasjon, hvem som meldte det inn |
 | `Allocations` (Tildeling) | Hvilke ressurser som er gitt til hvilke behov, og hvor mange |
@@ -126,6 +126,7 @@ Databasen er laget for å følge **tredje normalform (3NF)**: hver opplysning la
   - Poststedet avhenger av postnummeret, ikke av adressen. Derfor ligger det i `PostalCodes`, og `Locations` har bare postnummeret.
   - Kategorinavnet ligger i `Categories`, og ressurser og behov har bare `CategoryId`.
   - Navn, e-post og telefon til eieren ligger bare i `AspNetUsers`. Ressurser og behov har `UserId`, så endrer brukeren e-post i innstillingene, stemmer det overalt med en gang.
+  - `ContactName`, `ContactPhone` og `ContactEmail` i `Resources` er ikke en kopi av eieren. De beskriver hvem man kontakter om akkurat den ressursen (f.eks. en vaktmester), og avhenger derfor bare av ressursens nøkkel. Er de tomme, vises eierens telefon fra `AspNetUsers`.
   - Rollene og hva de betyr ligger i `AspNetRoles`, ikke på brukeren.
 
 **Mange-til-mange-relasjoner** er laget med en koblingstabell med sammensatt primærnøkkel og to fremmednøkler. Den sammensatte nøkkelen hindrer duplikater, og `ON DELETE CASCADE` fjerner koblingene når en av sidene slettes:

@@ -1,4 +1,5 @@
 using System.Globalization;
+using Heimevernet.Web.Authorization;
 using Heimevernet.Web.DataAccess;
 using Heimevernet.Web.DataAccess.Identity;
 using Heimevernet.Web.Models.Entities;
@@ -46,7 +47,8 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
     })
     .AddUserStore<DapperUserStore>()  // Brukere -> AspNetUsers, AspNetUserRoles
     .AddRoleStore<DapperRoleStore>()  // Roller  -> AspNetRoles
-    .AddDefaultTokenProviders();      // Trengs f.eks. for "glemt passord" senere.
+    .AddDefaultTokenProviders()       // Trengs f.eks. for "glemt passord" senere.
+    .AddClaimsPrincipalFactory<AppClaimsPrincipalFactory>(); // Legger navnet i innloggingen (se filen).
 
 // Innloggings-cookien krypteres med nøkler (Data Protection). I Docker lagres nøklene i et volum
 // (DataProtection__KeysPath i docker-compose.yml), ellers ville alle blitt logget ut ved hver omstart.
@@ -79,6 +81,9 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LogoutPath = "/Account/Logout";
     options.AccessDeniedPath = "/Account/AccessDenied"; // Logget inn, men mangler riktig rolle.
 });
+
+// Ikke fortell hvilken webserver vi bruker (fjerner headeren "Server: Kestrel").
+builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
 
 var app = builder.Build();
 

@@ -14,7 +14,7 @@
 
         <div>
             <label asp-for="Name" class="form-label"></label>
-            <input asp-for="Name" class="form-control" autocomplete="name" maxlength="100" />
+            <input asp-for="Name" class="form-control" autocomplete="name" maxlength="@InputRules.MaxNameLength" />
             <span asp-validation-for="Name" class="text-danger"></span>
         </div>
         <div>

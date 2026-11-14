@@ -114,6 +114,35 @@ public class InputValidationTests
     }
 
     [Theory]
+    [InlineData("912 34 567", "kari@eksempel.no", true)]
+    [InlineData("1", null, false)]                 // [Phone] godtok dette før
+    [InlineData(null, "a@b", false)]               // [EmailAddress] godtok dette før
+    [InlineData(null, null, true)]                 // Kontaktinfo er valgfri
+    public void ResourceContact_UsesTheSameRulesAsTheProfile(string? phone, string? email, bool valid)
+    {
+        var model = new ResourceViewModel
+        {
+            Name = "Vannpost", Description = "Tankbil", Category = "Vann", ContactPhone = phone, ContactEmail = email
+        };
+
+        Assert.Equal(valid, InvalidFields(model).Count == 0);
+    }
+
+    [Fact]
+    public void Names_AreLimitedTo50Characters()
+    {
+        var fifty = new string('a', 50);
+        var fiftyOne = new string('a', 51);
+
+        Assert.Empty(InvalidFields(new ProfileViewModel { Name = fifty, Email = "kari@eksempel.no" }));
+        Assert.Contains(nameof(ProfileViewModel.Name), InvalidFields(new ProfileViewModel { Name = fiftyOne, Email = "kari@eksempel.no" }));
+        Assert.Contains(nameof(ResourceViewModel.Name),
+            InvalidFields(new ResourceViewModel { Name = fiftyOne, Description = "Tankbil", Category = "Vann" }));
+        Assert.Contains(nameof(ResourceViewModel.ContactName),
+            InvalidFields(new ResourceViewModel { Name = "Vannpost", Description = "Tankbil", Category = "Vann", ContactName = fiftyOne }));
+    }
+
+    [Theory]
     [InlineData(0, false)]
     [InlineData(1, true)]
     [InlineData(100000, true)]

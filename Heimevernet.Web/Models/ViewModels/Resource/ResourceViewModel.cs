@@ -10,7 +10,7 @@ namespace Heimevernet.Web.Models.ViewModels.Resource
         public int? Id { get; set; }
 
         [Required(ErrorMessage = "Skriv et navn.")]
-        [StringLength(100, ErrorMessage = "Navnet kan ha maks {1} tegn.")]
+        [StringLength(InputRules.MaxNameLength, ErrorMessage = "Navnet kan ha maks {1} tegn.")]
         [Display(Name = "Navn")]
         public string Name { get; set; } = string.Empty;
 
@@ -50,6 +50,25 @@ namespace Heimevernet.Web.Models.ViewModels.Resource
 
         [Range(-180, 180, ErrorMessage = "Ugyldig lengdegrad.")]
         public double? Longitude { get; set; }
+
+        // Kontaktinfo for ressursen (valgfritt). Tomt = eierens telefon fra profilen vises.
+        // Samme regler som registrering og profil (Models/InputRules.cs), så et telefonnummer er gyldig likt overalt.
+        [StringLength(InputRules.MaxNameLength, ErrorMessage = "Kontaktnavnet kan ha maks {1} tegn.")]
+        [RegularExpression(InputRules.PersonName, ErrorMessage = InputRules.PersonNameMessage)]
+        [Display(Name = "Kontaktperson")]
+        public string? ContactName { get; set; }
+
+        [DataType(DataType.PhoneNumber)] // Gir type="tel" i HTML. Selve sjekken er regexen under.
+        [RegularExpression(InputRules.Phone, ErrorMessage = InputRules.PhoneMessage)]
+        [StringLength(20, ErrorMessage = "Telefonnummeret kan ha maks {1} tegn.")]
+        [Display(Name = "Telefon")]
+        public string? ContactPhone { get; set; }
+
+        [DataType(DataType.EmailAddress)] // Gir type="email" i HTML. Selve sjekken er regexen under.
+        [RegularExpression(InputRules.Email, ErrorMessage = InputRules.EmailMessage)]
+        [StringLength(255, ErrorMessage = "E-posten kan ha maks {1} tegn.")]
+        [Display(Name = "E-post")]
+        public string? ContactEmail { get; set; }
 
         public bool HasPosition => Latitude is not null && Longitude is not null;
 
@@ -103,6 +122,9 @@ namespace Heimevernet.Web.Models.ViewModels.Resource
             Latitude = resource.Latitude,
             Longitude = resource.Longitude,
             HasImage = resource.HasImage,
+            ContactName = resource.ContactName,
+            ContactPhone = resource.ContactPhone,
+            ContactEmail = resource.ContactEmail,
             OwnerName = resource.OwnerName ?? resource.OwnerEmail,
             OwnerPhone = resource.OwnerPhone,
             RegisteredAt = resource.RegisteredAt

@@ -1,6 +1,6 @@
 # Resultat: system- og sikkerhetstest
 
-Kjørt 2026-11-06 21:34 mot http://localhost:8080. **83 av 83 bestått.**
+Kjørt 2026-11-14 13:32 mot http://localhost:8080. **87 av 87 bestått.**
 
 ## System
 
@@ -15,7 +15,7 @@ Kjørt 2026-11-06 21:34 mot http://localhost:8080. **83 av 83 bestått.**
 | ✅ | Admin gir Kari rollen Offentlig |  |
 | ✅ | Forsiden (kart) åpnes for innlogget bruker | 200 |
 | ✅ | Forsiden har pluss-knappen for å sette en pinne og registrere en ressurs |  |
-| ✅ | Offentlig ser alle ressursene fra databasen | 14 ressurser |
+| ✅ | Offentlig ser alle ressursene fra databasen | 6 ressurser |
 | ✅ | Ressurssiden åpnes | 200 |
 | ✅ | Ressurs uten eier: Offentlig ser ikke Endre/Slett |  |
 | ✅ | Privat ser bare sine egne ressurser (ingen ennå) |  |
@@ -26,7 +26,8 @@ Kjørt 2026-11-06 21:34 mot http://localhost:8080. **83 av 83 bestått.**
 | ✅ | Innlogget bruker kan åpne "Ny ressurs" | 200 |
 | ✅ | Ressurs uten navn blir avvist med feilmelding | 200 |
 | ✅ | Ugyldig e-post i kontaktinfo blir avvist | 200 |
-| ✅ | Bruker legger til ressurs | /Resource/Index/21 |
+| ✅ | Ugyldig telefon i kontaktinfo blir avvist | 200 |
+| ✅ | Bruker legger til ressurs | /Resource/Index/19 |
 | ✅ | Ressursen lagres med alle felt og eier |  |
 | ✅ | Punktet fra kartet lagres og vises på ressurssiden |  |
 | ✅ | Kontaktinfoen på ressursen vises med ring- og e-postknapp |  |
@@ -34,7 +35,7 @@ Kjørt 2026-11-06 21:34 mot http://localhost:8080. **83 av 83 bestått.**
 | ✅ | Ressurslisten har punktet, så avstand og kartmarkør kan vises |  |
 | ✅ | Ressurslisten har filtre for avstand, kategori, sted og sortering |  |
 | ✅ | "Legg til ressurs her" fra kartet fyller inn punktet i skjemaet |  |
-| ✅ | Ressurs med bilde og kategorien Annet lagres | /Resource/Index/22 |
+| ✅ | Ressurs med bilde og kategorien Annet lagres | /Resource/Index/20 |
 | ✅ | Eier får bildet (image/png) | 200 image/png |
 | ✅ | Offentlig får bildet | 200 |
 | ✅ | Privat ser sine egne ressurser i listen |  |
@@ -49,11 +50,14 @@ Kjørt 2026-11-06 21:34 mot http://localhost:8080. **83 av 83 bestått.**
 | ✅ | Innstillinger viser info om brukeren | 200 |
 | ✅ | Bruker endrer navn og telefon i innstillingene |  |
 | ✅ | Det nye navnet vises i menyen med en gang |  |
+| ✅ | Navn med tall blir avvist | 200 |
 | ✅ | Bytte passord med feil nåværende passord blir avvist | 200 |
 | ✅ | Bruker bytter passord: det nye virker, det gamle ikke | 302 200 302 |
 | ✅ | Bruker kan laste ned sine data | 200 |
 | ✅ | Admin sletter en bruker, og hen kan ikke logge inn lenger | 302 200 |
 | ✅ | Etter utlogging kreves innlogging igjen | http://localhost:8080/Account/Login?ReturnUrl=%2FResourceHandler%2FCreate |
+| ✅ | Etter omstart: data er beholdt og ikke duplisert | 8 før, 8 etter |
+| ✅ | Etter omstart: admin er fortsatt logget inn | 200 |
 
 ## Sikkerhet
 
@@ -62,21 +66,21 @@ Kjørt 2026-11-06 21:34 mot http://localhost:8080. **83 av 83 bestått.**
 | ✅ | Header X-Content-Type-Options: nosniff | nosniff |
 | ✅ | Header X-Frame-Options: DENY (clickjacking) | DENY |
 | ✅ | Header Referrer-Policy | strict-origin-when-cross-origin |
-| ✅ | Header Permissions-Policy | geolocation=(), camera=(), microphone=() |
+| ✅ | Header Permissions-Policy | geolocation=(self), camera=(), microphone=() |
 | ✅ | Utlogget: forsiden sender til innlogging | http://localhost:8080/Account/Login?ReturnUrl=%2F |
 | ✅ | Utlogget: ressurslisten sender til innlogging | http://localhost:8080/Account/Login?ReturnUrl=%2FResourceHandler |
-| ✅ | Utlogget: ressurssiden sender til innlogging | http://localhost:8080/Account/Login?ReturnUrl=%2FResource%2FIndex%2F21 |
+| ✅ | Utlogget: ressurssiden sender til innlogging | http://localhost:8080/Account/Login?ReturnUrl=%2FResource%2FIndex%2F19 |
 | ✅ | Innloggingssiden er åpen og har ikke "Fortsett uten å logge inn" | 200 |
 | ✅ | Registreringssiden er åpen | 200 |
 | ✅ | Logo og CSS lastes uten innlogging (innloggingssiden ser riktig ut) | 200 |
 | ✅ | Utlogget: "Ny ressurs" krever innlogging | http://localhost:8080/Account/Login?ReturnUrl=%2FResourceHandler%2FCreate |
-| ✅ | Utlogget: Endre krever innlogging | http://localhost:8080/Account/Login?ReturnUrl=%2FResourceHandler%2FEdit%2F21 |
+| ✅ | Utlogget: Endre krever innlogging | http://localhost:8080/Account/Login?ReturnUrl=%2FResourceHandler%2FEdit%2F19 |
 | ✅ | Utlogget: brukeradministrasjon krever innlogging | http://localhost:8080/Account/Login?ReturnUrl=%2FUserAdmin |
 | ✅ | Vanlig bruker får "Ingen tilgang" på brukeradministrasjon | http://localhost:8080/Account/AccessDenied?ReturnUrl=%2FUserAdmin |
-| ✅ | Annen bruker får "Ingen tilgang" på Endre (GET) | http://localhost:8080/Account/AccessDenied?ReturnUrl=%2FResourceHandler%2FEdit%2F21 |
-| ✅ | Annen bruker får "Ingen tilgang" på Slett (GET) | http://localhost:8080/Account/AccessDenied?ReturnUrl=%2FResourceHandler%2FDelete%2F21 |
-| ✅ | Annen bruker kan ikke endre ved å sende POST direkte | http://localhost:8080/Account/AccessDenied?ReturnUrl=%2FResourceHandler%2FEdit%2F21 |
-| ✅ | Annen bruker kan ikke slette ved å sende POST direkte | http://localhost:8080/Account/AccessDenied?ReturnUrl=%2FResourceHandler%2FDelete%2F21 |
+| ✅ | Annen bruker får "Ingen tilgang" på Endre (GET) | http://localhost:8080/Account/AccessDenied?ReturnUrl=%2FResourceHandler%2FEdit%2F19 |
+| ✅ | Annen bruker får "Ingen tilgang" på Slett (GET) | http://localhost:8080/Account/AccessDenied?ReturnUrl=%2FResourceHandler%2FDelete%2F19 |
+| ✅ | Annen bruker kan ikke endre ved å sende POST direkte | http://localhost:8080/Account/AccessDenied?ReturnUrl=%2FResourceHandler%2FEdit%2F19 |
+| ✅ | Annen bruker kan ikke slette ved å sende POST direkte | http://localhost:8080/Account/AccessDenied?ReturnUrl=%2FResourceHandler%2FDelete%2F19 |
 | ✅ | Ressursen er uendret etter angrepene |  |
 | ✅ | CSRF: Slett uten token blir blokkert (400) | 400 |
 | ✅ | CSRF: Ny ressurs uten token blir blokkert (400) | 400 |

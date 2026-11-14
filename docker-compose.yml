@@ -12,9 +12,10 @@ services:
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-heimevernet-dev}
       MARIADB_DATABASE: heimevernetdb # Databasen lages automatisk første gang.
     ports:
-      # Gjør databasen tilgjengelig fra Windows på port 3307, slik at web-prosjektet kan kjøres
+      # Gjør databasen tilgjengelig på port 3307, slik at web-prosjektet kan kjøres
       # direkte i Visual Studio (profilen "http") mot den samme databasen. 3306 er ofte opptatt.
-      - "3307:3306"
+      # 127.0.0.1 = bare maskinen selv kommer til databasen, ikke andre på nettverket eller internett.
+      - "127.0.0.1:3307:3306"
     volumes:
       - mariadb-data:/var/lib/mysql # Dataene overlever at containeren stoppes.
     healthcheck:
@@ -32,7 +33,9 @@ services:
     ports:
       - "8080:8080"                           # http://localhost:8080
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
+      # Production er standard: feil viser en generell feilside, ikke kode og stack trace.
+      # Lokalt kan du sette ASPNETCORE_ENVIRONMENT=Development i .env for å se de detaljerte feilene.
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       # "mariadb" er navnet på tjenesten over. Inne i Docker-nettverket fungerer det som et vertsnavn.
       ConnectionStrings__heimevernetdb: "Server=mariadb;Port=3306;Database=heimevernetdb;User=root;Password=${MARIADB_ROOT_PASSWORD:-heimevernet-dev}"
       AdminUser__Email: ${ADMIN_EMAIL:-admin@heimevernet.local}

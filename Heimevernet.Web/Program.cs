@@ -1,10 +1,12 @@
 using System.Globalization;
+using System.Threading.RateLimiting;
 using Heimevernet.Web.Authorization;
 using Heimevernet.Web.DataAccess;
 using Heimevernet.Web.DataAccess.Identity;
 using Heimevernet.Web.Models.Entities;
 using Heimevernet.Web.Security;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +16,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
 
 builder.Services.AddControllersWithViews();
+
+// Anti-forgery-cookien (CSRF-beskyttelsen) får "secure"-flagget når siden brukes over https,
+// så nettleseren aldri sender den over ukryptert http. Lokalt over http virker den som før.
+// (Innloggings-cookien fra Identity gjør dette allerede som standard.)
+builder.Services.AddAntiforgery(options => options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest);
 
 // Tilkoblingsstrengen kommer fra docker-compose.yml (miljøvariabelen ConnectionStrings__heimevernetdb),
 // eller fra user secrets hvis du kjører web-prosjektet direkte i Visual Studio.
@@ -82,8 +89,38 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.AccessDeniedPath = "/Account/AccessDenied"; // Logget inn, men mangler riktig rolle.
 });
 
-// Ikke fortell hvilken webserver vi bruker (fjerner headeren "Server: Kestrel").
-builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
+// Bak en tunnel eller proxy (f.eks. Cloudflare Tunnel) tar proxyen imot HTTPS og sender forespørselen videre
+// til appen som vanlig HTTP. Proxyen legger da på headerne X-Forwarded-Proto (https) og X-Forwarded-For (brukerens IP).
+// UseForwardedHeaders (under) leser dem, så appen vet at brukeren egentlig bruker https og hvem det er.
+// Vi stoler BARE på dem fra maskinen selv: 127.0.0.1 (standard) og Docker-nettverket 172.16.0.0/12, som er
+// det appen i containeren ser når tunnelen kjører på serveren. Sender noen andre slike headere, ignoreres de,
+// ellers kunne hvem som helst late som de kom fra en annen IP-adresse.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse("172.16.0.0/12"));
+});
+
+// Rate limiting på innlogging og registrering (se Security/RateLimits.cs).
+// Hver IP-adresse får sin egen "bøtte" (partition) med AuthPermitLimit forsøk per minutt.
+// Blir bøtta tom, svarer appen 429 Too Many Requests til minuttet er over.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy(RateLimits.Auth, context => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "ukjent",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = RateLimits.AuthPermitLimit,
+            Window = RateLimits.AuthWindow,
+            QueueLimit = 0 // Ingen kø: forsøk over grensen avvises med en gang.
+        }));
+    options.OnRejected = async (rejected, cancellationToken) =>
+    {
+        rejected.HttpContext.Response.ContentType = "text/plain; charset=utf-8";
+        await rejected.HttpContext.Response.WriteAsync("For mange forsøk. Vent ett minutt og prøv igjen.", cancellationToken);
+    };
+});
 
 var app = builder.Build();
 
@@ -104,6 +141,9 @@ using (var scope = app.Services.CreateScope())
         scope.ServiceProvider.GetRequiredService<ILogger<Program>>());
 }
 
+// Må være FØRST i kjeden: alt etterpå (HTTPS-omdirigering, cookies, rate limiting) skal se den
+// ekte protokollen (https) og den ekte IP-adressen til brukeren, ikke proxyens.
+app.UseForwardedHeaders();
 
 if (!app.Environment.IsDevelopment())
 {
@@ -144,6 +184,7 @@ app.UseRequestLocalization(new RequestLocalizationOptions
 });
 
 app.UseRouting(); // Rekkefølgen hver forespørsel går gjennom.
+app.UseRateLimiter(); // Etter UseRouting, så den vet hvilken action (og dermed hvilken policy) forespørselen går til.
 
 app.UseAuthentication(); // Leser innloggings-cookien og finner ut HVEM brukeren er.
 app.UseAuthorization();  // Sjekker om brukeren har LOV til å se siden ([Authorize]).

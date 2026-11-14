@@ -44,7 +44,11 @@ Things to know before adding one:
   so you'd either move them into `.js` files or use a "nonce" (a random value per request).
 - You'd need to allow the OpenStreetMap tile server for images and Google Fonts (see item 4).
 
-## 3. Docker always runs in "Development" mode (security, medium)
+## 3. ✅ FIXED: Docker always runs in "Development" mode (security, medium)
+
+> Fixed: `docker-compose.yml` now defaults to `Production` (override with `ASPNETCORE_ENVIRONMENT=Development` in `.env`).
+> Also added: `UseForwardedHeaders` (trusted only from 127.0.0.1 and the Docker network), rate limiting on
+> login/register (30 per IP per minute), database port bound to `127.0.0.1`, and a `secure` anti-forgery cookie over HTTPS.
 
 **Where:** `docker-compose.yml` sets `ASPNETCORE_ENVIRONMENT: Development`.
 

@@ -52,7 +52,7 @@ docker compose down -v       # stopper og sletter volumer (database og innloggin
 
 | Innstilling | Sted | Beskrivelse |
 |---|---|---|
-| `ASPNETCORE_ENVIRONMENT` | `docker-compose.yml` | `Development` / `Production` |
+| `ASPNETCORE_ENVIRONMENT` | `.env` (valgfri), som `docker-compose.yml` sender videre | `Production` er standard. Sett `Development` lokalt for detaljerte feilsider |
 | `ConnectionStrings__heimevernetdb` | `docker-compose.yml` / `launchSettings.json` | Tilkobling til MariaDB: `Server=mariadb` inne i Docker, `localhost:3307` når web-appen kjører i Visual Studio |
 | `DataProtection__KeysPath` | `docker-compose.yml` | Mappe for innloggingsnøklene (volumet `dataprotection-keys`), så brukere forblir innlogget etter omstart |
 | `ADMIN_PASSWORD` | `.env` | Passord til første admin-bruker. Ligger aldri i Git |
@@ -230,7 +230,7 @@ Controllerne kjenner bare grensesnittene (`IResourceRepository`, `INeedRepositor
 
 - `Heimevernet.Web/Dockerfile`: multi-stage build. Steg 1 bruker .NET SDK-imaget til å hente pakker og publisere appen. Steg 2 kopierer bare resultatet inn i det mindre ASP.NET runtime-imaget og starter appen på port 8080 som en vanlig bruker (ikke root).
 - `docker-compose.yml`: to tjenester.
-  - `mariadb` (imaget `mariadb:lts`): databasen. Dataene lagres i volumet `mariadb-data`, så de overlever omstart. En healthcheck sier fra når databasen er klar. Port 3307 er åpen mot Windows for kjøring fra Visual Studio.
+  - `mariadb` (imaget `mariadb:lts`): databasen. Dataene lagres i volumet `mariadb-data`, så de overlever omstart. En healthcheck sier fra når databasen er klar. Port 3307 er åpen bare for maskinen selv (`127.0.0.1`), for kjøring fra Visual Studio.
   - `heimevernet-web`: bygges fra Dockerfile, publiseres på `http://localhost:8080`, får tilkoblingsstrengen og admin-innstillingene som miljøvariabler, og starter først når `mariadb` er klar (`depends_on: service_healthy`). Innloggingsnøklene lagres i volumet `dataprotection-keys`.
 - Inne i Docker-nettverket når web-containeren databasen med vertsnavnet `mariadb`, altså navnet på tjenesten.
 
@@ -338,9 +338,10 @@ Tiltakene under er testet automatisk i `tests/system/system-og-sikkerhetstest.ps
 
 ### Kjente begrensninger
 
-- Lokalt i Docker kjører appen på HTTP. I produksjon (`ASPNETCORE_ENVIRONMENT=Production`) slås HTTPS-omdirigering og HSTS på, men da trengs et sertifikat eller en proxy foran (f.eks. nginx).
-- Vi har ikke Content-Security-Policy, fordi noen views har små `<script>`-blokker og vi bruker Google Fonts og OpenStreetMap. Neste steg er å flytte scriptene til `site.js` og legge til en CSP.
-- MariaDB-porten 3307 er åpen mot maskinen for utvikling i Visual Studio. Den bør fjernes i produksjon.
+- Appen selv har ikke sertifikat. For HTTPS må den ligge bak en tunnel eller proxy (f.eks. Cloudflare Tunnel eller nginx). `UseForwardedHeaders` i `Program.cs` gjør at appen da vet at brukeren er på HTTPS. Den stoler bare på slike headere fra maskinen selv (127.0.0.1 og Docker-nettverket 172.16.0.0/12).
+- Content-Security-Policy tillater fortsatt inline-stiler (`style="..."`) fordi viewene bruker dem til kategorifargene. Scripts er derimot låst med nonce.
+- MariaDB-porten 3307 er bare åpen for maskinen selv (`127.0.0.1`), for utvikling i Visual Studio.
+- Innlogging og registrering er begrenset til 30 forsøk per IP-adresse per minutt (`Security/RateLimits.cs`). Kontoer låses i tillegg etter 5 feil passord.
 - Det er ingen e-postbekreftelse ved registrering, så hvem som helst kan lage en bruker og legge inn ressurser.
 
 ---

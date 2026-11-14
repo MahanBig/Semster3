@@ -83,6 +83,8 @@ $adminEmail = ((Get-Content $envFile | Where-Object { $_ -match '^ADMIN_EMAIL=' 
 if (-not $adminEmail) { $adminEmail = 'admin@heimevernet.local' } # Samme standard som docker-compose.yml
 $adminPassword = ((Get-Content $envFile | Where-Object { $_ -match '^ADMIN_PASSWORD=' }) -split '=', 2)[1]
 $run = Get-Random -Maximum 99999
+# Samme tall som bokstaver (0 = a, 1 = b ...), til navn: navn kan ikke ha tall (InputRules.PersonName).
+$runLetters = -join ("$run".ToCharArray() | ForEach-Object { [char](97 + [int]::Parse("$_")) })
 $password = 'Test1234!x'
 $ola  = "systemtest-ola-$run@example.com"
 $kari = "systemtest-kari-$run@example.com"
@@ -129,7 +131,9 @@ try {
     $r2 = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = ''; Description = 'x'; Category = 'Verktøy'; __RequestVerificationToken = $token }
     Check 'Ressurs uten navn blir avvist med feilmelding' ($r2.StatusCode -eq 200 -and $r2.Content -match 'field-validation-error') "$($r2.StatusCode)"
     $r2 = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = 'x'; Description = 'x'; Category = 'Verktøy'; ContactEmail = 'ikke-en-epost'; __RequestVerificationToken = $token }
-    Check 'Ugyldig e-post i kontaktinfo blir avvist' ($r2.StatusCode -eq 200 -and $r2.Content -match 'Ugyldig e-postadresse') "$($r2.StatusCode)"
+    Check 'Ugyldig e-post i kontaktinfo blir avvist' ($r2.StatusCode -eq 200 -and $r2.Content -match 'gyldig e-postadresse') "$($r2.StatusCode)"
+    $r2 = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = 'x'; Description = 'x'; Category = 'Verktøy'; ContactPhone = '1'; __RequestVerificationToken = $token }
+    Check 'Ugyldig telefon i kontaktinfo blir avvist' ($r2.StatusCode -eq 200 -and $r2.Content -match 'gyldig telefonnummer') "$($r2.StatusCode)"
     $r2 = Req '/ResourceHandler/Create' $olaC 'Post' @{ Name = $name; Description = '5 kW, diesel'; Category = 'Strøm og lading'; Address = 'Storgata 1'; PostalCode = '4790'; PostalPlace = 'Lillesand'; Latitude = '58.249500'; Longitude = '8.377800'; ContactName = 'Vaktmester Per'; ContactPhone = '40000000'; ContactEmail = 'vakt@example.no'; __RequestVerificationToken = $token }
     Check 'Bruker legger til ressurs' ($r2.StatusCode -eq 302 -and (Loc $r2) -match '/Resource/Index/(\d+)') "$(Loc $r2)"
     $newId = if ((Loc $r2) -match '/Resource/Index/(\d+)') { $Matches[1] } else { 0 }
@@ -255,9 +259,13 @@ try {
 
     # Innstillinger: endre navn og passord
     $r = Req '/Settings' $perC; Check 'Innstillinger viser info om brukeren' ($r.StatusCode -eq 200 -and $r.Content -match [regex]::Escape($per) -and $r.Content -match 'Privat') "$($r.StatusCode)"
-    $r2 = Req '/Settings/Profile' $perC 'Post' @{ 'Profile.Name' = "Per Endret $run"; 'Profile.Email' = $per; 'Profile.PhoneNumber' = '98765432'; __RequestVerificationToken = (Token $r) }
-    $r = Req '/Settings' $perC; Check 'Bruker endrer navn og telefon i innstillingene' ($r2.StatusCode -eq 302 -and $r.Content -match "Per Endret $run" -and $r.Content -match '98765432') ''
-    Check 'Det nye navnet vises i menyen med en gang' ($r.Content -match "Logget inn som </span>Per Endret $run</strong>") ''
+    $r2 = Req '/Settings/Profile' $perC 'Post' @{ 'Profile.Name' = "Per Endret $runLetters"; 'Profile.Email' = $per; 'Profile.PhoneNumber' = '98765432'; __RequestVerificationToken = (Token $r) }
+    $r = Req '/Settings' $perC; Check 'Bruker endrer navn og telefon i innstillingene' ($r2.StatusCode -eq 302 -and $r.Content -match "Per Endret $runLetters" -and $r.Content -match '98765432') ''
+    Check 'Det nye navnet vises i menyen med en gang' ($r.Content -match "Logget inn som </span>Per Endret $runLetters</strong>") ''
+    # Navn med tall avvises nå (InputRules.PersonName), både i nettleseren og på serveren.
+    $r = Req '/Settings' $perC
+    $r2 = Req '/Settings/Profile' $perC 'Post' @{ 'Profile.Name' = 'Per 123'; 'Profile.Email' = $per; __RequestVerificationToken = (Token $r) }
+    Check 'Navn med tall blir avvist' ($r2.StatusCode -eq 200 -and $r2.Content -match 'Navnet kan bare ha bokstaver') "$($r2.StatusCode)"
     $r2 = Req '/Settings/Password' $perC 'Post' @{ 'Password.CurrentPassword' = 'FeilPassord1!'; 'Password.NewPassword' = 'NyttPass1!x'; 'Password.ConfirmPassword' = 'NyttPass1!x'; __RequestVerificationToken = (Token $r) }
     Check 'Bytte passord med feil nåværende passord blir avvist' ($r2.StatusCode -eq 200 -and $r2.Content -match 'Feil passord') "$($r2.StatusCode)"
     $r = Req '/Settings' $perC

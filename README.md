@@ -403,7 +403,6 @@ Tiltakene under er testet automatisk i `tests/system/system-og-sikkerhetstest.ps
 | «Container exited unexpectedly with exit code 139» | Feilsøking | Fant at admin-passordet manglet spesialtegn. Appen logger nå en feilmelding i stedet for å krasje |
 | «Is it possible to fully switch to a docker compose instead of aspire?» | Enklere drift | Aspire byttet ut med `docker-compose.yml` |
 | «Kan du sjekke gjennom disse kravene» (lenke til oppgaven) | Se hva som manglet | Liste over krav som var oppfylt, delvis oppfylt og manglet |
-| *TODO: legg til prompts fra de andre i gruppen* | | |
 
 ### Refleksjon
 - Hva fungerte godt med KI: Når vi satt fast med problemer var det et bra verktøy for å forstå problemet og å hjelpe oss med problemet

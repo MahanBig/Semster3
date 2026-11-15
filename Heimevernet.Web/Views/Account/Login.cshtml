@@ -20,7 +20,7 @@
 
         <div>
             <label asp-for="Email" class="form-label"></label>
-            <input asp-for="Email" class="form-control" autocomplete="username" />
+            <input asp-for="Email" class="form-control" autocomplete="username" maxlength="256" />
             <span asp-validation-for="Email" class="text-danger"></span>
         </div>
         <div>

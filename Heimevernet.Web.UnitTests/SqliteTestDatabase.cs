@@ -58,8 +58,7 @@ internal sealed class SqliteTestDatabase : IDbConnectionFactory, IDisposable
             Address TEXT NULL,
             PostalCode TEXT NULL REFERENCES PostalCodes (PostalCode),
             Latitude REAL NULL,
-            Longitude REAL NULL,
-            Description TEXT NULL);
+            Longitude REAL NULL);
 
         CREATE TABLE Categories (
             Id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,7 +79,10 @@ internal sealed class SqliteTestDatabase : IDbConnectionFactory, IDisposable
             RegisteredAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             UserId TEXT NULL,
             CategoryId INTEGER NOT NULL REFERENCES Categories (Id),
-            LocationId INTEGER NULL REFERENCES Locations (Id));
+            LocationId INTEGER NULL REFERENCES Locations (Id),
+            ContactName TEXT NULL,
+            ContactPhone TEXT NULL,
+            ContactEmail TEXT NULL);
 
         CREATE TABLE Needs (
             Id INTEGER PRIMARY KEY AUTOINCREMENT,

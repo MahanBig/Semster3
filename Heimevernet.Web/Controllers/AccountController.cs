@@ -1,9 +1,11 @@
 using Heimevernet.Web.Models;
 using Heimevernet.Web.Models.Entities;
 using Heimevernet.Web.Models.ViewModels.Account;
+using Heimevernet.Web.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Heimevernet.Web.Controllers;
 
@@ -21,6 +23,7 @@ public class AccountController(
 
     [HttpPost, AllowAnonymous]
     [ValidateAntiForgeryToken] // Stopper at en annen nettside sender inn skjemaet på vegne av brukeren (CSRF).
+    [EnableRateLimiting(RateLimits.Auth)] // Maks antall forsøk per IP per minutt (Security/RateLimits.cs).
     public async Task<IActionResult> Login(LoginViewModel model)
     {
         if (!ModelState.IsValid)
@@ -53,6 +56,7 @@ public class AccountController(
 
     [HttpPost, AllowAnonymous]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting(RateLimits.Auth)] // Stopper at et script lager tusenvis av brukere.
     public async Task<IActionResult> Register(RegisterViewModel model)
     {
         if (!model.Consent)

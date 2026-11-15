@@ -6,12 +6,15 @@ namespace Heimevernet.Web.Models.ViewModels.Account;
 public class RegisterViewModel
 {
     [Required(ErrorMessage = "Skriv inn navnet ditt.")]
-    [StringLength(100, ErrorMessage = "Navnet kan ha maks {1} tegn.")]
+    [StringLength(InputRules.MaxNameLength, ErrorMessage = "Navnet kan ha maks {1} tegn.")]
+    [RegularExpression(InputRules.PersonName, ErrorMessage = InputRules.PersonNameMessage)]
     [Display(Name = "Navn")]
     public string Name { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Skriv inn e-post.")]
-    [EmailAddress(ErrorMessage = "Ugyldig e-postadresse.")]
+    [DataType(DataType.EmailAddress)] // Gir type="email" i HTML. Selve sjekken er regexen under.
+    [RegularExpression(InputRules.Email, ErrorMessage = InputRules.EmailMessage)]
+    [StringLength(256, ErrorMessage = "E-posten kan ha maks {1} tegn.")]
     [Display(Name = "E-post")]
     public string Email { get; set; } = string.Empty;
 
@@ -27,7 +30,8 @@ public class RegisterViewModel
     [Display(Name = "Gjenta passord")]
     public string ConfirmPassword { get; set; } = string.Empty;
 
-    [Phone(ErrorMessage = "Ugyldig telefonnummer.")]
+    [DataType(DataType.PhoneNumber)] // Gir type="tel" i HTML (talltastatur på mobil). Selve sjekken er regexen under.
+    [RegularExpression(InputRules.Phone, ErrorMessage = InputRules.PhoneMessage)]
     [StringLength(20, ErrorMessage = "Telefonnummeret kan ha maks {1} tegn.")]
     [Display(Name = "Telefon")]
     public string? PhoneNumber { get; set; }

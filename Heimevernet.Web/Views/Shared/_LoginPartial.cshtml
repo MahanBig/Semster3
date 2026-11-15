@@ -2,11 +2,13 @@
 <div class="sidebar-user">
     @if (User.Identity?.IsAuthenticated == true)
     {
-        var name = User.Identity.Name ?? "";
+        // Navnet fra innloggingen (AppClaimsPrincipalFactory). E-posten vises i verktøytipset.
+        var name = AppClaimsPrincipalFactory.DisplayName(User);
+        var email = User.Identity.Name ?? "";
         var initials = name.Length > 0 ? name.Substring(0, 1).ToUpperInvariant() : "?";
         var role = User.IsInRole(AppRoles.Admin) ? AppRoles.Admin : User.IsInRole(AppRoles.Public) ? AppRoles.Public : AppRoles.Private;
         @* Lenke til innstillingene, der man kan endre navn, e-post og passord. *@
-        <a class="user-chip" asp-controller="Settings" asp-action="Index" title="Innstillinger">
+        <a class="user-chip" asp-controller="Settings" asp-action="Index" title="Innstillinger for @email">
             <span class="avatar" aria-hidden="true">@initials</span>
             <span class="user-chip-text">
                 <span>Innlogget · @role.ToLowerInvariant()</span>

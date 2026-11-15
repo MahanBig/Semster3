@@ -33,7 +33,8 @@
             <li><strong>@role:</strong> @AppRoles.Describe(role)</li>
         }
     </ul>
-    <div class="table-responsive">
+    @* PC: tabell med alt synlig på én rad. Skjules på mobil (se .admin-users-table i site.css). *@
+    <div class="table-responsive admin-users-table">
         <table class="table align-middle admin-table">
             <caption>Velg en rolle og trykk Lagre. Nye brukere blir Privat.</caption>
             <thead>
@@ -48,54 +49,66 @@
             <tbody>
                 @foreach (var user in Model.Users)
                 {
-                    var isMe = user.Id == Model.CurrentUserId;
-                    var selectId = $"role-{user.Id}";
+                    var actions = new AdminUserActions(user, user.Id == Model.CurrentUserId, IdPrefix: "t-");
                     <tr>
                         <td>
-                            <strong>@(user.Name ?? "Ikke oppgitt")@(isMe ? " (deg)" : "")</strong>
+                            <strong>@(user.Name ?? "Ikke oppgitt")@(actions.IsMe ? " (deg)" : "")</strong>
                             <div class="text-muted small-text">@user.Email · registrert @user.CreatedAt.ToString("dd.MM.yyyy")</div>
                         </td>
                         <td>@(user.PhoneNumber ?? "–")</td>
                         <td>@user.ResourceCount</td>
-                        <td>
-                            <form asp-action="SetRole" method="post" class="role-form">
-                                <input type="hidden" name="userId" value="@user.Id" />
-                                <label class="visually-hidden" for="@selectId">Rolle for @user.Email</label>
-                                <select id="@selectId" name="role" class="form-select form-control form-control-sm" disabled="@isMe">
-                                    @if (user.Role is null)
-                                    {
-                                        <option value="" selected>Ingen rolle</option>
-                                    }
-                                    @foreach (var role in AppRoles.All)
-                                    {
-                                        <option value="@role" selected="@(role == user.Role)">@role</option>
-                                    }
-                                </select>
-                                @if (!isMe)
-                                {
-                                    <button type="submit" class="btn-pill btn-pill-outline btn-pill-small">Lagre</button>
-                                }
-                            </form>
-                        </td>
-                        <td>
-                            @if (!isMe)
-                            {
-                                @* <details>: slettingen må bekreftes med et ekstra klikk, uten JavaScript. *@
-                                <details class="confirm-delete">
-                                    <summary class="btn-pill btn-pill-danger-outline btn-pill-small">Slett</summary>
-                                    <form asp-action="DeleteUser" method="post">
-                                        <input type="hidden" name="userId" value="@user.Id" />
-                                        <p>Slette @user.Email? Ressursene hen la inn blir stående uten eier.</p>
-                                        <button type="submit" class="btn-pill btn-pill-danger btn-pill-small">Ja, slett brukeren</button>
-                                    </form>
-                                </details>
-                            }
-                        </td>
+                        <td><partial name="_UserRoleForm" model="actions" /></td>
+                        <td><partial name="_UserDeleteForm" model="actions" /></td>
                     </tr>
                 }
             </tbody>
         </table>
     </div>
+
+    @* Mobil: en liste med brukere. Trykk på en bruker for å se detaljene og endre rolle eller slette.
+       <details>/<summary> er innebygd i nettleseren: det virker uten JavaScript, med tastatur,
+       og skjermlesere sier selv om kortet er åpent eller lukket. Skjules på PC. *@
+    <p class="admin-user-hint">Trykk på en bruker for å endre rolle eller slette. Nye brukere blir Privat.</p>
+    <ul class="admin-user-list">
+        @foreach (var user in Model.Users)
+        {
+            var actions = new AdminUserActions(user, user.Id == Model.CurrentUserId, IdPrefix: "m-");
+            var displayName = user.Name ?? "Ikke oppgitt";
+            <li>
+                <details class="user-card">
+                    <summary>
+                        <span class="avatar" aria-hidden="true">@displayName.Substring(0, 1).ToUpperInvariant()</span>
+                        <span class="user-card-text">
+                            <strong>@displayName@(actions.IsMe ? " (deg)" : "")</strong>
+                            <span>@user.Email</span>
+                        </span>
+                        <span class="role-badge">@(user.Role ?? "Ingen rolle")</span>
+                        <svg class="user-card-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+                    </summary>
+                    <div class="user-card-body">
+                        <dl class="facts">
+                            <div><dt>E-post</dt><dd class="text-break">@user.Email</dd></div>
+                            <div><dt>Telefon</dt><dd>@(user.PhoneNumber ?? "–")</dd></div>
+                            <div><dt>Ressurser</dt><dd>@user.ResourceCount</dd></div>
+                            <div><dt>Registrert</dt><dd>@user.CreatedAt.ToString("dd.MM.yyyy")</dd></div>
+                        </dl>
+                        @if (actions.IsMe)
+                        {
+                            <p class="small-text text-muted m-0">Du kan ikke endre din egen rolle eller slette deg selv.</p>
+                        }
+                        else
+                        {
+                            <div class="user-card-actions">
+                                <span class="filter-label" aria-hidden="true">Rolle</span> @* Skjermlesere får den skjulte <label> i skjemaet i stedet. *@
+                                <partial name="_UserRoleForm" model="actions" />
+                                <partial name="_UserDeleteForm" model="actions" />
+                            </div>
+                        }
+                    </div>
+                </details>
+            </li>
+        }
+    </ul>
 </section>
 
 <section class="panel" id="ressurser" aria-labelledby="ressurser-title">
@@ -106,8 +119,9 @@
     }
     else
     {
+        @* På mobil blir hver rad et lite kort, og data-label blir ledeteksten foran verdien (se .admin-table--stack i site.css). *@
         <div class="table-responsive">
-            <table class="table align-middle admin-table">
+            <table class="table align-middle admin-table admin-table--stack">
                 <thead>
                     <tr>
                         <th scope="col">Navn</th>
@@ -122,12 +136,12 @@
                     @foreach (var resource in Model.Resources)
                     {
                         <tr>
-                            <td><a asp-controller="Resource" asp-action="Index" asp-route-id="@resource.Id">@resource.Name</a></td>
-                            <td>@resource.Category</td>
-                            <td>@(resource.PostalPlace ?? "–")</td>
-                            <td>@(resource.OwnerName ?? "Ingen")</td>
-                            <td><span class="status-line status--@resource.Status"><span class="status-dot" aria-hidden="true"></span>@ResourceStatus.Label(resource.Status)</span></td>
-                            <td class="text-nowrap">
+                            <td class="stack-title"><a asp-controller="Resource" asp-action="Index" asp-route-id="@resource.Id">@resource.Name</a></td>
+                            <td data-label="Kategori">@resource.Category</td>
+                            <td data-label="Sted">@(resource.PostalPlace ?? "–")</td>
+                            <td data-label="Eier">@(resource.OwnerName ?? "Ingen")</td>
+                            <td data-label="Status"><span class="status-line status--@resource.Status"><span class="status-dot" aria-hidden="true"></span>@ResourceStatus.Label(resource.Status)</span></td>
+                            <td class="text-nowrap stack-actions">
                                 <a asp-controller="ResourceHandler" asp-action="Edit" asp-route-id="@resource.Id" class="btn-pill btn-pill-outline btn-pill-small">Endre</a>
                                 <a asp-controller="ResourceHandler" asp-action="Delete" asp-route-id="@resource.Id" class="btn-pill btn-pill-danger-outline btn-pill-small">Slett</a>
                             </td>
@@ -148,7 +162,7 @@
     else
     {
         <div class="table-responsive">
-            <table class="table align-middle admin-table">
+            <table class="table align-middle admin-table admin-table--stack">
                 <thead>
                     <tr>
                         <th scope="col">Tittel</th>
@@ -163,12 +177,12 @@
                     @foreach (var need in Model.Needs)
                     {
                         <tr>
-                            <td><a asp-controller="Need" asp-action="Details" asp-route-id="@need.Id">@need.Title</a></td>
-                            <td>@need.Category</td>
-                            <td>@NeedPriority.Label(need.Priority)</td>
-                            <td>@NeedStatus.Label(need.Status)</td>
-                            <td>@(need.OwnerName ?? "Ingen")</td>
-                            <td class="text-nowrap">
+                            <td class="stack-title"><a asp-controller="Need" asp-action="Details" asp-route-id="@need.Id">@need.Title</a></td>
+                            <td data-label="Kategori">@need.Category</td>
+                            <td data-label="Prioritet">@NeedPriority.Label(need.Priority)</td>
+                            <td data-label="Status">@NeedStatus.Label(need.Status)</td>
+                            <td data-label="Lagt inn av">@(need.OwnerName ?? "Ingen")</td>
+                            <td class="text-nowrap stack-actions">
                                 <a asp-controller="Need" asp-action="Edit" asp-route-id="@need.Id" class="btn-pill btn-pill-outline btn-pill-small">Endre</a>
                                 <a asp-controller="Need" asp-action="Delete" asp-route-id="@need.Id" class="btn-pill btn-pill-danger-outline btn-pill-small">Slett</a>
                             </td>

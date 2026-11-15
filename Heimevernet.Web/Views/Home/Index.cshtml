@@ -64,7 +64,7 @@
 </div>
 
 @section Scripts {
-    <script>
+    <script nonce="@Context.Items[ContentSecurityPolicy.NonceKey]">
         (function () {
             var mapElement = document.getElementById('map');
             var map = L.map(mapElement, { zoomControl: false });

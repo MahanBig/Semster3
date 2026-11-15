@@ -22,9 +22,9 @@ KriseKlar er en ASP.NET Core MVC-applikasjon som kjører i Docker. Hele appen kr
 ## 1. Drift
 
 ### Forutsetninger
-- Docker 29.4.1 og Docker Compose
+- Docker med Docker Compose (testet med Docker 29.4.1)
 - Git
-- (Ved lokal utvikling uten Docker) .NET SDK 10.0.401
+- (Ved lokal utvikling uten Docker) .NET SDK 10 eller nyere (10.0.100+). Appen er laget for .NET 10 (LTS), men kan også bygges og kjøres med en nyere SDK/runtime, f.eks. .NET 11.
 
 ### Kjøre applikasjonen
 
@@ -39,7 +39,9 @@ Applikasjonen er deretter tilgjengelig på `http://localhost:8080`. Logg inn som
 
 I Visual Studio: sett **docker-compose** som startup-prosjekt og trykk **Docker Compose** på start-knappen. Det krever komponenten **Container development tools** (Visual Studio Installer → Modify → Individual components). Loggene til containerne finnes i Docker Desktop (klikk på containeren → Logs).
 
-**Feilsøking med breakpoints:** Start containerne med `docker compose up -d`, sett **Heimevernet.Web** som startup-prosjekt og kjør profilen **http**. Da kjører web-appen direkte i Visual Studio på `http://localhost:5203` og bruker MariaDB-containeren via port 3307 (tilkoblingsstrengen står i `Properties/launchSettings.json`).
+**Feilsøking med breakpoints:** Start containerne med `docker compose up -d`, sett **Heimevernet.Web** som startup-prosjekt og kjør profilen **http**. Da kjører web-appen direkte i Visual Studio på `http://localhost:5203` og bruker MariaDB-containeren via port 3307 (tilkoblingsstrengen står i `Properties/launchSettings.json`). Profilen kjører i `Development` og bruker root-passordet `heimevernet-dev`. Har du satt et annet `MARIADB_ROOT_PASSWORD` i `.env`, må du endre det i `launchSettings.json` også.
+
+**På en server med egne innstillinger** (f.eks. en annen port): legg dem i `docker-compose.override.yml`, som Compose leser automatisk, og skriv filnavnet i `.git/info/exclude`. Da kolliderer de aldri med `git pull` eller bytte av branch.
 
 ### Stoppe og rydde opp
 
@@ -52,12 +54,12 @@ docker compose down -v       # stopper og sletter volumer (database og innloggin
 
 | Innstilling | Sted | Beskrivelse |
 |---|---|---|
-| `ASPNETCORE_ENVIRONMENT` | `docker-compose.yml` | `Development` / `Production` |
+| `ASPNETCORE_ENVIRONMENT` | `.env` (valgfri), som `docker-compose.yml` sender videre | `Production` er standard. Sett `Development` lokalt for detaljerte feilsider |
 | `ConnectionStrings__heimevernetdb` | `docker-compose.yml` / `launchSettings.json` | Tilkobling til MariaDB: `Server=mariadb` inne i Docker, `localhost:3307` når web-appen kjører i Visual Studio |
 | `DataProtection__KeysPath` | `docker-compose.yml` | Mappe for innloggingsnøklene (volumet `dataprotection-keys`), så brukere forblir innlogget etter omstart |
 | `ADMIN_PASSWORD` | `.env` | Passord til første admin-bruker. Ligger aldri i Git |
 | `ADMIN_EMAIL` | `.env` (valgfri) | E-post til første admin-bruker, standard `admin@heimevernet.local` |
-| `Beredskap__Varsel__Tittel` og `Beredskap__Varsel__Tekst` | `docker-compose.yml` eller `appsettings.json` (valgfri) | Krisevarsel øverst på alle sider. Vises bare når tittelen har en verdi, og i dag bare for admin. Står tomt som standard |
+| `Beredskap__Varsel__Tittel` og `Beredskap__Varsel__Tekst` | `.env` (`VARSEL_TITTEL`, `VARSEL_TEKST`), som `docker-compose.yml` sender videre (valgfri) | Krisevarsel øverst på alle sider. Vises bare når tittelen har en verdi, og i dag bare for admin. Står tomt som standard |
 | `MARIADB_ROOT_PASSWORD` | `.env` (valgfri) | Root-passord til MariaDB, standard `heimevernet-dev` (bare lokal utvikling) |
 
 `.env.example` viser hvilke verdier som finnes. `.env` ligger i `.gitignore`.
@@ -85,7 +87,7 @@ Appen bruker ASP.NET Core Identity. Brukere og roller lagres i MariaDB (tabellen
 
 | Side | Krever |
 |---|---|
-| Logg inn, Registrer deg, feilsiden | Ingenting |
+| Logg inn, Registrer deg, «Ingen tilgang», feilsiden | Ingenting |
 | Alle andre sider: forside med kart, Ressurser, ressursdetaljer, Behov | Innlogging |
 | Endre og slette ressurs (`/ResourceHandler/Edit/{id}`, `/ResourceHandler/Delete/{id}`) | Innlogging, og at du la inn ressursen selv, eller rollen `Admin` |
 | Endre og slette behov (`/Need/Edit/{id}`, `/Need/Delete/{id}`) | Innlogging, og at du meldte inn behovet selv, eller rollen `Admin` |
@@ -108,13 +110,14 @@ Har du en database fra før kategori, lokasjon og behov kom inn, stopper appen v
 | `AspNetUsers` (Bruker) | Brukere: e-post, passord-hash, telefon, navn, samtykke, opprettet |
 | `AspNetRoles` (Rolle) | Roller: navn, beskrivelse, tilgangsnivå, om rollen krever godkjenning |
 | `AspNetUserRoles` (BrukerRolle) | Hvem som har hvilken rolle, og hvem som godkjente den og når |
-| `Resources` (Ressurs) | Ressurser: navn, beskrivelse, antall, status, kategori, lokasjon, eier |
+| `Resources` (Ressurs) | Ressurser: navn, beskrivelse, antall, status, kategori, lokasjon, eier og valgfri kontaktinfo |
 | `ResourceImages` | Bildet til en ressurs (høyst ett). Egen tabell, så de store bildedataene bare leses når bildet vises |
 | `Needs` (Behov) | Behov: tittel, beskrivelse, antall, prioritet, status, frist, kategori, lokasjon, organisasjon, hvem som meldte det inn |
 | `Allocations` (Tildeling) | Hvilke ressurser som er gitt til hvilke behov, og hvor mange |
 | `Categories` (Kategori) | De åtte kategoriene (Mat, Vann, ..., Annet). Legges inn av `Schema.sql` |
 | `Locations` (Lokasjon) og `PostalCodes` (Poststed) | Adressen til en ressurs eller et behov, og postnummer med poststed |
-| `Organizations`, `Competences`, `UserOrganizations`, `UserCompetences`, `ResourceCompetences` | Organisasjoner og kompetanser. Tabellene finnes, men har ingen sider i appen ennå |
+| `Organizations` (Organisasjon) | Organisasjoner et behov kan meldes inn på vegne av (nedtrekkslisten i behovsskjemaet). Fem legges inn av `Schema.sql` (Kristiansand kommune, Sivilforsvaret, Heimevernet, Røde Kors, Norsk Folkehjelp) |
+| `Competences`, `UserOrganizations`, `UserCompetences`, `ResourceCompetences` | Kompetanser og koblinger fra ER-diagrammet. Tabellene finnes, men har ingen sider i appen ennå |
 
 ### Normalisering
 
@@ -126,6 +129,7 @@ Databasen er laget for å følge **tredje normalform (3NF)**: hver opplysning la
   - Poststedet avhenger av postnummeret, ikke av adressen. Derfor ligger det i `PostalCodes`, og `Locations` har bare postnummeret.
   - Kategorinavnet ligger i `Categories`, og ressurser og behov har bare `CategoryId`.
   - Navn, e-post og telefon til eieren ligger bare i `AspNetUsers`. Ressurser og behov har `UserId`, så endrer brukeren e-post i innstillingene, stemmer det overalt med en gang.
+  - `ContactName`, `ContactPhone` og `ContactEmail` i `Resources` er ikke en kopi av eieren. De beskriver hvem man kontakter om akkurat den ressursen (f.eks. en vaktmester), og avhenger derfor bare av ressursens nøkkel. Er de tomme, vises eierens telefon fra `AspNetUsers`.
   - Rollene og hva de betyr ligger i `AspNetRoles`, ikke på brukeren.
 
 **Mange-til-mange-relasjoner** er laget med en koblingstabell med sammensatt primærnøkkel og to fremmednøkler. Den sammensatte nøkkelen hindrer duplikater, og `ON DELETE CASCADE` fjerner koblingene når en av sidene slettes:
@@ -229,8 +233,8 @@ Controllerne kjenner bare grensesnittene (`IResourceRepository`, `INeedRepositor
 
 - `Heimevernet.Web/Dockerfile`: multi-stage build. Steg 1 bruker .NET SDK-imaget til å hente pakker og publisere appen. Steg 2 kopierer bare resultatet inn i det mindre ASP.NET runtime-imaget og starter appen på port 8080 som en vanlig bruker (ikke root).
 - `docker-compose.yml`: to tjenester.
-  - `mariadb` (imaget `mariadb:lts`): databasen. Dataene lagres i volumet `mariadb-data`, så de overlever omstart. En healthcheck sier fra når databasen er klar. Port 3307 er åpen mot Windows for kjøring fra Visual Studio.
-  - `heimevernet-web`: bygges fra Dockerfile, publiseres på `http://localhost:8080`, får tilkoblingsstrengen og admin-innstillingene som miljøvariabler, og starter først når `mariadb` er klar (`depends_on: service_healthy`). Innloggingsnøklene lagres i volumet `dataprotection-keys`.
+  - `mariadb` (imaget `mariadb:lts`): databasen. Dataene lagres i volumet `mariadb-data`, så de overlever omstart. En healthcheck sier fra når databasen er klar. Port 3307 er åpen bare for maskinen selv (`127.0.0.1`), for kjøring fra Visual Studio.
+  - `heimevernet-web`: bygges fra Dockerfile, publiseres på `http://localhost:8080`, kjører i `Production` som standard, får tilkoblingsstrengen og admin-innstillingene som miljøvariabler, og starter først når `mariadb` er klar (`depends_on: service_healthy`). Innloggingsnøklene lagres i volumet `dataprotection-keys`.
 - Inne i Docker-nettverket når web-containeren databasen med vertsnavnet `mariadb`, altså navnet på tjenesten.
 
 ---
@@ -239,7 +243,7 @@ Controllerne kjenner bare grensesnittene (`IResourceRepository`, `INeedRepositor
 
 ### Automatiske tester
 
-`Heimevernet.Web.UnitTests` har tester for controllerne, Dapper-repositoriene, seederne, Identity-stores og tilgangsregelen for ressurser (`ResourcePermissionsTests`, `ResourceEditDeleteTests`). Databasetestene kjører den samme SQL-en mot en midlertidig SQLite-database i minnet (`SqliteTestDatabase.cs`), så det trengs ingen MariaDB-server. GitHub Actions kjører testene og bygger Docker-imaget ved hver push og pull request til `main`.
+`Heimevernet.Web.UnitTests` har tester for controllerne, Dapper-repositoriene, seederne, Identity-stores, tilgangsregelen for ressurser (`ResourcePermissionsTests`, `ResourceEditDeleteTests`), reglene for skjemafeltene (`InputValidationTests`), Content-Security-Policy (`ContentSecurityPolicyTests`) og rate limiting på innlogging (`RateLimitingTests`). Databasetestene kjører den samme SQL-en mot en midlertidig SQLite-database i minnet (`SqliteTestDatabase.cs`), så det trengs ingen MariaDB-server. GitHub Actions kjører testene og bygger Docker-imaget ved hver push og pull request til `main`.
 
 ```bash
 dotnet test --project .\Heimevernet.Web.UnitTests\Heimevernet.Web.UnitTests.csproj
@@ -266,6 +270,7 @@ Testscenarioer:
 | SQL-injeksjon | `'); DROP TABLE Resources; --` lagres som vanlig tekst, tabellen finnes fortsatt |
 | Åpen redirect | `ReturnUrl=https://evil.example.com` ved innlogging blir ignorert |
 | Passord og konto | Svakt passord avvises, samme e-post kan ikke brukes to ganger, samme feilmelding for ukjent e-post og feil passord, kontoen låses etter 5 feil passord |
+| Inputregler | Ugyldig e-post og telefon i kontaktinfoen til en ressurs avvises, og navn med tall avvises |
 | Headere og cookie | Sikkerhets-headerne er med på alle svar, og innloggings-cookien er `HttpOnly` |
 
 **Resultat:** se [Testresultater](#testresultater) under.
@@ -284,9 +289,9 @@ Malen ligger i [`docs/brukervennlighetstest.md`](docs/brukervennlighetstest.md):
 | 2 | Logg inn og åpne Ressurser | En liste med ressurser fra databasen vises | Bestått |
 | 3 | Klikk på en ressurs | Detaljsiden for ressursen vises | Bestått |
 | 4 | Åpne en hvilken som helst side uten å være logget inn | Sendes til innloggingssiden. Etter innlogging kommer man tilbake til siden | Bestått |
-| 5 | Registrer en ny bruker | Logges inn automatisk med rollen Bruker | Bestått |
-| 6 | Logg inn som Bruker og åpne /UserAdmin | Siden «Ingen tilgang» vises | Bestått |
-| 7 | Logg inn som admin, åpne Brukere og gi en bruker Admin-rollen | Rollen vises i tabellen og lagres i AspNetUserRoles | Bestått |
+| 5 | Registrer en ny bruker | Logges inn automatisk med rollen Privat | Bestått |
+| 6 | Logg inn som Privat-bruker og åpne /UserAdmin | Siden «Ingen tilgang» vises | Bestått |
+| 7 | Logg inn som admin, åpne Admin → Brukere og roller og gi en bruker Admin-rollen | Rollen vises i tabellen og lagres i AspNetUserRoles | Bestått |
 | 8 | Som innlogget bruker: Ressurser → Ny ressurs, fyll ut og lagre | Detaljsiden viser den nye ressursen med «Ressursen ble lagret» og «Lagt inn av …» | Bestått |
 | 9 | Start web-containeren på nytt (`docker compose restart heimevernet-web`) | Ressurser og brukere er der fortsatt, og man er fortsatt logget inn | Bestått |
 | 10 | Åpne din egen ressurs, trykk Endre, bytt beskrivelse og lagre | Detaljsiden viser den nye beskrivelsen og «Endringene ble lagret» | Bestått |
@@ -296,12 +301,12 @@ Malen ligger i [`docs/brukervennlighetstest.md`](docs/brukervennlighetstest.md):
 
 ### Testresultater
 
-Kjørt 5. november 2026 mot appen i Docker (`docker compose up --build -d`).
+Enhetstestene og system- og sikkerhetstesten er kjørt 14. november 2026 mot appen i Docker i `Production`-modus (`docker compose up --build -d`). De manuelle testene er fra 5. november.
 
 | Test | Antall | Bestått |
 |---|---|---|
-| Enhetstester (`dotnet test`) | 88 | 88 ✅ |
-| Systemtest (`tests/system/system-og-sikkerhetstest.ps1`) | 47 | 47 ✅ |
+| Enhetstester (`dotnet test`) | 138 | 138 ✅ |
+| Systemtest (`tests/system/system-og-sikkerhetstest.ps1`) | 52 | 52 ✅ |
 | Sikkerhetstest (samme skript) | 35 | 35 ✅ |
 | Manuelle tester (tabellen over) | 13 | 13 ✅ |
 | Brukervennlighetstest | *TODO* | *TODO* |
@@ -309,6 +314,10 @@ Kjørt 5. november 2026 mot appen i Docker (`docker compose up --build -d`).
 Hele listen med hver enkelt sjekk står i [`tests/system/resultat.md`](tests/system/resultat.md).
 
 **Funn underveis:** Første kjøring (3. november) ga 54 av 55. Sjekken for låsing av konto feilet, men databasen viste at kontoen faktisk ble låst (`LockoutEnd` var satt). Feilen var i testen: Razor HTML-koder «å» i feilmeldingen som `&#xE5;`, så teksten «låst» ble ikke funnet. Testen ble rettet til å se etter «Kontoen er midlertidig».
+
+**Funn 14. november:**
+- Etter de nye inputreglene feilet 3 sjekker. Appen avviste det den skulle, men testen så etter den gamle feilmeldingen for e-post («Ugyldig e-postadresse») og brukte et navn med tall («Per Endret 48213»), som navneregelen avviser med vilje. Testen ble oppdatert, og fikk 2 nye sjekker for inputreglene.
+- Med rate limiting på 20 forsøk per minutt feilet sjekken «Admin sletter en bruker» med 429: testen gjør selv 21 innloggings- og registreringsforsøk på under ett minutt. Grensen ble satt til 30.
 
 ---
 
@@ -320,27 +329,35 @@ Tiltakene under er testet automatisk i `tests/system/system-og-sikkerhetstest.ps
 |---|---|---|
 | Passord på avveie | Passord lagres aldri i klartekst. Identity lagrer en saltet hash (PBKDF2). Krav: minst 8 tegn, stor og liten bokstav, tall og spesialtegn | `Program.cs` (`AddIdentity`), `DataAccess/Identity/DapperUserStore.cs` |
 | Gjetting av passord (brute force) | Kontoen låses i 5 minutter etter 5 feil passord | `Program.cs` (`Lockout`), `Controllers/AccountController.cs` (`lockoutOnFailure: true`) |
+| Automatiske angrep og masseregistrering | Rate limiting: maks 30 innloggings- og registreringsforsøk per IP-adresse per minutt, ellers `429 Too Many Requests`. Låsingen beskytter én konto, rate limiting hele appen (f.eks. ett passord prøvd mot mange kontoer) | `Security/RateLimits.cs`, `Program.cs` (`AddRateLimiter`, `UseRateLimiter`), `Controllers/AccountController.cs` (`[EnableRateLimiting]`) |
 | Finne ut hvilke e-poster som finnes | Samme feilmelding for ukjent e-post og feil passord | `Controllers/AccountController.cs` |
 | Uautorisert tilgang | Alle sider krever innlogging (`FallbackPolicy`), bortsett fra de som er merket `[AllowAnonymous]` (logg inn, registrer, feilside). `[Authorize]` på sider som krever innlogging og `[Authorize(Roles = Admin)]` på admin-sider. For endring og sletting sjekker controlleren i tillegg at brukeren eier ressursen eller er admin, både på GET og POST, så det hjelper ikke å skrive adressen selv eller sende en POST direkte | `Program.cs`, `Controllers/ResourceHandlerController.cs`, `Authorization/ResourcePermissions.cs`, `Controllers/UserAdminController.cs` |
 | Overposting (sende med felt man ikke skal kunne endre) | Eier, status på behov og `CanModify` har `[BindNever]`, så de kan ikke sendes inn fra et skjema. Eieren (`UserId`) settes alltid fra innlogget bruker på serveren, og `UPDATE`-setningene endrer aldri `UserId`. Kategori og organisasjon fra skjemaet slås opp i databasen før lagring | `Models/ViewModels/Resource/ResourceViewModel.cs`, `DataAccess/DapperResourceRepository.cs` |
 | SQL-injeksjon | All SQL bruker parametere (`@Name`) via Dapper. Brukerens tekst settes aldri rett inn i SQL-strengen | `DataAccess/` |
-| Cross-site scripting (XSS) | Razor HTML-koder alt som skrives ut (`@Model.Name`) | `Views/` |
+| Cross-site scripting (XSS) | Razor HTML-koder alt som skrives ut (`@Model.Name`), og `site.js` bruker `textContent` for tekst fra brukere. Skulle et script likevel komme inn, stopper Content-Security-Policy det: bare våre egne filer og inline-scripts med riktig nonce (ny for hver forespørsel) får kjøre | `Views/`, `wwwroot/js/site.js`, `Security/ContentSecurityPolicy.cs` |
 | Cross-site request forgery (CSRF) | Alle skjema har en anti-forgery-token, og alle POST-actions har `[ValidateAntiForgeryToken]` | `Controllers/` |
 | Åpen redirect | `ReturnUrl` etter innlogging brukes bare hvis den peker til vår egen side (`Url.IsLocalUrl`) | `Controllers/AccountController.cs` |
-| Stjålet innloggings-cookie | Cookien er `HttpOnly` (JavaScript kan ikke lese den) og krypteres med Data Protection. Nøklene lagres i et eget volum | `Program.cs`, `docker-compose.yml` |
-| Clickjacking og andre nettleserangrep | Sikkerhets-headere på alle svar: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy` | `Program.cs` |
+| Stjålet innloggings-cookie | Cookien er `HttpOnly` (JavaScript kan ikke lese den) og krypteres med Data Protection. Nøklene lagres i et eget volum. Over https får både innloggings- og anti-forgery-cookien `secure`-flagget | `Program.cs`, `docker-compose.yml` |
+| Clickjacking og andre nettleserangrep | Sikkerhets-headere på alle svar: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy` (posisjon bare for egen side, kamera og mikrofon av) og `Content-Security-Policy` (med `frame-ancestors 'none'`). Headeren `Server: Kestrel` er fjernet | `Program.cs`, `Security/ContentSecurityPolicy.cs` |
+| Falske proxy-headere | Bak en tunnel leser appen `X-Forwarded-For`/`X-Forwarded-Proto` (`UseForwardedHeaders`, først i kjeden), men stoler bare på dem fra maskinen selv (127.0.0.1 og Docker-nettverket 172.16.0.0/12) | `Program.cs` |
+| Åpen databaseport | MariaDB-porten er bundet til `127.0.0.1:3307`, så bare maskinen selv når databasen | `docker-compose.yml` |
 | Farlige filer som «bilder» | Opplastede bilder sjekkes på serveren ut fra de første bytene i filen (JPEG, PNG, WebP), ikke filnavnet eller typen nettleseren oppgir. Maks 5 MB, og forespørsler over grensen avvises før de leses inn (`RequestSizeLimit`). Bildet serveres med typen serveren fant og `nosniff` | `Models/ImageUpload.cs`, `Controllers/ResourceHandlerController.cs` |
-| Ugyldige data | Validering med attributter (`[Required]`, `[StringLength]`, `[RegularExpression]` for postnummer, `[Phone]`) både i nettleseren og på serveren (`ModelState.IsValid`) | `Models/ViewModels/` |
+| Ugyldige data | Felles regler i `Models/InputRules.cs`: telefon (8–15 siffer), e-post, navn og poststed uten tall, navn maks 50 tegn, 4-sifret postnummer, antall 1–100 000, frist ikke i fortiden for nye behov. Brukes med `[RegularExpression]`, `[StringLength]` og `[Range]`, og sjekkes både i nettleseren og på serveren (`ModelState.IsValid`) | `Models/InputRules.cs`, `Models/ViewModels/` |
 | Hemmeligheter i Git | Admin-passordet og root-passordet til databasen ligger i `.env`, som er i `.gitignore` | `.env.example`, `.gitignore` |
 | Container blir tatt over | Web-containeren kjører som en vanlig bruker, ikke root (`USER $APP_UID`). Runtime-imaget har ikke SDK-en | `Heimevernet.Web/Dockerfile` |
-| Feilmeldinger som avslører kode | I produksjon vises en generell feilside (`UseExceptionHandler`), ikke stack trace | `Program.cs` |
+| Feilmeldinger som avslører kode | `Production` er standard i Docker, og da vises en generell feilside (`UseExceptionHandler`), ikke stack trace. `Development` må slås på bevisst i `.env` | `Program.cs`, `docker-compose.yml` |
 
 ### Kjente begrensninger
 
-- Lokalt i Docker kjører appen på HTTP. I produksjon (`ASPNETCORE_ENVIRONMENT=Production`) slås HTTPS-omdirigering og HSTS på, men da trengs et sertifikat eller en proxy foran (f.eks. nginx).
-- Vi har ikke Content-Security-Policy, fordi noen views har små `<script>`-blokker og vi bruker Google Fonts og OpenStreetMap. Neste steg er å flytte scriptene til `site.js` og legge til en CSP.
-- MariaDB-porten 3307 er åpen mot maskinen for utvikling i Visual Studio. Den bør fjernes i produksjon.
+- Appen selv har ikke sertifikat. For HTTPS må den ligge bak en tunnel eller proxy (f.eks. Cloudflare Tunnel eller nginx) som kjører på samme maskin. Brukes den direkte over http (f.eks. `http://10.0.0.81:8081`), går passord og cookie ukryptert.
+- Appen logger inn i databasen som `root`, og standardpassordet `heimevernet-dev` står i `docker-compose.yml`. Bruk alltid et sterkt `MARIADB_ROOT_PASSWORD` i `.env`. Bedre: en egen databasebruker med bare de rettighetene appen trenger.
+- Content-Security-Policy tillater fortsatt inline-stiler (`style="..."`) fordi viewene bruker dem til kategorifargene. Scripts er derimot låst med nonce.
+- Telleren for rate limiting ligger i minnet. Den nullstilles ved omstart, og kjøres flere kopier av appen, teller hver for seg.
+- Skriften lastes fra Google Fonts og kartflisene fra openstreetmap.org, så besøkendes IP-adresse sendes dit.
 - Det er ingen e-postbekreftelse ved registrering, så hvem som helst kan lage en bruker og legge inn ressurser.
+- En slettet eller ukjent ressurs gir HTTP 404 med en tom side (ingen egen «Siden finnes ikke»-side).
+- Finnes et postnummer fra før, brukes poststedet som står i databasen, selv om brukeren skrev noe annet (f.eks. «Kristiansand» i stedet for «Kristiansand S»).
+- Systemtesten lager 3 testbrukere og 2 testressurser hver gang den kjøres. Kjør den bare mot en lokal database.
 
 ---
 
@@ -348,7 +365,9 @@ Tiltakene under er testet automatisk i `tests/system/system-og-sikkerhetstest.ps
 
 - Koden er kommentert på norsk der det skjer noe som ikke er åpenbart: hvorfor vi bruker parametere i SQL (SQL injection), anti-forgery-tokens (CSRF), optimistisk låsing med `ConcurrencyStamp` og hvorfor innloggingsnøklene lagres i et volum.
 - `Schema.sql` beskriver hver tabell og de viktigste kolonnene.
-- `Program.cs` forklarer rekkefølgen på oppstart (tabeller → eksempeldata → roller og admin) og på middleware (`UseAuthentication` før `UseAuthorization`).
+- `Program.cs` forklarer rekkefølgen på oppstart (tabeller → eksempeldata → roller og admin) og på middleware: `UseForwardedHeaders` først (så alt etterpå ser ekte https og IP), `UseRateLimiter` etter `UseRouting` (må vite hvilken action), og `UseAuthentication` før `UseAuthorization`.
+- `Models/InputRules.cs`, `Security/ContentSecurityPolicy.cs` og `Security/RateLimits.cs` forklarer hver regel og hvorfor den finnes.
+- `docs/review-report.md` er en gjennomgang av koden med kjente svakheter, og hvilke som er fikset.
 - `docker-compose.yml` og `Dockerfile` forklarer hvert steg.
 
 ---
@@ -357,11 +376,11 @@ Tiltakene under er testet automatisk i `tests/system/system-og-sikkerhetstest.ps
 
 ### Verktøy
 
-| Verktøy | Hva vi brukte det til |
-|---|---|
-| Claude (claude.ai, med tilgang til prosjektmappen) | Forklaring av prosjektet, Identity og roller, overgang fra EF til Dapper, Docker Compose, feilsøking, frontend fra designet, krav 3, sikkerhetstester |
-| Claude Design | Designet «Beredskapskart» (farger, skrift, sideoppsett) |
-| Claude Code (desktop-appen, med tilgang til prosjektmappen) | Sjekke kravene, fjerne posisjon, æring av systemet |
+| Verktøy | Hvem brukte det | Hva vi brukte det til |
+|---|---|---|
+| Claude (claude.ai og Claude Code-appen, med tilgang til prosjektmappen) | Mahan | Forklaring av prosjektet, Identity og roller, overgang fra EF til Dapper, Docker Compose, feilsøking, frontend fra designet, krav 3, sikkerhetstester, gjennomgang av koden, sikkerhetstiltak og klargjøring for publisering |
+| Claude Design | Mahan | Designet «Beredskapskart» (farger, skrift, sideoppsett) |
+| *TODO: andre verktøy (ChatGPT, Copilot …)* | *TODO* | *TODO* |
 
 ### Bruk i hver fase
 
@@ -369,9 +388,9 @@ Tiltakene under er testet automatisk i `tests/system/system-og-sikkerhetstest.ps
 |---|---|---|
 | Idé og planlegging | Gikk gjennom kravene i oppgaven og laget en liste over hva som manglet (krav 3, 8, 9 og 12) | Valgte hva vi skulle prioritere |
 | Design | Claude Design laget designet «Beredskapskart». Claude gjorde det om til Razor-sider og CSS | Valgte design og sjekket det på PC og mobil |
-| Koding | Skrev overgangen fra Entity Framework til Dapper (repositoriene, Identity-stores og `Schema.sql`), Docker Compose-oppsettet, lagring av kartposisjoner, og legge til / endre / slette ressurser med eierskap | Kjørte koden, gikk gjennom den og forklarte den med egne ord før den ble lagt inn |
+| Koding | Skrev overgangen fra Entity Framework til Dapper (repositoriene, Identity-stores og `Schema.sql`), Docker Compose-oppsettet, lagring av kartposisjoner, og legge til / endre / slette ressurser med eierskap. Senere: .NET 10 LTS med roll-forward, kart og admin-side som virker på alle skjermstørrelser, felles inputregler (`InputRules.cs`), Content-Security-Policy med nonce, rate limiting og oppsett for publisering bak en tunnel | Kjørte koden, gikk gjennom den og forklarte den med egne ord før den ble lagt inn |
 | Testing | Skrev enhetstester og system- og sikkerhetstesten, og malen for brukervennlighetstesten | Kjørte testene og gjennomførte brukervennlighetstesten |
-| Feilsøking | Fant årsaken til feil, f.eks. at containeren krasjet med kode 139 (for svakt admin-passord), at Visual Studio og terminalen brukte hver sin database (ulikt prosjektnavn i Compose) og at kartet ble smalt (Leaflet måtte få beskjed om ny størrelse) | Beskrev problemet og testet løsningen |
+| Feilsøking | Fant årsaken til feil, f.eks. at containeren krasjet med kode 139 (for svakt admin-passord), at Visual Studio og terminalen brukte hver sin database (ulikt prosjektnavn i Compose) og at kartet ble smalt (Leaflet måtte få beskjed om ny størrelse). Senere: at `Permissions-Policy: geolocation=()` blokkerte «Bruk min posisjon» for vår egen side, og at kartet ikke fylte skjermen (`calc(100vh - 48px)`) | Beskrev problemet og testet løsningen |
 | Dokumentasjon | Hjalp med struktur og innhold i README | Skrev om og fylte inn det som gjelder gruppen |
 
 ### Eksempler på prompts

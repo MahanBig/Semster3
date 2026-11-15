@@ -154,7 +154,7 @@
 </div>
 
 @section Scripts {
-    <script>
+    <script nonce="@Context.Items[ContentSecurityPolicy.NonceKey]">
         (function () {
             var root = document.querySelector('[data-resource-filter]');
 

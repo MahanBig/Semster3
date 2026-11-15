@@ -134,7 +134,7 @@ public class SettingsController(
             user.CreatedAt,
             Roles = (await roleVerification.GetRolesAsync(user.Id)).Select(role => role.RoleName),
             Resources = resourceRepository.GetAll().Where(resource => resource.UserId == user.Id)
-                .Select(resource => new { resource.Name, resource.Description, resource.CategoryName, resource.Quantity, resource.Status, resource.Address, resource.PostalCode, resource.PostalPlace, resource.Latitude, resource.Longitude, resource.RegisteredAt }),
+                .Select(resource => new { resource.Name, resource.Description, resource.CategoryName, resource.Quantity, resource.Status, resource.Address, resource.PostalCode, resource.PostalPlace, resource.Latitude, resource.Longitude, resource.ContactName, resource.ContactPhone, resource.ContactEmail, resource.RegisteredAt }),
             Needs = needRepository.GetAll().Where(need => need.UserId == user.Id)
                 .Select(need => new { need.Title, need.Description, need.Quantity, need.Priority, need.Status, need.RegisteredAt })
         };

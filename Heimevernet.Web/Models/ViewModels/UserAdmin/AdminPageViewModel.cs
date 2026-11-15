@@ -23,3 +23,8 @@ public class AdminUserRow
     public string? Role { get; init; } // Den aktive rollen (Admin, Offentlig eller Privat). Null = ingen.
     public int ResourceCount { get; init; }
 }
+
+// Det skjemaene for rolle og sletting (_UserRoleForm, _UserDeleteForm) trenger.
+// Skjemaene vises to steder (tabellen på PC og kortene på mobil). IdPrefix gjør at id-ene blir unike på siden,
+// ellers ville to <select> fått samme id, og <label for="..."> ville pekt på feil felt.
+public record AdminUserActions(AdminUserRow User, bool IsMe, string IdPrefix);

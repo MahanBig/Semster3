@@ -30,7 +30,8 @@
 <body>
     <a href="#main" class="visually-hidden-focusable">Hopp til innholdet</a>
 
-    <div class="app">
+    @* app--full: sider som kartet låses til nøyaktig én skjermhøyde, så innholdet kan fylle hele høyden. *@
+    <div class="app@(fullWidth ? " app--full" : "")">
         <aside class="sidebar" data-sidebar>
             <a class="brand" asp-controller="Home" asp-action="Index">
                 <img class="brand-mark" src="~/img/kriseklar.svg" alt="" />
@@ -118,8 +119,7 @@
         </div>
     </div>
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @* jQuery lastes bare på sider med skjema (_ValidationScriptsPartial). Bootstrap brukes bare for CSS, ikke JavaScript. *@
     <script src="~/lib/leaflet/dist/leaflet.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)

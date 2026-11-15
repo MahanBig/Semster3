@@ -24,7 +24,7 @@ public class NeedViewModel : IValidatableObject
     [Display(Name = "Kategori")]
     public string Category { get; set; } = string.Empty;
 
-    [Range(1, 100000, ErrorMessage = "Antall må være mellom {1} og {2}.")]
+    [Range(InputRules.MinQuantity, InputRules.MaxQuantity, ErrorMessage = "Antall må være mellom {1} og {2}.")]
     [Display(Name = "Antall som trengs")]
     public int Quantity { get; set; } = 1;
 
@@ -43,11 +43,12 @@ public class NeedViewModel : IValidatableObject
     [Display(Name = "Adresse")]
     public string? Address { get; set; }
 
-    [RegularExpression(@"^\d{4}$", ErrorMessage = "Postnummer må være 4 siffer.")]
+    [RegularExpression(InputRules.PostalCode, ErrorMessage = InputRules.PostalCodeMessage)]
     [Display(Name = "Postnummer")]
     public string? PostalCode { get; set; }
 
     [StringLength(50, ErrorMessage = "Poststedet kan ha maks {1} tegn.")]
+    [RegularExpression(InputRules.PostalPlace, ErrorMessage = InputRules.PostalPlaceMessage)]
     [Display(Name = "Poststed")]
     public string? PostalPlace { get; set; }
 
@@ -87,6 +88,21 @@ public class NeedViewModel : IValidatableObject
         {
             yield return new ValidationResult(
                 "Fyll inn både postnummer og poststed, eller ingen av dem.", [nameof(PostalCode), nameof(PostalPlace)]);
+        }
+
+        if (Deadline is { } deadline)
+        {
+            // Et NYTT behov kan ikke ha en frist som allerede er passert. Ved endring (Id er satt) er det lov,
+            // ellers kunne man aldri lagre et gammelt behov der fristen har gått ut.
+            if (Id is null && deadline.Date < DateTime.Today)
+            {
+                yield return new ValidationResult("Fristen kan ikke være før i dag.", [nameof(Deadline)]);
+            }
+            // Stopper skrivefeil som år 0202 eller 20255. Maks 10 år frem, samme som max-attributtet i _NeedForm.cshtml.
+            if (deadline.Year < 2000 || deadline.Date > DateTime.Today.AddYears(10))
+            {
+                yield return new ValidationResult("Skriv en gyldig dato for fristen.", [nameof(Deadline)]);
+            }
         }
     }
 

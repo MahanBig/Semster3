@@ -18,7 +18,7 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-    <script>
+    <script nonce="@Context.Items[ContentSecurityPolicy.NonceKey]">
         // Radioknappene er skjult, så valideringen må ikke hoppe over dem.
         $.validator.setDefaults({ ignore: [] });
     </script>

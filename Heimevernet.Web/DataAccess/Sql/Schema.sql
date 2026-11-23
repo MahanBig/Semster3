@@ -82,16 +82,6 @@ CREATE TABLE IF NOT EXISTS Organizations (
     PRIMARY KEY (Id)
 );
 
--- Kompetanser og koblingstabellene UserOrganizations, UserCompetences og ResourceCompetences
--- er med fra ER-diagrammet, men brukes ikke i koden ennå.
-CREATE TABLE IF NOT EXISTS Competences (
-    Id INT NOT NULL AUTO_INCREMENT,
-    Name VARCHAR(100) NOT NULL,
-    Certification VARCHAR(100) NULL,
-    Description VARCHAR(255) NULL,
-    PRIMARY KEY (Id)
-);
-
 -- ENUM-verdiene i Resources og Needs må være helt like konstantene i Models/StatusValues.cs.
 -- ON DELETE SET NULL: slettes en bruker, blir ressursene og behovene hen la inn stående uten eier.
 CREATE TABLE IF NOT EXISTS Resources (
@@ -151,30 +141,6 @@ CREATE TABLE IF NOT EXISTS Needs (
     CONSTRAINT FK_Needs_Organizations FOREIGN KEY (OrganizationId) REFERENCES Organizations (Id) ON DELETE SET NULL,
     CONSTRAINT FK_Needs_Categories FOREIGN KEY (CategoryId) REFERENCES Categories (Id),
     CONSTRAINT FK_Needs_Locations FOREIGN KEY (LocationId) REFERENCES Locations (Id) ON DELETE SET NULL
-);
-
-CREATE TABLE IF NOT EXISTS UserOrganizations (
-    UserId VARCHAR(255) NOT NULL,
-    OrganizationId INT NOT NULL,
-    PRIMARY KEY (UserId, OrganizationId),
-    CONSTRAINT FK_UserOrganizations_AspNetUsers FOREIGN KEY (UserId) REFERENCES AspNetUsers (Id) ON DELETE CASCADE,
-    CONSTRAINT FK_UserOrganizations_Organizations FOREIGN KEY (OrganizationId) REFERENCES Organizations (Id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS UserCompetences (
-    UserId VARCHAR(255) NOT NULL,
-    CompetenceId INT NOT NULL,
-    PRIMARY KEY (UserId, CompetenceId),
-    CONSTRAINT FK_UserCompetences_AspNetUsers FOREIGN KEY (UserId) REFERENCES AspNetUsers (Id) ON DELETE CASCADE,
-    CONSTRAINT FK_UserCompetences_Competences FOREIGN KEY (CompetenceId) REFERENCES Competences (Id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS ResourceCompetences (
-    ResourceId INT NOT NULL,
-    CompetenceId INT NOT NULL,
-    PRIMARY KEY (ResourceId, CompetenceId),
-    CONSTRAINT FK_ResourceCompetences_Resources FOREIGN KEY (ResourceId) REFERENCES Resources (Id) ON DELETE CASCADE,
-    CONSTRAINT FK_ResourceCompetences_Competences FOREIGN KEY (CompetenceId) REFERENCES Competences (Id) ON DELETE CASCADE
 );
 
 -- Koblingstabell mellom behov og ressurser. Primærnøkkelen (NeedId, ResourceId) gjør at samme ressurs

@@ -117,7 +117,6 @@ Har du en database fra før kategori, lokasjon og behov kom inn, stopper appen v
 | `Categories` (Kategori) | De åtte kategoriene (Mat, Vann, ..., Annet). Legges inn av `Schema.sql` |
 | `Locations` (Lokasjon) og `PostalCodes` (Poststed) | Adressen til en ressurs eller et behov, og postnummer med poststed |
 | `Organizations` (Organisasjon) | Organisasjoner et behov kan meldes inn på vegne av (nedtrekkslisten i behovsskjemaet). Fem legges inn av `Schema.sql` (Kristiansand kommune, Sivilforsvaret, Heimevernet, Røde Kors, Norsk Folkehjelp) |
-| `Competences`, `UserOrganizations`, `UserCompetences`, `ResourceCompetences` | Kompetanser og koblinger fra ER-diagrammet. Tabellene finnes, men har ingen sider i appen ennå |
 
 ### Normalisering
 
@@ -138,9 +137,6 @@ Databasen er laget for å følge **tredje normalform (3NF)**: hver opplysning la
 |---|---|---|
 | `AspNetUserRoles` | Brukere ↔ roller | Hvem som godkjente rollen og når |
 | `Allocations` | Behov ↔ ressurser | Antall og tidspunkt |
-| `UserOrganizations` | Brukere ↔ organisasjoner | – |
-| `UserCompetences` | Brukere ↔ kompetanser | – |
-| `ResourceCompetences` | Ressurser ↔ kompetanser | – |
 
 **Bevisste unntak:**
 - `ResourceImages` er en 1:0..1-tabell (nøkkelen er `ResourceId`) av hensyn til ytelse, ikke normalisering. Bildene leses bare når de vises.
@@ -162,12 +158,6 @@ erDiagram
     Needs ||--o{ Allocations : får
     Resources ||--o{ Allocations : "gis til"
     Organizations |o--o{ Needs : "på vegne av"
-    AspNetUsers ||--o{ UserOrganizations : ""
-    Organizations ||--o{ UserOrganizations : ""
-    AspNetUsers ||--o{ UserCompetences : ""
-    Competences ||--o{ UserCompetences : ""
-    Resources ||--o{ ResourceCompetences : ""
-    Competences ||--o{ ResourceCompetences : ""
 ```
 
 Statusene oppdateres automatisk når ressurser tildeles (`DataAccess/DapperAllocationRepository.cs`): et behov er `åpen` uten tildelinger, `under_behandling` når noe er tildelt, og `dekket` når summen av tildelt antall når antallet som trengs. En ressurs er `i_bruk` så lenge den er tildelt et behov.
